@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "tsonic-surface-implementation-package",
+  "target": "csharp",
+  "implements": [
+    "@tsonic/nodejs"
+  ],
+  "requiredTypeRoots": [
+    "."
+  ],
+  "targetRuntime": {
+    "frameworkReferences": [
+      {
+        "id": "Microsoft.AspNetCore.App",
+        "types": "@tsonic/aspnetcore"
+      }
+    ],
+    "runtimePackages": [
+      "@tsonic/aspnetcore"
+    ]
+  },
+  "source": {
+    "namespace": "nodejs",
+    "ambient": [
+      "./globals.ts"
+    ],
+    "moduleAliases": {
+      "assert": "./assert.js",
+      "buffer": "./buffer.js",
+      "child_process": "./child_process.js",
+      "console": "./console.js",
+      "crypto": "./crypto.js",
+      "dgram": "./dgram.js",
+      "dns": "./dns.js",
+      "events": "./events.js",
+      "fs": "./fs.js",
+      "http": "./http.js",
+      "net": "./net.js",
+      "node:assert": "./assert.js",
+      "node:buffer": "./buffer.js",
+      "node:child_process": "./child_process.js",
+      "node:console": "./console.js",
+      "node:crypto": "./crypto.js",
+      "node:dgram": "./dgram.js",
+      "node:dns": "./dns.js",
+      "node:events": "./events.js",
+      "node:fs": "./fs.js",
+      "node:http": "./http.js",
+      "node:net": "./net.js",
+      "node:os": "./os.js",
+      "node:path": "./path.js",
+      "node:perf_hooks": "./perf_hooks.js",
+      "node:process": "./process.js",
+      "node:querystring": "./querystring.js",
+      "node:readline": "./readline.js",
+      "node:stream": "./stream.js",
+      "node:string_decoder": "./string_decoder.js",
+      "node:timers": "./timers.js",
+      "node:tls": "./tls.js",
+      "node:url": "./url.js",
+      "node:util": "./util.js",
+      "node:zlib": "./zlib.js",
+      "os": "./os.js",
+      "path": "./path.js",
+      "perf_hooks": "./perf_hooks.js",
+      "process": "./process.js",
+      "querystring": "./querystring.js",
+      "readline": "./readline.js",
+      "stream": "./stream.js",
+      "string_decoder": "./string_decoder.js",
+      "timers": "./timers.js",
+      "tls": "./tls.js",
+      "url": "./url.js",
+      "util": "./util.js",
+      "zlib": "./zlib.js"
+    },
+    "exports": {
+      "./assert.js": "./src/assert-module.ts",
+      "./buffer.js": "./src/buffer/index.ts",
+      "./child_process.js": "./src/child_process/index.ts",
+      "./console.js": "./src/console-module.ts",
+      "./crypto.js": "./src/crypto/index.ts",
+      "./dgram.js": "./src/dgram/index.ts",
+      "./dns.js": "./src/dns/index.ts",
+      ".": "./src/index.ts",
+      "./events.js": "./src/events-module.ts",
+      "./fs.js": "./src/fs-module.ts",
+      "./http.js": "./src/http/index.ts",
+      "./index.js": "./src/index.ts",
+      "./os.js": "./src/os/index.ts",
+      "./path.js": "./src/path-module.ts",
+      "./perf_hooks.js": "./src/perf_hooks/index.ts",
+      "./process.js": "./src/process-module.ts",
+      "./querystring.js": "./src/querystring-module.ts",
+      "./readline.js": "./src/readline/index.ts",
+      "./stream.js": "./src/stream/index.ts",
+      "./string_decoder.js": "./src/string_decoder/index.ts",
+      "./timers.js": "./src/timers-module.ts",
+      "./url.js": "./src/url/index.ts",
+      "./net.js": "./src/net/index.ts",
+      "./tls.js": "./src/tls/index.ts",
+      "./util.js": "./src/util-module.ts",
+      "./zlib.js": "./src/zlib/index.ts"
+    }
+  }
+}

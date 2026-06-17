@@ -1,0 +1,14 @@
+{
+  "schema": "tsonic.surface-implementation",
+  "target": "csharp",
+  "surface": "@tsonic/nodejs",
+  "package": "@tsonic/csharp-nodejs",
+  "runtimePackages": [
+    "Tsonic.CSharp.Runtime",
+    "@tsonic/aspnetcore"
+  ],
+  "source": {
+    "namespace": "nodejs",
+    "exportsFrom": "./tsonic.package.json"
+  }
+}
