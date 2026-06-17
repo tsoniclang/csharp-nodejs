@@ -1,0 +1,69 @@
+{
+  "name": "@tsonic/csharp-nodejs",
+  "version": "10.0.55",
+  "description": "C# target implementation of the @tsonic/nodejs source surface",
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./assert.js": "./src/assert-module.ts",
+    "./buffer.js": "./src/buffer/index.ts",
+    "./child_process.js": "./src/child_process/index.ts",
+    "./console.js": "./src/console-module.ts",
+    "./crypto.js": "./src/crypto/index.ts",
+    "./dgram.js": "./src/dgram/index.ts",
+    "./dns.js": "./src/dns/index.ts",
+    "./events.js": "./src/events-module.ts",
+    "./fs.js": "./src/fs-module.ts",
+    "./http.js": "./src/http/index.ts",
+    "./index.js": {
+      "types": "./index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./os.js": "./src/os/index.ts",
+    "./path.js": "./src/path-module.ts",
+    "./perf_hooks.js": "./src/perf_hooks/index.ts",
+    "./process.js": "./src/process-module.ts",
+    "./querystring.js": "./src/querystring-module.ts",
+    "./readline.js": "./src/readline/index.ts",
+    "./stream.js": "./src/stream/index.ts",
+    "./string_decoder.js": "./src/string_decoder/index.ts",
+    "./timers.js": "./src/timers-module.ts",
+    "./url.js": "./src/url/index.ts",
+    "./net.js": "./src/net/index.ts",
+    "./tls.js": "./src/tls/index.ts",
+    "./util.js": "./src/util-module.ts",
+    "./zlib.js": "./src/zlib/index.ts"
+  },
+  "files": [
+    "index.d.ts",
+    "node-builtins.d.ts",
+    "globals.ts",
+    "src/**/*.ts",
+    "tsonic.package.json",
+    "tsonic.surface-implementation.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "nodejs",
+    "tsonic",
+    "csharp",
+    "dotnet",
+    "surface-implementation"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsoniclang/csharp-nodejs.git"
+  },
+  "dependencies": {
+    "@tsonic/core": "10.0.46",
+    "@tsonic/dotnet": "10.0.46",
+    "@tsonic/js": "10.0.54",
+    "@tsonic/nodejs": "10.0.55"
+  }
+}
