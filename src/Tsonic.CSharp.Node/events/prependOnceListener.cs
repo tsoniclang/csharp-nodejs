@@ -1,0 +1,54 @@
+namespace Tsonic.CSharp.Node;
+
+public partial class EventEmitter
+{
+    /// <summary>
+    /// Adds a one-time listener to the beginning of the listeners array for the specified event.
+    /// </summary>
+    /// <param name="eventName">The name of the event.</param>
+    /// <param name="listener">The callback function.</param>
+    /// <returns>This EventEmitter instance for chaining.</returns>
+    public EventEmitter prependOnceListener(string eventName, Delegate listener)
+    {
+        if (listener == null)
+            throw new ArgumentNullException(nameof(listener));
+
+        // Create a reference to the wrapper so we can remove it
+        Action<object?[]>? wrapper = null;
+        wrapper = (args) =>
+        {
+            // Remove the wrapper itself
+            if (wrapper != null)
+            {
+                removeListener(eventName, wrapper);
+            }
+
+            // Invoke the original listener
+            var method = listener.Method;
+            var parameters = method.GetParameters();
+
+            if (parameters.Length == 0)
+            {
+                listener.DynamicInvoke();
+            }
+            else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(object?[]))
+            {
+                listener.DynamicInvoke(new object?[] { args });
+            }
+            else
+            {
+                listener.DynamicInvoke(args);
+            }
+        };
+
+        // Store the mapping
+        if (!_onceWrappers.ContainsKey(eventName))
+        {
+            _onceWrappers[eventName] = new List<Delegate>();
+        }
+        _onceWrappers[eventName].Insert(0, wrapper);
+
+        prependListener(eventName, wrapper);
+        return this;
+    }
+}

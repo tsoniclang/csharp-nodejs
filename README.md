@@ -1,18 +1,5 @@
-# @tsonic/csharp-nodejs
+# Tsonic C# Node Runtime
 
-C# implementation package for the portable `@tsonic/nodejs` source surface.
+C# implementation of the Node.js surface for the Tsonic C# target.
 
-This package owns .NET-backed Node API behavior for the `csharp` target only.
-It may import `@tsonic/dotnet`, ASP.NET Core bindings, and C# runtime packages.
-The portable `@tsonic/nodejs` package must not.
-
-User source imports remain target-neutral:
-
-```ts
-import { readFileSync } from "@tsonic/nodejs/fs.js";
-
-const text = readFileSync("input.txt", "utf8");
-```
-
-The C# target maps that source operation to this package when building for
-`--target csharp`.
+This repository contains the CLR implementation for Node modules and globals such as `node:fs`, `node:path`, `node:process`, `node:buffer`, streams, crypto, zlib, and related APIs. It is selected only when a Tsonic project uses the Node surface with the C# target.

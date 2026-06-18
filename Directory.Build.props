@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- NativeAOT support -->
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
+    <!-- Package metadata -->
+    <Authors>tsoniclang</Authors>
+    <Company>Tsonic</Company>
+    <Copyright>Copyright © 2025 tsoniclang</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/tsoniclang/csharp-nodejs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/tsoniclang/csharp-nodejs</PackageProjectUrl>
+    <Description>Node.js API implementation for .NET, enabling TypeScript compiled to C# to use Node.js modules.</Description>
+    <PackageTags>tsonic;nodejs;dotnet;typescript</PackageTags>
+
+    <!-- Suppress warnings for lowercase method names (JavaScript convention) -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
+
+    <!-- Centralize build outputs in artifacts/ directory -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>
