@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Tsonic.CSharp.Node</AssemblyName>
+    <RootNamespace>Tsonic.CSharp.Node</RootNamespace>
+    <Version>1.0.7</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Package settings -->
+    <IsPackable>true</IsPackable>
+    <PackageId>Tsonic.CSharp.Node</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../csharp-js/src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>
