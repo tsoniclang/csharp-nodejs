@@ -10,13 +10,16 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Hash : Transform
 {
+    private readonly string _algorithmName;
     private readonly HashAlgorithm? _algorithm;
     private readonly Org.BouncyCastle.Crypto.Digests.ShakeDigest? _shakeDigest;
+    private readonly List<byte[]> _updates = new();
     private readonly bool _isShake;
     private bool _finalized = false;
 
     internal Hash(string algorithm)
     {
+        _algorithmName = algorithm;
         var alg = algorithm.ToLowerInvariant();
 
         // Check if it's a SHAKE algorithm (XOF)
@@ -46,6 +49,7 @@ public class Hash : Transform
 
         var encoding = GetEncoding(inputEncoding ?? "utf8");
         var bytes = encoding.GetBytes(data);
+        _updates.Add((byte[])bytes.Clone());
 
         if (_isShake)
         {
@@ -67,6 +71,8 @@ public class Hash : Transform
     {
         if (_finalized)
             throw new InvalidOperationException("Digest already called");
+
+        _updates.Add((byte[])data.Clone());
 
         if (_isShake)
         {
@@ -154,45 +160,11 @@ public class Hash : Transform
         if (_finalized)
             throw new InvalidOperationException("Cannot copy finalized hash");
 
-        var newHash = new Hash("md5"); // Placeholder, we'll replace the internals
-
-        if (_isShake)
+        var newHash = new Hash(_algorithmName);
+        foreach (var update in _updates)
         {
-            // Clone SHAKE digest
-            var newShake = new ShakeDigest(_shakeDigest!);
-            typeof(Hash).GetField("_shakeDigest", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(newHash, newShake);
-            typeof(Hash).GetField("_isShake", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(newHash, true);
-            typeof(Hash).GetField("_algorithm", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(newHash, null);
+            newHash.update(update);
         }
-        else if (_algorithm is BouncyCastleHashAlgorithm bcHash)
-        {
-            // Clone BouncyCastle hash
-            var digestField = typeof(BouncyCastleHashAlgorithm).GetField("_digest", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var originalDigest = (Org.BouncyCastle.Crypto.IDigest)digestField!.GetValue(bcHash)!;
-
-            // Create new digest of same type and copy state
-            Org.BouncyCastle.Crypto.IDigest newDigest = originalDigest switch
-            {
-                Sha3Digest sha3 => new Sha3Digest(sha3),
-                Blake2bDigest blake2b => new Blake2bDigest(blake2b),
-                Blake2sDigest blake2s => new Blake2sDigest(blake2s),
-                RipeMD160Digest ripemd => new RipeMD160Digest(ripemd),
-                Sha512tDigest sha512t => new Sha512tDigest(sha512t),
-                _ => throw new NotSupportedException($"Copy not supported for {originalDigest.GetType().Name}")
-            };
-
-            var newBcHash = new BouncyCastleHashAlgorithm(newDigest);
-            typeof(Hash).GetField("_algorithm", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(newHash, newBcHash);
-        }
-        else
-        {
-            throw new NotSupportedException("Hash.copy() is only supported for SHAKE and BouncyCastle-based hashes");
-        }
-
         return newHash;
     }
 

@@ -1,5 +1,6 @@
 using Xunit;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Runtime.InteropServices;
@@ -17,7 +18,11 @@ public class ChildProcessExecOptionsTests
         var options = new ExecOptions
         {
             encoding = "utf8",
-            env = new { TEST_VAR = "test_value", PATH = Environment.GetEnvironmentVariable("PATH") }
+            env = new Dictionary<string, string?>
+            {
+                ["TEST_VAR"] = "test_value",
+                ["PATH"] = Environment.GetEnvironmentVariable("PATH")
+            }
         };
         var result = child_process.execSync(command, options);
 
@@ -58,7 +63,7 @@ public class ChildProcessExecOptionsTests
         var options = new ExecOptions
         {
             cwd = "/tmp",
-            env = new { TEST = "value" },
+            env = new Dictionary<string, string?> { ["TEST"] = "value" },
             encoding = "utf8",
             shell = "/bin/sh",
             timeout = 1000,

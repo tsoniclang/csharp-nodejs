@@ -13,42 +13,26 @@ public partial class EventEmitter
         if (listener == null)
             throw new ArgumentNullException(nameof(listener));
 
-        // Create a reference to the wrapper so we can remove it
-        Action<object?[]>? wrapper = null;
-        wrapper = (args) =>
-        {
-            // Remove the wrapper itself
-            if (wrapper != null)
-            {
-                removeListener(eventName, wrapper);
-            }
-
-            // Invoke the original listener
-            var method = listener.Method;
-            var parameters = method.GetParameters();
-
-            if (parameters.Length == 0)
-            {
-                listener.DynamicInvoke();
-            }
-            else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(object?[]))
-            {
-                listener.DynamicInvoke(new object?[] { args });
-            }
-            else
-            {
-                listener.DynamicInvoke(args);
-            }
-        };
-
-        // Store the mapping
-        if (!_onceWrappers.ContainsKey(eventName))
-        {
-            _onceWrappers[eventName] = new List<Delegate>();
-        }
-        _onceWrappers[eventName].Insert(0, wrapper);
-
-        prependListener(eventName, wrapper);
-        return this;
+        return addEventListenerCore(eventName, CreateEventListener(listener, once: true), prepend: true);
     }
+
+    /// <inheritdoc cref="prependOnceListener(string, Delegate)" />
+    public EventEmitter prependOnceListener(string eventName, Action listener) =>
+        addEventListenerCore(eventName, CreateEventListener(listener, _ => listener(), once: true), prepend: true);
+
+    /// <inheritdoc cref="prependOnceListener(string, Delegate)" />
+    public EventEmitter prependOnceListener(string eventName, Action<object?[]> listener) =>
+        addEventListenerCore(eventName, CreateEventListener(listener, args => listener(args), once: true), prepend: true);
+
+    /// <inheritdoc cref="prependOnceListener(string, Delegate)" />
+    public EventEmitter prependOnceListener<T>(string eventName, Action<T> listener) =>
+        addEventListenerCore(eventName, CreateEventListener(listener, args => listener(Argument<T>(args, 0)), once: true), prepend: true);
+
+    /// <inheritdoc cref="prependOnceListener(string, Delegate)" />
+    public EventEmitter prependOnceListener<T1, T2>(string eventName, Action<T1, T2> listener) =>
+        addEventListenerCore(eventName, CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1)), once: true), prepend: true);
+
+    /// <inheritdoc cref="prependOnceListener(string, Delegate)" />
+    public EventEmitter prependOnceListener<T1, T2, T3>(string eventName, Action<T1, T2, T3> listener) =>
+        addEventListenerCore(eventName, CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1), Argument<T3>(args, 2)), once: true), prepend: true);
 }

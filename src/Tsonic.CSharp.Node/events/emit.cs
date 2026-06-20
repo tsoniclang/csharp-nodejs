@@ -33,25 +33,11 @@ public partial class EventEmitter
         {
             try
             {
-                // Check if listener expects parameters
-                var method = listener.Method;
-                var parameters = method.GetParameters();
-
-                if (parameters.Length == 0)
+                if (listener.Once)
                 {
-                    // No parameters expected
-                    listener.DynamicInvoke();
+                    removeStoredListener(eventName, listener);
                 }
-                else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(object?[]))
-                {
-                    // Single params array parameter
-                    listener.DynamicInvoke(new object?[] { args });
-                }
-                else
-                {
-                    // Regular parameters - pass args directly
-                    listener.DynamicInvoke(args);
-                }
+                listener.Invoke(args);
             }
             catch (Exception ex)
             {

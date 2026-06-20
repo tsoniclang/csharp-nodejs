@@ -18,7 +18,6 @@ public partial class EventEmitter
                 removeAllListeners(name);
             }
             _events.Clear();
-            _onceWrappers.Clear();
         }
         else
         {
@@ -28,14 +27,9 @@ public partial class EventEmitter
                 var listeners = _events[eventName].ToList();
                 foreach (var listener in listeners)
                 {
-                    emit("removeListener", eventName, listener);
+                    emit("removeListener", eventName, listener.Original);
                 }
                 _events.Remove(eventName);
-            }
-
-            if (_onceWrappers.ContainsKey(eventName))
-            {
-                _onceWrappers.Remove(eventName);
             }
         }
 

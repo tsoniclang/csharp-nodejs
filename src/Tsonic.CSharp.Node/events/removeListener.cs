@@ -16,13 +16,7 @@ public partial class EventEmitter
         if (!_events.ContainsKey(eventName))
             return this;
 
-        _events[eventName].Remove(listener);
-
-        // Also remove from once wrappers if present
-        if (_onceWrappers.ContainsKey(eventName))
-        {
-            _onceWrappers[eventName].Remove(listener);
-        }
+        _events[eventName].RemoveAll(candidate => ReferenceEquals(candidate.Original, listener));
 
         // Clean up empty event lists
         if (_events[eventName].Count == 0)

@@ -60,7 +60,7 @@ public class prependOnceListenerTests
         var emitter = new EventEmitter();
         var receivedValue = 0;
 
-        emitter.prependOnceListener("test", (int value) => receivedValue = value);
+        emitter.prependOnceListener("test", (Action<object?>)(value => receivedValue = (int)value!));
         emitter.emit("test", 42);
 
         Assert.Equal(42, receivedValue);

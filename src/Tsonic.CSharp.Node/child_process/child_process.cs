@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Tsonic.CSharp.Node;
 
@@ -24,7 +25,7 @@ public class ExecOptions
     /// <summary>
     /// Environment variables to pass to the child process.
     /// </summary>
-    public object? env { get; set; }
+    public IReadOnlyDictionary<string, string?>? env { get; set; }
 
     /// <summary>
     /// Encoding to use for string output ('utf8', 'buffer', etc). Default is 'buffer' (returns byte[]).
@@ -156,14 +157,7 @@ public static class child_process
 
         if (env != null)
         {
-            process.StartInfo.Environment.Clear();
-            var envType = env.GetType();
-            foreach (var prop in envType.GetProperties())
-            {
-                var value = prop.GetValue(env)?.ToString();
-                if (value != null)
-                    process.StartInfo.Environment[prop.Name] = value;
-            }
+            ApplyEnvironment(process.StartInfo, env);
         }
 
         var stdoutData = new StringBuilder();
@@ -263,14 +257,7 @@ public static class child_process
 
         if (env != null)
         {
-            process.StartInfo.Environment.Clear();
-            var envType = env.GetType();
-            foreach (var prop in envType.GetProperties())
-            {
-                var value = prop.GetValue(env)?.ToString();
-                if (value != null)
-                    process.StartInfo.Environment[prop.Name] = value;
-            }
+            ApplyEnvironment(process.StartInfo, env);
         }
 
         var result = new SpawnSyncReturns<byte[]>();
@@ -444,14 +431,7 @@ public static class child_process
 
         if (env != null)
         {
-            process.StartInfo.Environment.Clear();
-            var envType = env.GetType();
-            foreach (var prop in envType.GetProperties())
-            {
-                var value = prop.GetValue(env)?.ToString();
-                if (value != null)
-                    process.StartInfo.Environment[prop.Name] = value;
-            }
+            ApplyEnvironment(process.StartInfo, env);
         }
 
         var childProcess = new ChildProcess(process);
@@ -539,7 +519,7 @@ public static class child_process
 
     // ==================== Helper Methods ====================
 
-    private static (string? shell, string? cwd, object? env, string? encoding, int timeout, int maxBuffer)
+    private static (string? shell, string? cwd, IReadOnlyDictionary<string, string?>? env, string? encoding, int timeout, int maxBuffer)
         ParseExecOptions(ExecOptions? options)
     {
         if (options == null)
@@ -553,6 +533,16 @@ public static class child_process
             options.timeout,
             options.maxBuffer
         );
+    }
+
+    private static void ApplyEnvironment(ProcessStartInfo startInfo, IReadOnlyDictionary<string, string?> env)
+    {
+        startInfo.Environment.Clear();
+        foreach (var pair in env)
+        {
+            if (pair.Value != null)
+                startInfo.Environment[pair.Key] = pair.Value;
+        }
     }
 }
 
