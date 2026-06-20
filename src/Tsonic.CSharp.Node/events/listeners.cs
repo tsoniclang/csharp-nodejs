@@ -12,6 +12,6 @@ public partial class EventEmitter
         if (!_events.ContainsKey(eventName))
             return Array.Empty<Delegate>();
 
-        return _events[eventName].ToArray();
+        return ListenerDelegates(_events[eventName]);
     }
 }
