@@ -86,6 +86,19 @@ public class Hash : Transform
     }
 
     /// <summary>
+    /// Updates the hash content with the given Buffer.
+    /// </summary>
+    /// <param name="data">The Buffer to hash.</param>
+    /// <returns>The Hash object for chaining.</returns>
+    public Hash update(Buffer data)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+
+        return update(data.InternalData);
+    }
+
+    /// <summary>
     /// Calculates the digest of all the data passed to be hashed.
     /// </summary>
     /// <param name="encoding">The encoding of the return value.</param>
@@ -117,6 +130,15 @@ public class Hash : Transform
     public byte[] digest()
     {
         return digestBytes();
+    }
+
+    /// <summary>
+    /// Calculates the digest of all the data passed to be hashed and returns a Buffer.
+    /// </summary>
+    /// <returns>The calculated hash as a Buffer.</returns>
+    public Buffer digestBuffer()
+    {
+        return Buffer.from(digestBytes());
     }
 
     /// <summary>
