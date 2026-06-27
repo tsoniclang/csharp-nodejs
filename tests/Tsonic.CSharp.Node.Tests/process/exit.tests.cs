@@ -12,6 +12,22 @@ public class exitTests
         Assert.NotNull(exit);
     }
 
+    [Fact]
+    public void exit_JavaScriptNumberOverloadExists()
+    {
+        // Generated Tsonic C# passes TypeScript number values as double?/double.
+        Action<double?> exit = process.exit;
+        Assert.NotNull(exit);
+    }
+
+    [Fact]
+    public void exit_NoArgumentOverloadExists()
+    {
+        // We can't invoke it in-process because it would terminate the test runner.
+        Action exit = () => process.exit();
+        Assert.NotNull(exit);
+    }
+
     // Note: We cannot safely test process.exit() as it would terminate the test runner.
     // In a real-world scenario, you would:
     // 1. Spawn a separate process that calls process.exit()
