@@ -39,6 +39,23 @@ public static partial class fs
     }
 
     /// <summary>
+    /// Synchronously writes data from a Buffer to a file descriptor.
+    /// </summary>
+    /// <param name="fd">The file descriptor.</param>
+    /// <param name="buffer">The Buffer to read data from.</param>
+    /// <param name="offset">The position in the Buffer to start reading from.</param>
+    /// <param name="length">The number of bytes to write.</param>
+    /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
+    /// <returns>The number of bytes written.</returns>
+    public static int writeSync(int fd, Buffer buffer, int offset, int length, int? position)
+    {
+        if (buffer == null)
+            throw new ArgumentNullException(nameof(buffer));
+
+        return writeSync(fd, buffer.InternalData, offset, length, position);
+    }
+
+    /// <summary>
     /// Synchronously writes a string to a file descriptor.
     /// </summary>
     /// <param name="fd">The file descriptor.</param>
