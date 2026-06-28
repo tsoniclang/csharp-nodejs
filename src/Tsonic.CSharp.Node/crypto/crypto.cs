@@ -46,6 +46,20 @@ public static partial class crypto
     }
 
     /// <summary>
+    /// Creates and returns an Hmac object that uses the given algorithm and Buffer key.
+    /// </summary>
+    /// <param name="algorithm">The algorithm to use (e.g., 'sha256').</param>
+    /// <param name="key">The HMAC key as a Buffer.</param>
+    /// <returns>An Hmac object.</returns>
+    public static Hmac createHmac(string algorithm, Buffer key)
+    {
+        if (key == null)
+            throw new ArgumentNullException(nameof(key));
+
+        return new Hmac(algorithm, key.InternalData);
+    }
+
+    /// <summary>
     /// Creates and returns a Cipher object with the given algorithm, key, and initialization vector.
     /// </summary>
     /// <param name="algorithm">The algorithm to use (e.g., 'aes-256-cbc').</param>
@@ -113,6 +127,16 @@ public static partial class crypto
     }
 
     /// <summary>
+    /// Generates cryptographically strong pseudo-random data as a Buffer.
+    /// </summary>
+    /// <param name="size">The number of bytes to generate.</param>
+    /// <returns>A Buffer containing random bytes.</returns>
+    public static Buffer randomBytesBuffer(int size)
+    {
+        return Buffer.from(randomBytes(size));
+    }
+
+    /// <summary>
     /// Generates cryptographically strong pseudo-random data asynchronously.
     /// </summary>
     /// <param name="size">The number of bytes to generate.</param>
@@ -163,6 +187,22 @@ public static partial class crypto
         var actualSize = size ?? (buffer.Length - offset);
         var bytes = randomBytes(actualSize);
         Array.Copy(bytes, 0, buffer, offset, actualSize);
+        return buffer;
+    }
+
+    /// <summary>
+    /// Fills a Buffer with random bytes.
+    /// </summary>
+    /// <param name="buffer">The Buffer to fill.</param>
+    /// <param name="offset">The offset to start filling.</param>
+    /// <param name="size">The number of bytes to fill.</param>
+    /// <returns>The filled Buffer.</returns>
+    public static Buffer randomFillSync(Buffer buffer, int offset = 0, int? size = null)
+    {
+        if (buffer == null)
+            throw new ArgumentNullException(nameof(buffer));
+
+        randomFillSync(buffer.InternalData, offset, size);
         return buffer;
     }
 
@@ -348,6 +388,22 @@ public static partial class crypto
             result |= a[i] ^ b[i];
         }
         return result == 0;
+    }
+
+    /// <summary>
+    /// Test for Buffer equality in constant time.
+    /// </summary>
+    /// <param name="a">First Buffer.</param>
+    /// <param name="b">Second Buffer.</param>
+    /// <returns>True if the buffers are equal.</returns>
+    public static bool timingSafeEqual(Buffer a, Buffer b)
+    {
+        if (a == null)
+            throw new ArgumentNullException(nameof(a));
+        if (b == null)
+            throw new ArgumentNullException(nameof(b));
+
+        return timingSafeEqual(a.InternalData, b.InternalData);
     }
 
     /// <summary>

@@ -52,6 +52,19 @@ public class Hmac : Transform
     }
 
     /// <summary>
+    /// Updates the Hmac content with the given Buffer.
+    /// </summary>
+    /// <param name="data">The Buffer to hash.</param>
+    /// <returns>The Hmac object for chaining.</returns>
+    public Hmac update(Buffer data)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+
+        return update(data.InternalData);
+    }
+
+    /// <summary>
     /// Calculates the HMAC digest of all the data passed.
     /// </summary>
     /// <param name="encoding">The encoding of the return value.</param>
@@ -92,6 +105,15 @@ public class Hmac : Transform
         _finalized = true;
         _algorithm.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
         return _algorithm.Hash!;
+    }
+
+    /// <summary>
+    /// Calculates the HMAC digest of all the data passed and returns a Buffer.
+    /// </summary>
+    /// <returns>The calculated HMAC as a Buffer.</returns>
+    public Buffer digestBuffer()
+    {
+        return Buffer.from(digest());
     }
 
 #pragma warning disable CS1591

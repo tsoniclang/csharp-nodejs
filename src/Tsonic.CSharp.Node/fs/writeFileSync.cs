@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 
 namespace Tsonic.CSharp.Node;
@@ -14,5 +15,18 @@ public static partial class fs
     {
         var enc = ParseEncoding(encoding ?? "utf-8");
         File.WriteAllText(path, data, enc);
+    }
+
+    /// <summary>
+    /// Synchronously writes buffer data to a file, replacing the file if it already exists.
+    /// </summary>
+    /// <param name="path">Filename or file path.</param>
+    /// <param name="data">The buffer data to write.</param>
+    public static void writeFileSync(string path, Buffer data)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+
+        File.WriteAllBytes(path, data.InternalData);
     }
 }

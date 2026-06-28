@@ -119,7 +119,8 @@ public class Fs_readSyncTests : IDisposable
         File.WriteAllText(_testFile, "test");
         var fd = fs.openSync(_testFile, "r");
 
-        Assert.Throws<ArgumentNullException>(() => fs.readSync(fd, null!, 0, 10, null));
+        Assert.Throws<ArgumentNullException>(() => fs.readSync(fd, (byte[])null!, 0, 10, null));
+        Assert.Throws<ArgumentNullException>(() => fs.readSync(fd, (Buffer)null!, 0, 10, null));
 
         fs.closeSync(fd);
     }

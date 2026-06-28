@@ -28,6 +28,13 @@ public class URL
     }
 
     /// <summary>
+    /// Creates a new URL object by parsing the input relative to a base URL.
+    /// </summary>
+    public URL(string input, URL @base) : this(input, @base?.href ?? throw new ArgumentNullException(nameof(@base)))
+    {
+    }
+
+    /// <summary>
     /// Gets or sets the serialized URL.
     /// </summary>
     public string href
@@ -232,6 +239,17 @@ public class URL
     }
 
     /// <summary>
+    /// Tests if input can be parsed as a URL relative to a base URL.
+    /// </summary>
+    public static bool canParse(string input, URL @base)
+    {
+        if (@base == null)
+            throw new ArgumentNullException(nameof(@base));
+
+        return canParse(input, @base.href);
+    }
+
+    /// <summary>
     /// Parses a URL string and returns a URL object, or null if parsing fails.
     /// </summary>
     public static URL? parse(string input, string? @base = null)
@@ -244,6 +262,17 @@ public class URL
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Parses a URL string relative to a base URL, or returns null if parsing fails.
+    /// </summary>
+    public static URL? parse(string input, URL @base)
+    {
+        if (@base == null)
+            throw new ArgumentNullException(nameof(@base));
+
+        return parse(input, @base.href);
     }
 
     private bool IsDefaultPort()
