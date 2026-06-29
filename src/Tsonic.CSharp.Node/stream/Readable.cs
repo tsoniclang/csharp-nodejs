@@ -7,7 +7,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// A readable stream is an abstraction for a source from which data is read.
 /// </summary>
-public class Readable : Stream
+public partial class Readable : Stream
 {
     private readonly Queue<object?> _buffer = new Queue<object?>();
     private bool _ended = false;

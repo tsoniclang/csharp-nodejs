@@ -129,7 +129,7 @@ public class TLSServer : Server
 
     private bool ValidateClientCertificate(
         object sender,
-        X509Certificate? certificate,
+        System.Security.Cryptography.X509Certificates.X509Certificate? certificate,
         X509Chain? chain,
         SslPolicyErrors sslPolicyErrors)
     {

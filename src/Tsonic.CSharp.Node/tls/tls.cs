@@ -13,7 +13,7 @@ namespace Tsonic.CSharp.Node;
 /// The tls module provides an implementation of the Transport Layer Security (TLS) and
 /// Secure Socket Layer (SSL) protocols.
 /// </summary>
-public static class tls
+public static partial class tls
 {
     /// <summary>
     /// Client renegotiation limit.

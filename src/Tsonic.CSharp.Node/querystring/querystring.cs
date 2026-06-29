@@ -7,7 +7,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// Utilities for parsing and formatting URL query strings.
 /// </summary>
-public static class querystring
+public static partial class querystring
 {
     /// <summary>
     /// Produces a URL query string from a given object by iterating through the object's properties.
@@ -24,12 +24,23 @@ public static class querystring
         sep ??= "&";
         eq ??= "=";
 
+        return stringifyWithEncoder(obj, sep, eq, escape);
+    }
+
+    private static string stringifyWithEncoder(Dictionary<string, object?>? obj, string? sep, string? eq, Func<string, string> encoder)
+    {
+        if (obj == null || obj.Count == 0)
+            return string.Empty;
+
+        sep ??= "&";
+        eq ??= "=";
+
         var sb = new StringBuilder();
         bool first = true;
 
         foreach (var kvp in obj)
         {
-            var key = escape(kvp.Key);
+            var key = encoder(kvp.Key);
 
             if (kvp.Value is Array arr)
             {
@@ -41,7 +52,7 @@ public static class querystring
 
                     sb.Append(key);
                     sb.Append(eq);
-                    sb.Append(escape(ConvertToString(item)));
+                    sb.Append(encoder(ConvertToString(item)));
                 }
             }
             else if (kvp.Value is System.Collections.IEnumerable enumerable and not string)
@@ -54,7 +65,7 @@ public static class querystring
 
                     sb.Append(key);
                     sb.Append(eq);
-                    sb.Append(escape(ConvertToString(item)));
+                    sb.Append(encoder(ConvertToString(item)));
                 }
             }
             else
@@ -65,7 +76,7 @@ public static class querystring
 
                 sb.Append(key);
                 sb.Append(eq);
-                sb.Append(escape(ConvertToString(kvp.Value)));
+                sb.Append(encoder(ConvertToString(kvp.Value)));
             }
         }
 
@@ -81,6 +92,11 @@ public static class querystring
     /// <param name="maxKeys">Specifies the maximum number of keys to parse. Specify 0 to remove key counting limitations. Default is 1000.</param>
     /// <returns>A dictionary of key-value pairs.</returns>
     public static Dictionary<string, object> parse(string str, string? sep = null, string? eq = null, int maxKeys = 1000)
+    {
+        return parseWithDecoder(str, sep, eq, maxKeys, unescape);
+    }
+
+    private static Dictionary<string, object> parseWithDecoder(string str, string? sep, string? eq, int maxKeys, Func<string, string> decoder)
     {
         var result = new Dictionary<string, object>();
 
@@ -107,12 +123,12 @@ public static class querystring
 
             if (eqIndex >= 0)
             {
-                key = unescape(pair.Substring(0, eqIndex));
-                value = unescape(pair.Substring(eqIndex + eq.Length));
+                key = decoder(pair.Substring(0, eqIndex));
+                value = decoder(pair.Substring(eqIndex + eq.Length));
             }
             else
             {
-                key = unescape(pair);
+                key = decoder(pair);
                 value = "";
             }
 

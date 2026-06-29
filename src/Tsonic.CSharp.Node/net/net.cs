@@ -68,6 +68,14 @@ public static class net
     }
 
     /// <summary>
+    /// Creates a new socket connection with normalized connection options.
+    /// </summary>
+    public static Socket connect(ConnectOptions options, Action? connectionListener = null)
+    {
+        return connect((TcpSocketConnectOpts)options, connectionListener);
+    }
+
+    /// <summary>
     /// Creates a new IPC socket connection.
     /// </summary>
     /// <param name="path">Path to connect to</param>
@@ -94,6 +102,26 @@ public static class net
     public static Socket createConnection(TcpSocketConnectOpts options, Action? connectionListener = null)
     {
         return connect(options, connectionListener);
+    }
+
+    /// <summary>
+    /// Alias for connect() with normalized connection options.
+    /// </summary>
+    public static Socket createConnection(ConnectOptions options, Action? connectionListener = null)
+    {
+        return connect(options, connectionListener);
+    }
+
+    /// <summary>
+    /// Returns a closed endpoint carrier for a resolved address.
+    /// </summary>
+    public static LookupEndpoint lookupEndpoint(string address)
+    {
+        return new LookupEndpoint
+        {
+            address = address,
+            family = isIP(address)
+        };
     }
 
     /// <summary>
