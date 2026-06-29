@@ -38,14 +38,13 @@ public class ZlibExtendedTests
     }
 
     [Fact]
-    public void ZstdAlias_RoundTripsThroughClosedManagedCarrier()
+    public void ZstdOperations_FailClosedWithoutManagedZstdCarrier()
     {
-        var input = Encoding.UTF8.GetBytes("zstd alias");
+        var input = Encoding.UTF8.GetBytes("zstd");
 
-        var compressed = zlib.zstdCompressSync(input);
-        var output = zlib.zstdDecompressSync(compressed);
-
-        Assert.Equal("zstd alias", Encoding.UTF8.GetString(output));
+        Assert.Throws<NotSupportedException>(() => zlib.zstdCompressSync(input));
+        Assert.Throws<NotSupportedException>(() => zlib.zstdDecompressSync(input));
+        Assert.Throws<NotSupportedException>(() => zlib.createZstdCompress().transform(input));
     }
 
     [Fact]

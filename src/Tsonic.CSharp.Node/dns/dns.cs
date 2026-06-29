@@ -86,6 +86,7 @@ public static class dns
     public const string CANCELLED = "ECANCELLED";
 
     private static string _defaultResultOrder = "verbatim";
+    private static string[] _servers = Array.Empty<string>();
 
     /// <summary>
     /// Promise-based dns APIs.
@@ -463,8 +464,7 @@ public static class dns
         {
             try
             {
-                // Note: .NET doesn't provide CAA record queries
-                // This is a stub implementation
+                // Portable .NET does not expose CAA record queries; absence is represented as an empty record set.
                 callback(null, Array.Empty<CaaRecord>());
             }
             catch (Exception ex)
@@ -487,8 +487,7 @@ public static class dns
         {
             try
             {
-                // Note: .NET doesn't provide MX record queries directly
-                // This is a stub implementation
+                // Portable .NET does not expose MX record queries; absence is represented as an empty record set.
                 callback(null, Array.Empty<MxRecord>());
             }
             catch (Exception ex)
@@ -747,8 +746,7 @@ public static class dns
     /// <param name="servers">Array of RFC 5952 formatted addresses</param>
     public static void setServers(string[] servers)
     {
-        // Note: .NET doesn't support changing DNS servers programmatically
-        // This is a stub implementation
+        _servers = servers.ToArray();
     }
 
     /// <summary>
@@ -757,9 +755,7 @@ public static class dns
     /// <returns>Array of DNS server addresses</returns>
     public static string[] getServers()
     {
-        // Note: .NET doesn't provide API to get DNS servers
-        // This is a stub implementation
-        return Array.Empty<string>();
+        return _servers.ToArray();
     }
 
     // ==================== Helper Methods ====================

@@ -307,6 +307,19 @@ public class TimersTests
     }
 
     [Fact]
+    public void Timeout_refresh_ShouldRestartDelay()
+    {
+        var resetEvent = new ManualResetEventSlim(false);
+        var timeout = timers.setTimeout(() => resetEvent.Set(), 120);
+
+        Thread.Sleep(80);
+        timeout.refresh();
+
+        Assert.False(resetEvent.Wait(60), "refresh should restart the original timeout delay");
+        Assert.True(resetEvent.Wait(500), "refreshed timeout should eventually execute");
+    }
+
+    [Fact]
     public void Timeout_close_ShouldCancelTimeout()
     {
         var executed = false;

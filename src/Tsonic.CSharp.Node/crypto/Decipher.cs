@@ -165,7 +165,7 @@ public class Decipher : Transform
     public void setAuthTag(byte[] buffer)
     {
         if (!_isGcmMode)
-            throw new NotImplementedException("setAuthTag is only supported for GCM modes");
+            throw new NotSupportedException("setAuthTag is only supported for authenticated cipher modes.");
 
         if (_finalized)
             throw new InvalidOperationException("Cannot set auth tag after finalization");
@@ -180,7 +180,7 @@ public class Decipher : Transform
     public void setAAD(byte[] buffer)
     {
         if (!_isGcmMode)
-            throw new NotImplementedException("setAAD is only supported for GCM modes");
+            throw new NotSupportedException("setAAD is only supported for authenticated cipher modes.");
 
         if (_finalized)
             throw new InvalidOperationException("Cannot set AAD after finalization");

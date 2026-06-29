@@ -31,4 +31,37 @@ public class readdirTests : FsTestBase
 
         Assert.Empty(files);
     }
+
+    [Fact]
+    public async Task readdir_WithFileTypes_ShouldReturnDirents()
+    {
+        var dirPath = GetTestPath("read-dir-async-dirents");
+        Directory.CreateDirectory(dirPath);
+        File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
+        Directory.CreateDirectory(Path.Combine(dirPath, "subdir"));
+
+        var entries = await fs.readdir(dirPath, withFileTypes: true);
+
+        var file = Assert.IsType<Dirent>(Assert.Single(entries, entry => ((Dirent)entry).name == "file.txt"));
+        var subdir = Assert.IsType<Dirent>(Assert.Single(entries, entry => ((Dirent)entry).name == "subdir"));
+        Assert.True(file.isFile());
+        Assert.False(file.isDirectory());
+        Assert.True(subdir.isDirectory());
+        Assert.False(subdir.isFile());
+        Assert.Equal(dirPath, file.parentPath);
+    }
+
+    [Fact]
+    public async Task readdirDirents_ShouldReturnTypedDirents()
+    {
+        var dirPath = GetTestPath("read-dir-async-typed-dirents");
+        Directory.CreateDirectory(dirPath);
+        File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
+
+        var entries = await fs.readdirDirents(dirPath);
+
+        var entry = Assert.Single(entries);
+        Assert.Equal("file.txt", entry.name);
+        Assert.True(entry.isFile());
+    }
 }

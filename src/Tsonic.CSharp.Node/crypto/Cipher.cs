@@ -156,7 +156,7 @@ public class Cipher : Transform
     public void setAuthTag(int tagLength)
     {
         if (!_isGcmMode)
-            throw new NotImplementedException("setAuthTag is only supported for GCM modes");
+            throw new NotSupportedException("setAuthTag is only supported for authenticated cipher modes.");
 
         // Note: AesGcm always uses 16-byte tag, but this method is here for API compatibility
     }
@@ -168,7 +168,7 @@ public class Cipher : Transform
     public byte[] getAuthTag()
     {
         if (!_isGcmMode)
-            throw new NotImplementedException("getAuthTag is only supported for GCM modes");
+            throw new NotSupportedException("getAuthTag is only supported for authenticated cipher modes.");
 
         if (!_finalized)
             throw new InvalidOperationException("Must call final() before getAuthTag()");
@@ -186,7 +186,7 @@ public class Cipher : Transform
     public void setAAD(byte[] buffer)
     {
         if (!_isGcmMode)
-            throw new NotImplementedException("setAAD is only supported for GCM modes");
+            throw new NotSupportedException("setAAD is only supported for authenticated cipher modes.");
 
         if (_finalized)
             throw new InvalidOperationException("Cannot set AAD after finalization");

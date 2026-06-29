@@ -10,19 +10,21 @@ public static partial class fs
     /// <param name="path">The directory path.</param>
     /// <param name="withFileTypes">If true, returns directory entries with type info.</param>
     /// <returns>A promise that resolves to an array of filenames or directory entries.</returns>
-    public static Task<string[]> readdir(string path, bool withFileTypes = false)
+    public static Task<object[]> readdir(string path, bool withFileTypes = false)
     {
-        return Task.Run<string[]>(() =>
+        return Task.Run(() =>
         {
-            if (withFileTypes)
-            {
-                throw new NotSupportedException("withFileTypes option not yet implemented.");
-            }
-
-            return Directory.GetFileSystemEntries(path)
-                .Select(Path.GetFileName)
-                .Where(name => !string.IsNullOrEmpty(name))
-                .ToArray()!;
+            return readdirSync(path, withFileTypes);
         });
+    }
+
+    /// <summary>
+    /// Asynchronously reads directory entries with Node.js Dirent-style type information.
+    /// </summary>
+    /// <param name="path">The directory path.</param>
+    /// <returns>A promise that resolves to directory entries.</returns>
+    public static Task<Dirent[]> readdirDirents(string path)
+    {
+        return Task.Run(() => readdirDirentsSync(path));
     }
 }

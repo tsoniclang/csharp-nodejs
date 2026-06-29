@@ -149,23 +149,23 @@ public class createCipherivTests
     }
 
     [Fact]
-    public void createCipheriv_GetAuthTag_ThrowsNotImplemented()
+    public void createCipheriv_GetAuthTag_ThrowsNotSupportedForNonAuthenticatedMode()
     {
         var cipher = crypto.createCipheriv("aes-256-cbc", crypto.randomBytes(32), crypto.randomBytes(16));
         cipher.update("test data", "utf8", "hex");
         cipher.final("hex");
 
         // getAuthTag only works with authenticated modes like GCM
-        Assert.Throws<NotImplementedException>(() => cipher.getAuthTag());
+        Assert.Throws<NotSupportedException>(() => cipher.getAuthTag());
     }
 
     [Fact]
-    public void createCipheriv_SetAAD_ThrowsNotImplemented()
+    public void createCipheriv_SetAAD_ThrowsNotSupportedForNonAuthenticatedMode()
     {
         var cipher = crypto.createCipheriv("aes-256-cbc", crypto.randomBytes(32), crypto.randomBytes(16));
 
         // setAAD only works with authenticated modes like GCM
-        Assert.Throws<NotImplementedException>(() => cipher.setAAD(Encoding.UTF8.GetBytes("additional data")));
+        Assert.Throws<NotSupportedException>(() => cipher.setAAD(Encoding.UTF8.GetBytes("additional data")));
     }
 
     [Fact]

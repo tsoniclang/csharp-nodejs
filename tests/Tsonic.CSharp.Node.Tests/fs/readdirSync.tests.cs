@@ -31,4 +31,36 @@ public class readdirSyncTests : FsTestBase
 
         Assert.Empty(files);
     }
+
+    [Fact]
+    public void readdirSync_WithFileTypes_ShouldReturnDirents()
+    {
+        var dirPath = GetTestPath("read-dir-dirents");
+        Directory.CreateDirectory(dirPath);
+        File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
+        Directory.CreateDirectory(Path.Combine(dirPath, "subdir"));
+
+        var entries = fs.readdirSync(dirPath, withFileTypes: true);
+
+        var file = Assert.IsType<Dirent>(Assert.Single(entries, entry => ((Dirent)entry).name == "file.txt"));
+        var subdir = Assert.IsType<Dirent>(Assert.Single(entries, entry => ((Dirent)entry).name == "subdir"));
+        Assert.True(file.isFile());
+        Assert.False(file.isDirectory());
+        Assert.True(subdir.isDirectory());
+        Assert.False(subdir.isFile());
+    }
+
+    [Fact]
+    public void readdirDirentsSync_ShouldReturnTypedDirents()
+    {
+        var dirPath = GetTestPath("read-dir-typed-dirents");
+        Directory.CreateDirectory(dirPath);
+        File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
+
+        var entries = fs.readdirDirentsSync(dirPath);
+
+        var entry = Assert.Single(entries);
+        Assert.Equal("file.txt", entry.name);
+        Assert.True(entry.isFile());
+    }
 }

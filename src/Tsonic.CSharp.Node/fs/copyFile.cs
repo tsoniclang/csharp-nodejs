@@ -9,10 +9,10 @@ public static partial class fs
     /// </summary>
     /// <param name="src">Source filename to copy.</param>
     /// <param name="dest">Destination filename.</param>
-    /// <param name="mode">Optional flags (not yet implemented).</param>
+    /// <param name="mode">Optional COPYFILE_* flags.</param>
     /// <returns>A promise that resolves when the copy is complete.</returns>
     public static Task copyFile(string src, string dest, int mode = 0)
     {
-        return Task.Run(() => File.Copy(src, dest, overwrite: true));
+        return Task.Run(() => copyFileSync(src, dest, mode));
     }
 }

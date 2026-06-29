@@ -104,4 +104,8 @@ public sealed class Dirent
     public bool isFile() => fileType == "file";
     public bool isDirectory() => fileType == "directory";
     public bool isSymbolicLink() => fileType == "symlink";
+    public bool isBlockDevice() => false;
+    public bool isCharacterDevice() => false;
+    public bool isFIFO() => false;
+    public bool isSocket() => false;
 }

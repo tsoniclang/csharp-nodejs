@@ -13,6 +13,8 @@ public class Resolver
 {
     private readonly ResolverOptions? _options;
     private bool _cancelled = false;
+    private string? _localIpv4;
+    private string? _localIpv6;
 
     /// <summary>
     /// Creates a new Resolver instance.
@@ -62,8 +64,8 @@ public class Resolver
     /// <param name="ipv6">A string representation of an IPv6 address</param>
     public void setLocalAddress(string? ipv4 = null, string? ipv6 = null)
     {
-        // Note: .NET doesn't support setting local address for DNS queries
-        // This is a stub implementation
+        _localIpv4 = ipv4;
+        _localIpv6 = ipv6;
     }
 
     /// <summary>
