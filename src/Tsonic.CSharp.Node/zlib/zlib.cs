@@ -7,7 +7,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// The zlib module provides compression functionality implemented using Gzip, Deflate, and Brotli.
 /// </summary>
-public static class zlib
+public static partial class zlib
 {
     /// <summary>
     /// Compress data using Gzip.

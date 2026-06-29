@@ -27,6 +27,42 @@ public abstract class KeyObject : IDisposable
     public abstract int? symmetricKeySize { get; }
 
     /// <summary>
+    /// Whether the key can be exported.
+    /// </summary>
+    public virtual bool extractable => true;
+
+    /// <summary>
+    /// WebCrypto-compatible key usages.
+    /// </summary>
+    public virtual string[] keyUsages => [];
+
+    /// <summary>
+    /// WebCrypto-compatible algorithm metadata.
+    /// </summary>
+    public virtual KeyAlgorithm? algorithm => asymmetricKeyType == null ? null : new KeyAlgorithm { name = asymmetricKeyType };
+
+    /// <summary>
+    /// Asymmetric key details when available.
+    /// </summary>
+    public virtual AsymmetricKeyDetails? asymmetricKeyDetails => null;
+
+    /// <summary>
+    /// Compares exported key material for equality.
+    /// </summary>
+    public virtual bool equals(KeyObject other)
+    {
+        if (other == null)
+            return false;
+
+        var left = export();
+        var right = other.export();
+        if (left is byte[] leftBytes && right is byte[] rightBytes)
+            return crypto.timingSafeEqual(leftBytes, rightBytes);
+
+        return string.Equals(left?.ToString(), right?.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Exports the key in the specified format.
     /// </summary>
     public abstract object export(object? options = null);
@@ -120,6 +156,7 @@ public class PublicKeyObject : KeyObject
     public override string type => "public";
     public override string? asymmetricKeyType => _keyType;
     public override int? symmetricKeySize => null;
+    public override AsymmetricKeyDetails? asymmetricKeyDetails => _key is RSA rsa ? new AsymmetricKeyDetails { modulusLength = rsa.KeySize } : null;
 #pragma warning restore CS1591
 
     /// <summary>
@@ -222,6 +259,7 @@ public class PrivateKeyObject : KeyObject
     public override string type => "private";
     public override string? asymmetricKeyType => _keyType;
     public override int? symmetricKeySize => null;
+    public override AsymmetricKeyDetails? asymmetricKeyDetails => _key is RSA rsa ? new AsymmetricKeyDetails { modulusLength = rsa.KeySize } : null;
 #pragma warning restore CS1591
 
     /// <summary>

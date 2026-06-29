@@ -56,6 +56,33 @@ public static class url
     }
 
     /// <summary>
+    /// Parses URL input and returns a legacy URL object shape.
+    /// </summary>
+    public static LegacyUrlObject? parse(string input, bool parseQueryString, bool slashesDenoteHost = false)
+    {
+        _ = slashesDenoteHost;
+        var parsed = URL.parse(input);
+        if (parsed == null)
+            return null;
+
+        return new LegacyUrlObject
+        {
+            href = parsed.href,
+            protocol = parsed.protocol,
+            auth = string.IsNullOrEmpty(parsed.username) && string.IsNullOrEmpty(parsed.password) ? null : $"{parsed.username}:{parsed.password}",
+            host = parsed.host,
+            hostname = parsed.hostname,
+            port = parsed.port,
+            pathname = parsed.pathname,
+            search = parsed.search,
+            query = parseQueryString ? ToQueryObject(parsed.searchParams) : parsed.search.TrimStart('?'),
+            hash = parsed.hash,
+            path = parsed.pathname + parsed.search,
+            slashes = parsed.href.Contains("://", StringComparison.Ordinal)
+        };
+    }
+
+    /// <summary>
     /// Formats URL input to string.
     /// </summary>
     public static string format(object? input)
@@ -70,6 +97,23 @@ public static class url
             return URL.parse(inputString)?.href ?? inputString;
 
         return input.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Formats URL input with legacy formatting options.
+    /// </summary>
+    public static string format(URL input, URLFormatOptions? options)
+    {
+        if (input == null)
+            throw new ArgumentNullException(nameof(input));
+
+        options ??= new URLFormatOptions();
+        var result = input.href;
+        if (!options.fragment && !string.IsNullOrEmpty(input.hash))
+            result = result.Replace(input.hash, string.Empty, StringComparison.Ordinal);
+        if (!options.search && !string.IsNullOrEmpty(input.search))
+            result = result.Replace(input.search, string.Empty, StringComparison.Ordinal);
+        return result;
     }
 
     /// <summary>
@@ -92,6 +136,15 @@ public static class url
     }
 
     /// <summary>
+    /// Converts a file path to a file URL.
+    /// </summary>
+    public static URL pathToFileURL(string filePath, PathToFileUrlOptions? options)
+    {
+        _ = options;
+        return pathToFileURL(filePath);
+    }
+
+    /// <summary>
     /// Converts a file URL to filesystem path.
     /// </summary>
     public static string fileURLToPath(string fileUrl)
@@ -103,12 +156,30 @@ public static class url
     /// <summary>
     /// Converts a file URL to filesystem path.
     /// </summary>
+    public static string fileURLToPath(string fileUrl, FileUrlToPathOptions? options)
+    {
+        _ = options;
+        return fileURLToPath(fileUrl);
+    }
+
+    /// <summary>
+    /// Converts a file URL to filesystem path.
+    /// </summary>
     public static string fileURLToPath(URL fileUrl)
     {
         if (fileUrl == null)
             throw new ArgumentNullException(nameof(fileUrl));
 
         return fileURLToPath(fileUrl.href);
+    }
+
+    /// <summary>
+    /// Converts a file URL to filesystem path.
+    /// </summary>
+    public static string fileURLToPath(URL fileUrl, FileUrlToPathOptions? options)
+    {
+        _ = options;
+        return fileURLToPath(fileUrl);
     }
 
     /// <summary>
@@ -156,5 +227,42 @@ public static class url
         }
 
         return options;
+    }
+
+    /// <summary>
+    /// Converts URL to HTTP request option carrier.
+    /// </summary>
+    public static HttpOptions urlToHttpOptionsObject(URL input)
+    {
+        if (input == null)
+            throw new ArgumentNullException(nameof(input));
+
+        return new HttpOptions
+        {
+            protocol = input.protocol,
+            hostname = input.hostname,
+            host = input.host,
+            port = string.IsNullOrEmpty(input.port) ? null : int.Parse(input.port, CultureInfo.InvariantCulture),
+            path = input.pathname + input.search,
+            href = input.href,
+            auth = string.IsNullOrEmpty(input.username) && string.IsNullOrEmpty(input.password) ? null : $"{input.username}:{input.password}"
+        };
+    }
+
+    private static Dictionary<string, string[]> ToQueryObject(URLSearchParams searchParams)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var entry in searchParams.entries())
+        {
+            if (!result.TryGetValue(entry.Key, out var values))
+            {
+                values = [];
+                result[entry.Key] = values;
+            }
+
+            values.Add(entry.Value);
+        }
+
+        return result.ToDictionary(item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
     }
 }

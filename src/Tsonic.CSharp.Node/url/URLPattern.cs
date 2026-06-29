@@ -24,6 +24,29 @@ public class URLPattern
     }
 
     /// <summary>
+    /// Creates a URL pattern from component initialization data.
+    /// </summary>
+    public URLPattern(URLPatternInit init, URLPatternOptions? options = null)
+        : this(BuildPattern(init), options)
+    {
+    }
+
+    /// <summary>
+    /// Creates a URL pattern from a wildcard pattern string.
+    /// </summary>
+    public URLPattern(string pattern, URLPatternOptions? options)
+    {
+        if (pattern == null)
+            throw new ArgumentNullException(nameof(pattern));
+
+        var escaped = Regex.Escape(pattern).Replace("\\*", ".*", StringComparison.Ordinal);
+        var regexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        if (options?.ignoreCase == true)
+            regexOptions |= RegexOptions.IgnoreCase;
+        _regex = new Regex($"^{escaped}$", regexOptions);
+    }
+
+    /// <summary>
     /// Tests whether input matches the pattern.
     /// </summary>
     public bool test(string input)
@@ -37,13 +60,25 @@ public class URLPattern
     /// <summary>
     /// Returns a minimal match object when input matches.
     /// </summary>
-    public Dictionary<string, string>? exec(string input)
+    public URLPatternResult? exec(string input)
     {
         if (!test(input)) return null;
 
-        return new Dictionary<string, string>
+        return new URLPatternResult
         {
-            ["input"] = input
+            inputs = [input],
+            pathname = new URLPatternComponentResult { input = input }
         };
+    }
+
+    private static string BuildPattern(URLPatternInit init)
+    {
+        if (init == null)
+            throw new ArgumentNullException(nameof(init));
+
+        if (!string.IsNullOrEmpty(init.baseURL))
+            return init.baseURL;
+
+        return $"{init.protocol ?? "*"}://{init.hostname ?? "*"}{init.pathname ?? "*"}";
     }
 }

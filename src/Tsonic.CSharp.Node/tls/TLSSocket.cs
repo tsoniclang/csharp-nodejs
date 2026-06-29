@@ -147,7 +147,7 @@ public class TLSSocket : Socket
 
     private bool ValidateServerCertificate(
         object sender,
-        X509Certificate? certificate,
+        System.Security.Cryptography.X509Certificates.X509Certificate? certificate,
         X509Chain? chain,
         SslPolicyErrors sslPolicyErrors)
     {

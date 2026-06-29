@@ -54,4 +54,13 @@ public static partial class os
             homedir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         };
     }
+
+    /// <summary>
+    /// Returns information about the currently effective user.
+    /// </summary>
+    public static UserInfo userInfo(UserInfoOptions options)
+    {
+        _ = options;
+        return userInfo();
+    }
 }

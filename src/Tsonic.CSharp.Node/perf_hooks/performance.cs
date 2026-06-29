@@ -9,7 +9,7 @@ namespace Tsonic.CSharp.Node;
 /// The performance object provides access to performance-related information.
 /// It is a singleton instance that provides high-resolution timing and performance measurement.
 /// </summary>
-public static class performance
+public static partial class performance
 {
     private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private static readonly List<PerformanceEntry> _entries = new();
