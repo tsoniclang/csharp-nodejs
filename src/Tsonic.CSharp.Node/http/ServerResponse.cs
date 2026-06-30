@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Tsonic.CSharp.Node;
@@ -16,6 +17,7 @@ public partial class ServerResponse : EventEmitter
     private readonly HttpResponse _response;
     private bool _headersSent = false;
     private bool _finished = false;
+    private Timer? _timeoutTimer;
 
     internal ServerResponse(HttpResponse response)
     {
@@ -230,6 +232,7 @@ public partial class ServerResponse : EventEmitter
     public ServerResponse end()
     {
         _finished = true;
+        _timeoutTimer?.Dispose();
         emit("finish");
         return this;
     }
@@ -299,7 +302,17 @@ public partial class ServerResponse : EventEmitter
             once("timeout", callback);
         }
 
-        // TODO: Implement actual timeout mechanism
+        _timeoutTimer?.Dispose();
+        if (msecs > 0)
+        {
+            _timeoutTimer = new Timer(_ =>
+            {
+                if (!_finished)
+                {
+                    emit("timeout");
+                }
+            }, null, msecs, System.Threading.Timeout.Infinite);
+        }
         return this;
     }
 

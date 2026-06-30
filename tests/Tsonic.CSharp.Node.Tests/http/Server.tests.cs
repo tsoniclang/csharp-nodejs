@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Tsonic.CSharp.Node.Http;
@@ -302,6 +303,66 @@ public class HttpServerTests
 
             await end.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(new[] { "payload" }, chunks);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
+    public async Task IncomingMessage_SetTimeout_EmitsTimeoutBeforeCompletion()
+    {
+        var timeout = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = http.createServer((req, res) =>
+        {
+            req.setTimeout(20, () => timeout.TrySetResult());
+            Thread.Sleep(80);
+            res.end("OK");
+        });
+
+        server.listen(0, "127.0.0.1", (Action?)null);
+
+        try
+        {
+            var address = server.address();
+            Assert.NotNull(address);
+            using var client = new HttpClient();
+            var responseTask = client.GetAsync($"http://127.0.0.1:{address.port}/");
+
+            await timeout.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var response = await responseTask;
+            Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
+    public async Task ServerResponse_SetTimeout_EmitsTimeoutBeforeCompletion()
+    {
+        var timeout = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = http.createServer((req, res) =>
+        {
+            res.setTimeout(20, () => timeout.TrySetResult());
+            Thread.Sleep(80);
+            res.end("OK");
+        });
+
+        server.listen(0, "127.0.0.1", (Action?)null);
+
+        try
+        {
+            var address = server.address();
+            Assert.NotNull(address);
+            using var client = new HttpClient();
+            var responseTask = client.GetAsync($"http://127.0.0.1:{address.port}/");
+
+            await timeout.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var response = await responseTask;
+            Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         }
         finally
         {

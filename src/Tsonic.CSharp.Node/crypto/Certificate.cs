@@ -2,6 +2,10 @@ using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Asn1.X509;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Security;
 
 namespace Tsonic.CSharp.Node;
 
@@ -28,9 +32,8 @@ public static class Certificate
     /// <returns>The challenge component.</returns>
     public static byte[] exportChallenge(byte[] spkac)
     {
-        // SPKAC is not well supported in .NET
-        // This would require parsing the ASN.1 structure
-        throw new NotImplementedException("SPKAC challenge export is not yet implemented");
+        var parsed = ParseSpkac(spkac);
+        return Encoding.UTF8.GetBytes(parsed.Challenge.GetString());
     }
 
     /// <summary>
@@ -51,9 +54,8 @@ public static class Certificate
     /// <returns>The public key component.</returns>
     public static byte[] exportPublicKey(byte[] spkac)
     {
-        // SPKAC is not well supported in .NET
-        // This would require parsing the ASN.1 structure
-        throw new NotImplementedException("SPKAC public key export is not yet implemented");
+        var parsed = ParseSpkac(spkac);
+        return parsed.SubjectPublicKeyInfo.GetEncoded();
     }
 
     /// <summary>
@@ -74,10 +76,62 @@ public static class Certificate
     /// <returns>True if the structure is valid, false otherwise.</returns>
     public static bool verifySpkac(byte[] spkac)
     {
-        // SPKAC is not well supported in .NET
-        // This would require parsing the ASN.1 structure and verifying the signature
-        throw new NotImplementedException("SPKAC verification is not yet implemented");
+        try
+        {
+            var parsed = ParseSpkac(spkac);
+            var publicKey = PublicKeyFactory.CreateKey(parsed.SubjectPublicKeyInfo);
+            var verifier = SignerUtilities.GetSigner(parsed.SignatureAlgorithm.Algorithm.Id);
+            verifier.Init(false, publicKey);
+            var signedBytes = parsed.PublicKeyAndChallenge.GetEncoded();
+            verifier.BlockUpdate(signedBytes, 0, signedBytes.Length);
+            return verifier.VerifySignature(parsed.Signature.GetBytes());
+        }
+        catch (GeneralSecurityException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
     }
+
+    private static ParsedSpkac ParseSpkac(byte[] spkac)
+    {
+        if (spkac.Length == 0)
+        {
+            throw new ArgumentException("SPKAC data must not be empty.", nameof(spkac));
+        }
+
+        var root = Asn1Sequence.GetInstance(Asn1Object.FromByteArray(spkac));
+        if (root.Count != 3)
+        {
+            throw new ArgumentException("Invalid SPKAC sequence.", nameof(spkac));
+        }
+
+        var publicKeyAndChallenge = Asn1Sequence.GetInstance(root[0]);
+        if (publicKeyAndChallenge.Count != 2)
+        {
+            throw new ArgumentException("Invalid SPKAC publicKeyAndChallenge sequence.", nameof(spkac));
+        }
+
+        var subjectPublicKeyInfo = SubjectPublicKeyInfo.GetInstance(publicKeyAndChallenge[0]);
+        var challenge = DerIA5String.GetInstance(publicKeyAndChallenge[1]);
+        var signatureAlgorithm = AlgorithmIdentifier.GetInstance(root[1]);
+        var signature = DerBitString.GetInstance(root[2]);
+        return new ParsedSpkac(publicKeyAndChallenge, subjectPublicKeyInfo, challenge, signatureAlgorithm, signature);
+    }
+
+    private sealed record ParsedSpkac(
+        Asn1Sequence PublicKeyAndChallenge,
+        SubjectPublicKeyInfo SubjectPublicKeyInfo,
+        DerIA5String Challenge,
+        AlgorithmIdentifier SignatureAlgorithm,
+        DerBitString Signature);
 }
 
 /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Tsonic.CSharp.Node;
@@ -21,6 +22,7 @@ public partial class IncomingMessage : EventEmitter
     private readonly string? _body;
     private bool _isServerSide;
     private bool _clientBodyEmitted;
+    private Timer? _timeoutTimer;
 
     // Server-side constructor
     internal IncomingMessage(HttpRequest request)
@@ -109,6 +111,7 @@ public partial class IncomingMessage : EventEmitter
     public void destroy()
     {
         complete = true;
+        _timeoutTimer?.Dispose();
         emit("close");
     }
 
@@ -127,7 +130,17 @@ public partial class IncomingMessage : EventEmitter
             once("timeout", callback);
         }
 
-        // TODO: Implement actual timeout mechanism
+        _timeoutTimer?.Dispose();
+        if (msecs > 0)
+        {
+            _timeoutTimer = new Timer(_ =>
+            {
+                if (!complete)
+                {
+                    emit("timeout");
+                }
+            }, null, msecs, System.Threading.Timeout.Infinite);
+        }
         return this;
     }
 
@@ -145,6 +158,7 @@ public partial class IncomingMessage : EventEmitter
             using var reader = new StreamReader(_serverRequest.Body);
             var body = await reader.ReadToEndAsync();
             complete = true;
+            _timeoutTimer?.Dispose();
             emit("end");
             return body;
         }
@@ -197,6 +211,7 @@ public partial class IncomingMessage : EventEmitter
         }
 
         complete = true;
+        _timeoutTimer?.Dispose();
         emit("end");
         emit("close");
     }

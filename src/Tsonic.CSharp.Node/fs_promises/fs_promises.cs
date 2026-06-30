@@ -17,7 +17,8 @@ public static class fs_promises
     public static Task cp(string src, string dest, bool recursive = false) => fs.promises.cp(src, dest, recursive);
     public static Task mkdir(string path, bool recursive = false) => fs.promises.mkdir(path, recursive);
     public static async Task<FileHandle> open(string path, string flags, int? mode = null) => new(await fs.promises.open(path, flags, mode).ConfigureAwait(false));
-    public static Task<string[]> readdir(string path, bool withFileTypes = false) => fs.promises.readdir(path, withFileTypes);
+    public static Task<object[]> readdir(string path, bool withFileTypes = false) => fs.promises.readdir(path, withFileTypes);
+    public static Task<Dirent[]> readdirDirents(string path) => fs.promises.readdirDirents(path);
     public static Task<Dir> opendir(string path) => fs.opendir(path);
     public static Task<string> readFile(string path, string encoding = "utf-8") => fs.promises.readFile(path, encoding);
     public static Task<byte[]> readFileBytes(string path) => fs.promises.readFileBytes(path);

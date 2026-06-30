@@ -143,8 +143,19 @@ public static partial class zlib
     public static Task<byte[]> brotliDecompress(byte[] buffer, BrotliOptions? options = null) => Task.FromResult(brotliDecompressSync(buffer, options));
     public static byte[] gzipStringSync(string value, ZlibOptions? options = null) => gzipSync(Encoding.UTF8.GetBytes(value), options);
     public static string gunzipStringSync(byte[] buffer, ZlibOptions? options = null) => Encoding.UTF8.GetString(gunzipSync(buffer, options));
-    public static byte[] zstdCompressSync(byte[] buffer, ZstdOptions? options = null) { _ = options; return brotliCompressSync(buffer); }
-    public static byte[] zstdDecompressSync(byte[] buffer, ZstdOptions? options = null) { _ = options; return brotliDecompressSync(buffer); }
+    public static byte[] zstdCompressSync(byte[] buffer, ZstdOptions? options = null)
+    {
+        _ = buffer;
+        _ = options;
+        throw new NotSupportedException("Zstandard compression requires a closed managed Zstd implementation; this runtime does not substitute Brotli or another codec.");
+    }
+
+    public static byte[] zstdDecompressSync(byte[] buffer, ZstdOptions? options = null)
+    {
+        _ = buffer;
+        _ = options;
+        throw new NotSupportedException("Zstandard decompression requires a closed managed Zstd implementation; this runtime does not substitute Brotli or another codec.");
+    }
     public static Task<byte[]> zstdCompress(byte[] buffer, ZstdOptions? options = null) => Task.FromResult(zstdCompressSync(buffer, options));
     public static Task<byte[]> zstdDecompress(byte[] buffer, ZstdOptions? options = null) => Task.FromResult(zstdDecompressSync(buffer, options));
 
