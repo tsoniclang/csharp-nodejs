@@ -4,6 +4,8 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public class GapGuardTests
 {
+    private const int MaximumSourceFileLines = 500;
+
     [Fact]
     public void Source_ShouldNotExposeNotImplementedRuntimePaths()
     {
@@ -28,6 +30,31 @@ public class GapGuardTests
 
         Assert.DoesNotContain("zstdCompressSync(byte[] buffer, ZstdOptions? options = null) { _ = options; return brotliCompressSync(buffer); }", text);
         Assert.DoesNotContain("zstdDecompressSync(byte[] buffer, ZstdOptions? options = null) { _ = options; return brotliDecompressSync(buffer); }", text);
+    }
+
+    [Fact]
+    public void SourceAndTests_ShouldKeepFilesSemanticallySplit()
+    {
+        var root = FindRepositoryRoot();
+        var files = Directory
+            .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Path.Combine(root, "tests"), "*.cs", SearchOption.AllDirectories));
+
+        var oversizedFiles = files
+            .Select(file => new
+            {
+                Path = Path.GetRelativePath(root, file),
+                Lines = File.ReadLines(file).Count(),
+            })
+            .Where(file => file.Lines > MaximumSourceFileLines)
+            .OrderByDescending(file => file.Lines)
+            .ThenBy(file => file.Path)
+            .Select(file => $"{file.Lines} {file.Path}")
+            .ToArray();
+
+        Assert.True(
+            oversizedFiles.Length == 0,
+            $"Files over {MaximumSourceFileLines} lines must be split by semantic responsibility:{Environment.NewLine}{string.Join(Environment.NewLine, oversizedFiles)}");
     }
 
     private static string FindRepositoryRoot()
