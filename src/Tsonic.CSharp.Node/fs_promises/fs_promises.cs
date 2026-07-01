@@ -10,6 +10,7 @@ public static class fs_promises
 {
     public static Task access(string path, int mode = 0) => fs.promises.access(path, mode);
     public static Task appendFile(string path, string data, string? encoding = "utf-8") => fs.promises.appendFile(path, data, encoding);
+    public static Task appendFile(string path, Buffer data) => fs.promises.appendFile(path, data);
     public static Task chmod(string path, int mode) => fs.promises.chmod(path, mode);
     public static Task chown(string path, int uid, int gid) => fs.chown(path, uid, gid);
     public static Task lchown(string path, int uid, int gid) => fs.lchown(path, uid, gid);
@@ -42,5 +43,6 @@ public static class fs_promises
     public static Task<string[]> glob(string pattern) => fs.glob(pattern);
     public static Task unlink(string path) => fs.promises.unlink(path);
     public static Task writeFile(string path, string data, string? encoding = "utf-8") => fs.promises.writeFile(path, data, encoding);
-    public static Task writeFileBytes(string path, byte[] data) => fs.promises.writeFileBytes(path, data);
+    public static Task writeFile(string path, Buffer data) => fs.promises.writeFile(path, data);
+    public static Task writeFileBytes(string path, Buffer data) => fs.promises.writeFileBytes(path, data);
 }

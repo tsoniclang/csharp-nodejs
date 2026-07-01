@@ -44,4 +44,15 @@ public class fsPromisesTests : FsTestBase
         var stats = await fs.promises.stat(file);
         Assert.True(stats.isFile);
     }
+
+    [Fact]
+    public async Task writeFile_And_appendFile_ShouldAcceptBufferData()
+    {
+        var file = GetTestPath("promises-buffer-write.bin");
+
+        await fs.promises.writeFile(file, Buffer.from(new byte[] { 0x61, 0x62 }));
+        await fs.promises.appendFile(file, Buffer.from(new byte[] { 0x63 }));
+
+        Assert.Equal(new byte[] { 0x61, 0x62, 0x63 }, File.ReadAllBytes(file));
+    }
 }

@@ -56,4 +56,15 @@ public class FsPromisesModuleTests : FsTestBase
 
         Assert.Contains("child.txt", entries);
     }
+
+    [Fact]
+    public async Task FsPromisesModule_WritesAndAppendsBufferData()
+    {
+        var path = GetTestPath("module-buffer-write.bin");
+
+        await fs_promises.writeFile(path, Buffer.from(new byte[] { 0x6f }));
+        await fs_promises.appendFile(path, Buffer.from(new byte[] { 0x6b }));
+
+        Assert.Equal(new byte[] { 0x6f, 0x6b }, File.ReadAllBytes(path));
+    }
 }
