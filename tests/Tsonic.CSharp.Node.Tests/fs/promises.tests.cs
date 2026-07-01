@@ -14,6 +14,9 @@ public class fsPromisesTests : FsTestBase
         var content = await fs.promises.readFile(file, "utf-8");
         Assert.Equal("hello", content);
 
+        var utf8Content = await fs.promises.readFile(file, "utf8");
+        Assert.Equal("hello", utf8Content);
+
         var buffer = await fs.promises.readFile(file);
         Assert.Equal(5, buffer.length);
     }

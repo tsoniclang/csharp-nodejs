@@ -15,6 +15,7 @@ public class FsPromisesModuleTests : FsTestBase
         var text = await fs_promises.readFile(path, "utf-8");
 
         Assert.Equal("hello", text);
+        Assert.Equal("hello", await fs_promises.readFile(path, "utf8"));
         Assert.True(File.Exists(path));
     }
 
