@@ -161,6 +161,31 @@ public class URLTests
     }
 
     [Fact]
+    public void URL_searchParams_ShouldRemainLiveWithURLSearch()
+    {
+        var url = new URL("https://example.com/path?foo=bar");
+        var searchParams = url.searchParams;
+
+        searchParams.append("baz", "qux");
+        Assert.Equal("?foo=bar&baz=qux", url.search);
+        Assert.Equal("https://example.com/path?foo=bar&baz=qux", url.href);
+
+        url.search = "?answer=42";
+        Assert.Same(searchParams, url.searchParams);
+        Assert.False(searchParams.has("foo"));
+        Assert.Equal("42", searchParams.get("answer"));
+
+        url.href = "https://example.com/next?live=yes";
+        Assert.Same(searchParams, url.searchParams);
+        Assert.Equal("yes", searchParams.get("live"));
+
+        searchParams.delete("answer");
+        searchParams.delete("live");
+        Assert.Equal("", url.search);
+        Assert.Equal("https://example.com/next", url.href);
+    }
+
+    [Fact]
     public void URL_toString_ShouldReturnSerializedURL()
     {
         var url = new URL("https://example.com/path");

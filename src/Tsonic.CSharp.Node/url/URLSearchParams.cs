@@ -12,6 +12,7 @@ namespace Tsonic.CSharp.Node;
 public class URLSearchParams
 {
     private readonly List<KeyValuePair<string, string>> _params;
+    private readonly Action<URLSearchParams>? _onChanged;
 
     /// <summary>
     /// Gets the total number of parameter entries.
@@ -22,8 +23,14 @@ public class URLSearchParams
     /// Creates a new URLSearchParams object.
     /// </summary>
     public URLSearchParams(string? init = null)
+        : this(init, null)
+    {
+    }
+
+    internal URLSearchParams(string? init, Action<URLSearchParams>? onChanged)
     {
         _params = new List<KeyValuePair<string, string>>();
+        _onChanged = onChanged;
 
         if (!string.IsNullOrEmpty(init))
         {
@@ -37,6 +44,7 @@ public class URLSearchParams
     public void append(string name, string value)
     {
         _params.Add(new KeyValuePair<string, string>(name, value));
+        NotifyChanged();
     }
 
     /// <summary>
@@ -44,10 +52,9 @@ public class URLSearchParams
     /// </summary>
     public void set(string name, string value)
     {
-        // Remove all existing entries with this name
         _params.RemoveAll(p => p.Key == name);
-        // Add the new value
         _params.Add(new KeyValuePair<string, string>(name, value));
+        NotifyChanged();
     }
 
     /// <summary>
@@ -92,6 +99,7 @@ public class URLSearchParams
         {
             _params.RemoveAll(p => p.Key == name && p.Value == value);
         }
+        NotifyChanged();
     }
 
     /// <summary>
@@ -100,6 +108,7 @@ public class URLSearchParams
     public void sort()
     {
         _params.Sort((a, b) => string.Compare(a.Key, b.Key, StringComparison.Ordinal));
+        NotifyChanged();
     }
 
     /// <summary>
@@ -161,7 +170,6 @@ public class URLSearchParams
 
     private void ParseQueryString(string query)
     {
-        // Remove leading ? if present
         if (query.StartsWith("?"))
             query = query.Substring(1);
 
@@ -176,5 +184,19 @@ public class URLSearchParams
             var value = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : "";
             _params.Add(new KeyValuePair<string, string>(key, value));
         }
+    }
+
+    internal void ReplaceFromQueryString(string? query)
+    {
+        _params.Clear();
+        if (!string.IsNullOrEmpty(query))
+        {
+            ParseQueryString(query);
+        }
+    }
+
+    private void NotifyChanged()
+    {
+        _onChanged?.Invoke(this);
     }
 }
