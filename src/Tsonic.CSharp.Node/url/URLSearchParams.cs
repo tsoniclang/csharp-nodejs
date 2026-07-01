@@ -52,8 +52,20 @@ public class URLSearchParams
     /// </summary>
     public void set(string name, string value)
     {
-        _params.RemoveAll(p => p.Key == name);
-        _params.Add(new KeyValuePair<string, string>(name, value));
+        var firstIndex = _params.FindIndex(p => p.Key == name);
+        if (firstIndex < 0)
+        {
+            _params.Add(new KeyValuePair<string, string>(name, value));
+        }
+        else
+        {
+            _params[firstIndex] = new KeyValuePair<string, string>(name, value);
+            for (var index = _params.Count - 1; index > firstIndex; index--)
+            {
+                if (_params[index].Key == name)
+                    _params.RemoveAt(index);
+            }
+        }
         NotifyChanged();
     }
 

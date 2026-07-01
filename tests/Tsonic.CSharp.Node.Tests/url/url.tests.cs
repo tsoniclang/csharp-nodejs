@@ -288,6 +288,15 @@ public class URLSearchParamsTests
     }
 
     [Fact]
+    public void URLSearchParams_set_ShouldPreserveFirstPairOrderAndRemoveDuplicates()
+    {
+        var params_ = new URLSearchParams("a=1&b=2&a=3&c=4");
+        params_.set("a", "5");
+        Assert.Equal("a=5&b=2&c=4", params_.ToString());
+        Assert.Equal(new[] { "5" }, params_.getAll("a"));
+    }
+
+    [Fact]
     public void URLSearchParams_get_WithNonExistentKey_ShouldReturnNull()
     {
         var params_ = new URLSearchParams();
