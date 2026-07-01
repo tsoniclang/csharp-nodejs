@@ -14,17 +14,10 @@ public static partial class util
     /// <returns>A wrapper function that emits a deprecation warning.</returns>
     public static Func<TResult> deprecate<TResult>(Func<TResult> fn, string msg, string? code = null)
     {
-        return () =>
-        {
-            var warning = code != null ? $"[{code}] DeprecationWarning: {msg}" : $"DeprecationWarning: {msg}";
-
-            if (_deprecationWarnings.Add(warning))
-            {
-                Console.Error.WriteLine(warning);
-            }
-
-            return fn();
-        };
+        _ = fn;
+        _ = msg;
+        _ = code;
+        throw UnsupportedOpenCarrierOperation("node:util.deprecate");
     }
 
     /// <summary>
@@ -36,16 +29,9 @@ public static partial class util
     /// <returns>A wrapper action that emits a deprecation warning.</returns>
     public static Action deprecate(Action action, string msg, string? code = null)
     {
-        return () =>
-        {
-            var warning = code != null ? $"[{code}] DeprecationWarning: {msg}" : $"DeprecationWarning: {msg}";
-
-            if (_deprecationWarnings.Add(warning))
-            {
-                Console.Error.WriteLine(warning);
-            }
-
-            action();
-        };
+        _ = action;
+        _ = msg;
+        _ = code;
+        throw UnsupportedOpenCarrierOperation("node:util.deprecate");
     }
 }

@@ -11,7 +11,9 @@ public static partial class util
     public static string formatWithOptions(object? inspectOptions, object? formatValue, params object?[] args)
     {
         _ = inspectOptions;
-        return format(formatValue, args);
+        _ = formatValue;
+        _ = args;
+        throw UnsupportedOpenCarrierOperation("node:util.formatWithOptions");
     }
 
     /// <summary>

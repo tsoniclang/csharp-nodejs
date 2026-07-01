@@ -6,5 +6,8 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public static partial class util
 {
-    // Members are defined in separate files
+    private static NotSupportedException UnsupportedOpenCarrierOperation(string apiName)
+    {
+        return new NotSupportedException($"{apiName} requires closed provider/runtime carrier semantics and is not available in the current C# Node runtime package.");
+    }
 }

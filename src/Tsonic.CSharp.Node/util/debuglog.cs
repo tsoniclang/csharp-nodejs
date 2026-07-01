@@ -15,25 +15,7 @@ public static partial class util
     /// <returns>A logging function.</returns>
     public static DebugLogFunction debuglog(string section)
     {
-        var nodeDebug = Environment.GetEnvironmentVariable("NODE_DEBUG") ?? "";
-        var sections = nodeDebug.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(s => s.Trim().ToUpperInvariant())
-                                .ToHashSet();
-
-        var enabled = sections.Contains(section.ToUpperInvariant()) || sections.Contains("*");
-
-        if (enabled)
-        {
-            var pid = Environment.ProcessId;
-            return (message, args) =>
-            {
-                var formatted = args.Length > 0 ? string.Format(message, args) : message;
-                Console.Error.WriteLine($"{section.ToUpperInvariant()} {pid}: {formatted}");
-            };
-        }
-        else
-        {
-            return (message, args) => { }; // No-op
-        }
+        _ = section;
+        throw UnsupportedOpenCarrierOperation("node:util.debuglog");
     }
 }

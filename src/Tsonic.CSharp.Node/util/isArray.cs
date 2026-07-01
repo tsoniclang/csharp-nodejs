@@ -9,10 +9,7 @@ public static partial class util
     /// <returns>True if the object is an array.</returns>
     public static bool isArray(object? obj)
     {
-        if (obj == null)
-            return false;
-
-        var type = obj.GetType();
-        return type.IsArray;
+        _ = obj;
+        throw UnsupportedOpenCarrierOperation("node:util.isArray");
     }
 }
