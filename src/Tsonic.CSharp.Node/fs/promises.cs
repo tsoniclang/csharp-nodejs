@@ -34,7 +34,8 @@ public class FsPromises
     public Task<string[]> readdir(string path) => fs.readdir(path);
     public Task<object[]> readdir(string path, bool withFileTypes) => fs.readdir(path, withFileTypes);
     public Task<Dirent[]> readdirDirents(string path) => fs.readdirDirents(path);
-    public Task<string> readFile(string path, string encoding = "utf-8") => fs.readFile(path, encoding);
+    public Task<Buffer> readFile(string path) => fs.readFile(path);
+    public Task<string> readFile(string path, string encoding) => fs.readFile(path, encoding);
     public Task<byte[]> readFileBytes(string path) => fs.readFileBytes(path);
     public Task<string> readlink(string path) => fs.readlink(path);
     public Task<string> realpath(string path) => fs.realpath(path);
