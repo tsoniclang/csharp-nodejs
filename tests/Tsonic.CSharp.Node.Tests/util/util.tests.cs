@@ -1,4 +1,5 @@
 using Xunit;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node.Tests;
 
@@ -13,7 +14,20 @@ public class utilTests
     }
 
     [Fact]
-    public void inspect_ShouldRejectOpenCarrierSemantics()
+    public void inspect_ShouldRenderClosedCarrierSemantics()
+    {
+        var obj = new JSObject
+        {
+            ["name"] = "Alice",
+            ["age"] = 30
+        };
+
+        Assert.Equal("{ name: 'Alice', age: 30 }", util.inspect(obj));
+        Assert.Equal("[ 1, 2, 3 ]", util.inspect(new TsArray(new object?[] { 1, 2, 3 })));
+    }
+
+    [Fact]
+    public void inspect_ShouldRejectOpenClrObjectSemantics()
     {
         var exception = Assert.Throws<NotSupportedException>(() => util.inspect(new { name = "Alice", age = 30 }));
         Assert.Contains("node:util.inspect", exception.Message);
