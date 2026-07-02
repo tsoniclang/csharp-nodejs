@@ -12,10 +12,24 @@ public class FsPromisesModuleTests : FsTestBase
         var path = GetTestPath("sample.txt");
 
         await fs_promises.writeFile(path, "hello");
-        var text = await fs_promises.readFile(path);
+        var text = await fs_promises.readFile(path, "utf-8");
 
         Assert.Equal("hello", text);
+        Assert.Equal("hello", await fs_promises.readFile(path, "utf8"));
         Assert.True(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task FsPromisesModule_ReadFileWithoutEncodingReturnsBuffer()
+    {
+        var path = GetTestPath("sample-buffer.bin");
+        var content = new byte[] { 0x6f, 0x6b };
+        File.WriteAllBytes(path, content);
+
+        var buffer = await fs_promises.readFile(path);
+
+        Assert.Equal(content.Length, buffer.length);
+        Assert.Equal("ok", buffer.toString("utf-8"));
     }
 
     [Fact]
@@ -42,5 +56,16 @@ public class FsPromisesModuleTests : FsTestBase
         var entries = await fs_promises.readdir(dir);
 
         Assert.Contains("child.txt", entries);
+    }
+
+    [Fact]
+    public async Task FsPromisesModule_WritesAndAppendsBufferData()
+    {
+        var path = GetTestPath("module-buffer-write.bin");
+
+        await fs_promises.writeFile(path, Buffer.from(new byte[] { 0x6f }));
+        await fs_promises.appendFile(path, Buffer.from(new byte[] { 0x6b }));
+
+        Assert.Equal(new byte[] { 0x6f, 0x6b }, File.ReadAllBytes(path));
     }
 }

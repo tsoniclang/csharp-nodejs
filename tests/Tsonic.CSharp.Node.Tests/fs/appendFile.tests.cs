@@ -27,4 +27,15 @@ public class appendFileTests : FsTestBase
         Assert.True(File.Exists(filePath));
         Assert.Equal("New content", File.ReadAllText(filePath));
     }
+
+    [Fact]
+    public async Task appendFile_ShouldAppendBufferData()
+    {
+        var filePath = GetTestPath("append-buffer-async.bin");
+        File.WriteAllBytes(filePath, new byte[] { 0x01, 0x02 });
+
+        await fs.appendFile(filePath, Buffer.from(new byte[] { 0x03, 0x04 }));
+
+        Assert.Equal(new byte[] { 0x01, 0x02, 0x03, 0x04 }, File.ReadAllBytes(filePath));
+    }
 }

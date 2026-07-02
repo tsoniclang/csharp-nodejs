@@ -40,7 +40,11 @@ public class URL
     public string href
     {
         get => _uri.ToString();
-        set => _uri = new Uri(value);
+        set
+        {
+            _uri = new Uri(value);
+            _searchParams?.ReplaceFromQueryString(_uri.Query);
+        }
     }
 
     /// <summary>
@@ -167,7 +171,7 @@ public class URL
         {
             var builder = new UriBuilder(_uri) { Query = value.TrimStart('?') };
             _uri = builder.Uri;
-            _searchParams = null; // Invalidate cached searchParams
+            _searchParams?.ReplaceFromQueryString(_uri.Query);
         }
     }
 
@@ -180,7 +184,7 @@ public class URL
         {
             if (_searchParams == null)
             {
-                _searchParams = new URLSearchParams(_uri.Query);
+                _searchParams = new URLSearchParams(_uri.Query, ApplySearchParams);
             }
             return _searchParams;
         }
@@ -213,6 +217,12 @@ public class URL
     /// Returns the serialized URL as a string (for JSON serialization).
     /// </summary>
     public string toJSON() => href;
+
+    private void ApplySearchParams(URLSearchParams searchParams)
+    {
+        var builder = new UriBuilder(_uri) { Query = searchParams.ToString() };
+        _uri = builder.Uri;
+    }
 
     /// <summary>
     /// Tests if input can be parsed as a URL.

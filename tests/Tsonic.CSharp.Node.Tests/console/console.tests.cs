@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using Xunit;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node.Tests;
 
@@ -101,7 +102,7 @@ public class ConsoleTests
     [Fact]
     public void dir_ShouldNotThrow()
     {
-        console.dir(new { name = "test", value = 42 });
+        console.dir(new JSObject { ["name"] = "test", ["value"] = 42 });
         console.dir("simple string");
         console.dir(null);
     }
@@ -109,8 +110,8 @@ public class ConsoleTests
     [Fact]
     public void dirxml_ShouldNotThrow()
     {
-        console.dirxml(new { name = "test" });
-        console.dirxml("test", 123, new object());
+        console.dirxml(new JSObject { ["name"] = "test" });
+        console.dirxml("test", 123, new JSObject());
     }
 
     [Fact]
@@ -160,10 +161,10 @@ public class ConsoleTests
     [Fact]
     public void table_ShouldNotThrow()
     {
-        console.table(new[] {
-            new { name = "Alice", age = 30 },
-            new { name = "Bob", age = 25 }
-        });
+        console.table(new TsArray(new object?[] {
+            new JSObject { ["name"] = "Alice", ["age"] = 30 },
+            new JSObject { ["name"] = "Bob", ["age"] = 25 }
+        }));
 
         console.table(null);
         console.table("simple string");
@@ -257,8 +258,8 @@ public class ConsoleTests
     [Fact]
     public void formatting_ObjectSubstitution()
     {
-        console.log("Object: %o", new { name = "test", value = 42 });
-        console.log("Object: %O", new { name = "test" });
+        console.log("Object: %o", new JSObject { ["name"] = "test", ["value"] = 42 });
+        console.log("Object: %O", new JSObject { ["name"] = "test" });
     }
 
     [Fact]
@@ -302,15 +303,15 @@ public class ConsoleTests
     [Fact]
     public void complexObjects_ShouldNotThrow()
     {
-        var complexObj = new
+        var complexObj = new JSObject
         {
-            name = "test",
-            nested = new
+            ["name"] = "test",
+            ["nested"] = new JSObject
             {
-                value = 42,
-                array = new[] { 1, 2, 3 }
+                ["value"] = 42,
+                ["array"] = new TsArray(new object?[] { 1, 2, 3 })
             },
-            nullValue = (string?)null
+            ["nullValue"] = null
         };
 
         console.log("Complex object: %o", complexObj);

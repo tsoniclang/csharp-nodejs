@@ -21,6 +21,7 @@ public class FsPromises
 {
     public Task access(string path, int mode = 0) => fs.access(path, mode);
     public Task appendFile(string path, string data, string? encoding = "utf-8") => fs.appendFile(path, data, encoding);
+    public Task appendFile(string path, Buffer data) => fs.appendFile(path, data);
     public Task chmod(string path, int mode) => fs.chmod(path, mode);
     public Task close(int fd) => fs.close(fd);
     public Task copyFile(string src, string dest, int mode = 0) => fs.copyFile(src, dest, mode);
@@ -31,9 +32,11 @@ public class FsPromises
     public Task mkdir(string path, object? options) => fs.mkdir(path, options);
     public Task<int> open(string path, string flags, int? mode = null) => fs.open(path, flags, mode);
     public Task<int> read(int fd, byte[] buffer, int offset, int length, int? position) => fs.read(fd, buffer, offset, length, position);
-    public Task<object[]> readdir(string path, bool withFileTypes = false) => fs.readdir(path, withFileTypes);
+    public Task<string[]> readdir(string path) => fs.readdir(path);
+    public Task<object[]> readdir(string path, bool withFileTypes) => fs.readdir(path, withFileTypes);
     public Task<Dirent[]> readdirDirents(string path) => fs.readdirDirents(path);
-    public Task<string> readFile(string path, string encoding = "utf-8") => fs.readFile(path, encoding);
+    public Task<Buffer> readFile(string path) => fs.readFile(path);
+    public Task<string> readFile(string path, string encoding) => fs.readFile(path, encoding);
     public Task<byte[]> readFileBytes(string path) => fs.readFileBytes(path);
     public Task<string> readlink(string path) => fs.readlink(path);
     public Task<string> realpath(string path) => fs.realpath(path);
@@ -47,7 +50,8 @@ public class FsPromises
     public Task<int> write(int fd, byte[] buffer, int offset, int length, int? position) => fs.write(fd, buffer, offset, length, position);
     public Task<int> write(int fd, string data, int? position = null, string? encoding = null) => fs.write(fd, data, position, encoding);
     public Task writeFile(string path, string data, string? encoding = "utf-8") => fs.writeFile(path, data, encoding);
-    public Task writeFileBytes(string path, byte[] data) => fs.writeFileBytes(path, data);
+    public Task writeFile(string path, Buffer data) => fs.writeFile(path, data);
+    public Task writeFileBytes(string path, Buffer data) => fs.writeFileBytes(path, data);
 }
 
 #pragma warning restore CS1591

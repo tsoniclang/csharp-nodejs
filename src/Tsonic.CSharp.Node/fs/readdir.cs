@@ -8,9 +8,22 @@ public static partial class fs
     /// Asynchronously reads the contents of a directory.
     /// </summary>
     /// <param name="path">The directory path.</param>
+    /// <returns>A promise that resolves to an array of filenames.</returns>
+    public static Task<string[]> readdir(string path)
+    {
+        return Task.Run(() =>
+        {
+            return readdirSync(path);
+        });
+    }
+
+    /// <summary>
+    /// Asynchronously reads the contents of a directory.
+    /// </summary>
+    /// <param name="path">The directory path.</param>
     /// <param name="withFileTypes">If true, returns directory entries with type info.</param>
     /// <returns>A promise that resolves to an array of filenames or directory entries.</returns>
-    public static Task<object[]> readdir(string path, bool withFileTypes = false)
+    public static Task<object[]> readdir(string path, bool withFileTypes)
     {
         return Task.Run(() =>
         {

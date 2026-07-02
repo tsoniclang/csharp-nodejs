@@ -17,4 +17,19 @@ public static partial class fs
         var enc = ParseEncoding(encoding ?? "utf-8");
         await File.AppendAllTextAsync(path, data, enc);
     }
+
+    /// <summary>
+    /// Asynchronously appends buffer data to a file, creating the file if it does not yet exist.
+    /// </summary>
+    /// <param name="path">Filename or file path.</param>
+    /// <param name="data">The buffer data to append.</param>
+    /// <returns>A promise that resolves when the append is complete.</returns>
+    public static async Task appendFile(string path, Buffer data)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+
+        await using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
+        await stream.WriteAsync(data.InternalData);
+    }
 }

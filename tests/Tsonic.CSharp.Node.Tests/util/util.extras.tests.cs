@@ -5,10 +5,11 @@ namespace Tsonic.CSharp.Node.Tests;
 public class utilExtrasTests
 {
     [Fact]
-    public void formatWithOptions_ShouldFormat()
+    public void formatWithOptions_ShouldRejectOpenCarrierSemantics()
     {
-        var result = util.formatWithOptions(new { colors = true }, "hello %s", "world");
-        Assert.Equal("hello world", result);
+        var exception = Assert.Throws<NotSupportedException>(() => util.formatWithOptions(new { colors = true }, "hello %s", "world"));
+        Assert.Contains("node:util.formatWithOptions", exception.Message);
+        Assert.Contains("closed provider/runtime carrier semantics", exception.Message);
     }
 
     [Fact]
