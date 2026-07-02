@@ -8,6 +8,6 @@ public static partial class util
 {
     private static NotSupportedException UnsupportedOpenCarrierOperation(string apiName)
     {
-        return new NotSupportedException($"{apiName} requires closed provider/runtime carrier semantics and is not available in the current C# Node runtime package.");
+        return new NotSupportedException($"{apiName} requires closed provider/runtime carrier semantics and is not available in the closed C# Node runtime package.");
     }
 }

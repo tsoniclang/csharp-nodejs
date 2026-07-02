@@ -6,7 +6,7 @@ namespace Tsonic.CSharp.Node;
 public static partial class util
 {
     /// <summary>
-    /// Formats a string with options (options are currently ignored).
+    /// Throws until closed provider/runtime carrier semantics are available for formatted output with options.
     /// </summary>
     public static string formatWithOptions(object? inspectOptions, object? formatValue, params object?[] args)
     {
