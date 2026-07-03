@@ -21,9 +21,11 @@ import type {
 import type {
   TargetProviderModuleOwnership,
   TargetCapabilityContext,
+  TargetCapabilityOperationMapper,
 } from "@tsonic/target-api";
 import {
   csharpProviderDiagnostic,
+  csharpProviderPackageOperationsMapperKind,
 } from "@tsonic/target-csharp";
 import {
   csharpJsSurfaceExtensionId,
@@ -93,7 +95,7 @@ export function createCsharpNodejsProviderPackageExtension(context: TargetCapabi
   };
 }
 
-export function createCsharpNodejsProviderPackageOperationsMappers(_context: TargetCapabilityContext): readonly CsharpNodejsProviderPackageMappers[] {
+export function createCsharpNodejsProviderPackageOperationsMappers(_context: TargetCapabilityContext): readonly TargetCapabilityOperationMapper[] {
   return [createCsharpNodejsProviderPackageMappers(csharpNodejsProviderPackageExtensionId)];
 }
 
@@ -124,7 +126,8 @@ function nodejsProviderPackageSemanticProviderIdentity(): ProviderIdentity {
   };
 }
 
-export interface CsharpNodejsProviderPackageMappers {
+export interface CsharpNodejsProviderPackageMappers extends TargetCapabilityOperationMapper {
+  readonly kind: typeof csharpProviderPackageOperationsMapperKind;
   readonly mapCheckedCall: (
     request: CheckedCallMappingRequest,
     context: ExtensionObservationContext<"operation.mapCheckedCall">,
@@ -141,6 +144,7 @@ export interface CsharpNodejsProviderPackageMappers {
 
 export function createCsharpNodejsProviderPackageMappers(extensionId: string): CsharpNodejsProviderPackageMappers {
   return {
+    kind: csharpProviderPackageOperationsMapperKind,
     mapCheckedCall(request, context) {
       if (request.target !== undefined && request.target !== csharpTargetId) {
         return deferObservation;

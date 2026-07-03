@@ -8,9 +8,6 @@ import {
   createCsharpNodejsProviderPackageOperationsMappers,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
-import type {
-  CsharpProviderPackageOperationMapperContributor,
-} from "@tsonic/target-csharp";
 
 export {
   createCsharpNodejsProviderPackageBindingProvider,
@@ -20,7 +17,7 @@ export {
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
 
-export function createTsonicPlugin(): TsonicTargetCapabilityPlugin & CsharpProviderPackageOperationMapperContributor {
+export function createTsonicPlugin(): TsonicTargetCapabilityPlugin {
   return {
     kind: "target-capability",
     id: "@tsonic/csharp-nodejs",
@@ -31,7 +28,7 @@ export function createTsonicPlugin(): TsonicTargetCapabilityPlugin & CsharpProvi
     createExtensions(context: TargetCapabilityContext) {
       return [createCsharpNodejsProviderPackageExtension(context)];
     },
-    createCsharpOperationsMappers: createCsharpNodejsProviderPackageOperationsMappers,
+    createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
     runtimeContributions(): TargetRuntimeContributions {
       return {
         references: [

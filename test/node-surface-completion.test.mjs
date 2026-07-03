@@ -744,7 +744,7 @@ const nodejsTestProviderPackage = {
   displayName: "Node.js provider package",
   requiredSurfaces: ["js"],
   moduleOwnership: [],
-  createCsharpOperationsMappers: createCsharpNodejsProviderPackageOperationsMappers,
+  createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
   createExtensions(context) {
     return [createCsharpNodejsProviderPackageExtension(context)];
   },
