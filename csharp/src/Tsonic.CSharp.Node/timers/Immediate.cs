@@ -11,7 +11,7 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Immediate : IDisposable
 {
-    private const int DispatchGraceMilliseconds = 10;
+    private const int DispatchTurnDelayMilliseconds = 50;
     private const int StateScheduled = 0;
     private const int StateRunning = 1;
     private const int StateCompleted = 2;
@@ -34,7 +34,7 @@ public class Immediate : IDisposable
     {
         _handleId = Interlocked.Increment(ref _nextHandleId);
         _callback = callback;
-        _readyAfterTick = Environment.TickCount64 + DispatchGraceMilliseconds;
+        _readyAfterTick = Environment.TickCount64 + DispatchTurnDelayMilliseconds;
         ProcessKeepAlive.Acquire();
         ActiveHandles[_handleId] = this;
         PendingHandles.Enqueue(this);

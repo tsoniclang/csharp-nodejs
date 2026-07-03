@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,10 +20,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../csharp-js/src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
+    <ProjectReference Include="../../../../csharp-js/src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+
+  <Target Name="CopyInstalledRuntimeArtifact" AfterTargets="Build">
+    <PropertyGroup>
+      <TsonicRuntimeArtifactDirectory>$(MSBuildProjectDirectory)/../../../runtimes/$(TargetFramework)</TsonicRuntimeArtifactDirectory>
+    </PropertyGroup>
+    <MakeDir Directories="$(TsonicRuntimeArtifactDirectory)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(TsonicRuntimeArtifactDirectory)" />
+  </Target>
 </Project>

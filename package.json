@@ -1,0 +1,39 @@
+{
+  "name": "@tsonic/csharp-nodejs",
+  "version": "0.0.1",
+  "description": "C# NodeJS target capability package for Tsonic",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "csharp", "runtimes", "README.md", "LICENSE"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "tsonic": {
+    "kind": "plugin",
+    "contractVersion": 1,
+    "entry": "."
+  },
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "test": "npm run build && dotnet build Tsonic.CSharp.Node.slnx --verbosity minimal && npm run test:prepared",
+    "test:prepared": "TSONIC_TEST_PREPARED=1 node --test test/*.test.mjs && dotnet test Tsonic.CSharp.Node.slnx --no-build --no-restore --verbosity minimal"
+  },
+  "peerDependencies": {
+    "@tsonic/target-api": "0.0.1",
+    "@tsonic/target-csharp": "0.0.1",
+    "@tsonic/tsts": "0.0.0"
+  },
+  "devDependencies": {
+    "@tsonic/target-api": "file:../tsonic/packages/target-api",
+    "@tsonic/target-csharp": "file:../tsonic-csharp",
+    "@tsonic/tsts": "file:../tsonic/packages/tsts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -10,7 +10,7 @@ public class GapGuardTests
     public void Source_ShouldNotExposeNotImplementedRuntimePaths()
     {
         var root = FindRepositoryRoot();
-        var sourceFiles = Directory.GetFiles(Path.Combine(root, "src", "Tsonic.CSharp.Node"), "*.cs", SearchOption.AllDirectories);
+        var sourceFiles = Directory.GetFiles(Path.Combine(root, "csharp", "src", "Tsonic.CSharp.Node"), "*.cs", SearchOption.AllDirectories);
 
         foreach (var sourceFile in sourceFiles)
         {
@@ -25,7 +25,7 @@ public class GapGuardTests
     public void Zstd_ShouldFailClosedInsteadOfUsingAnotherCodec()
     {
         var root = FindRepositoryRoot();
-        var sourceFile = Path.Combine(root, "src", "Tsonic.CSharp.Node", "zlib", "extended.cs");
+        var sourceFile = Path.Combine(root, "csharp", "src", "Tsonic.CSharp.Node", "zlib", "extended.cs");
         var text = File.ReadAllText(sourceFile);
 
         Assert.DoesNotContain("zstdCompressSync(byte[] buffer, ZstdOptions? options = null) { _ = options; return brotliCompressSync(buffer); }", text);
@@ -37,8 +37,8 @@ public class GapGuardTests
     {
         var root = FindRepositoryRoot();
         var files = Directory
-            .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
-            .Concat(Directory.GetFiles(Path.Combine(root, "tests"), "*.cs", SearchOption.AllDirectories));
+            .GetFiles(Path.Combine(root, "csharp", "src"), "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Path.Combine(root, "csharp", "test"), "*.cs", SearchOption.AllDirectories));
 
         var oversizedFiles = files
             .Select(file => new
@@ -62,7 +62,7 @@ public class GapGuardTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null)
         {
-            if (Directory.Exists(Path.Combine(directory.FullName, "src", "Tsonic.CSharp.Node")))
+            if (Directory.Exists(Path.Combine(directory.FullName, "csharp", "src", "Tsonic.CSharp.Node")))
             {
                 return directory.FullName;
             }
