@@ -11,7 +11,7 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Immediate : IDisposable
 {
-    private const int DispatchGraceMilliseconds = 10;
+    private const int SchedulerQuietPeriodMilliseconds = 5;
     private const int StateScheduled = 0;
     private const int StateRunning = 1;
     private const int StateCompleted = 2;
@@ -20,12 +20,14 @@ public class Immediate : IDisposable
     private static int _nextHandleId = 0;
     private static readonly ConcurrentDictionary<int, Immediate> ActiveHandles = new();
     private static readonly ConcurrentQueue<Immediate> PendingHandles = new();
+    private static readonly ConcurrentQueue<Immediate> ReadyHandles = new();
     private static int _dispatchScheduled = 0;
+    private static long _apiEpoch = 0;
+    private static long _lastApiOperationTick = Environment.TickCount64;
 
     private readonly int _handleId;
     private readonly Action _callback;
     private readonly CancellationTokenSource _cancellation = new();
-    private readonly long _readyAfterTick;
     private int _state = StateScheduled;
     private int _cleanupState = 0;
     private bool _isRef = true;
@@ -34,11 +36,17 @@ public class Immediate : IDisposable
     {
         _handleId = Interlocked.Increment(ref _nextHandleId);
         _callback = callback;
-        _readyAfterTick = Environment.TickCount64 + DispatchGraceMilliseconds;
         ProcessKeepAlive.Acquire();
         ActiveHandles[_handleId] = this;
         PendingHandles.Enqueue(this);
+        RecordApiOperation();
         ScheduleDispatch();
+    }
+
+    private static void RecordApiOperation()
+    {
+        Interlocked.Exchange(ref _lastApiOperationTick, Environment.TickCount64);
+        Interlocked.Increment(ref _apiEpoch);
     }
 
     private static void ScheduleDispatch()
@@ -53,14 +61,27 @@ public class Immediate : IDisposable
 
     private static async Task DispatchPendingAsync()
     {
+        await WaitForQuietApiTurnsAsync();
+
         while (true)
         {
-            await Task.Delay(1);
-
-            var batchCount = PendingHandles.Count;
-            for (var index = 0; index < batchCount; index++)
+            var pendingCount = PendingHandles.Count;
+            for (var index = 0; index < pendingCount; index++)
             {
                 if (!PendingHandles.TryDequeue(out var handle))
+                {
+                    break;
+                }
+
+                ReadyHandles.Enqueue(handle);
+            }
+
+            await WaitForQuietApiTurnsAsync();
+
+            var readyCount = ReadyHandles.Count;
+            for (var index = 0; index < readyCount; index++)
+            {
+                if (!ReadyHandles.TryDequeue(out var handle))
                 {
                     break;
                 }
@@ -68,17 +89,46 @@ public class Immediate : IDisposable
                 handle.TryExecute();
             }
 
-            Interlocked.Exchange(ref _dispatchScheduled, 0);
-            if (PendingHandles.IsEmpty)
+            if (PendingHandles.IsEmpty && ReadyHandles.IsEmpty)
             {
-                return;
+                Interlocked.Exchange(ref _dispatchScheduled, 0);
+                if (PendingHandles.IsEmpty && ReadyHandles.IsEmpty)
+                {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref _dispatchScheduled, 1, 0) != 0)
+                {
+                    return;
+                }
             }
 
-            if (Interlocked.CompareExchange(ref _dispatchScheduled, 1, 0) != 0)
-            {
-                return;
-            }
+            await YieldToNextTurnAsync();
         }
+    }
+
+    private static async Task WaitForQuietApiTurnsAsync()
+    {
+        var observedEpoch = Volatile.Read(ref _apiEpoch);
+        var stableTurns = 0;
+        while (stableTurns < 2 || Environment.TickCount64 - Volatile.Read(ref _lastApiOperationTick) < SchedulerQuietPeriodMilliseconds)
+        {
+            await YieldToNextTurnAsync();
+            var currentEpoch = Volatile.Read(ref _apiEpoch);
+            if (currentEpoch == observedEpoch)
+            {
+                stableTurns++;
+                continue;
+            }
+
+            observedEpoch = currentEpoch;
+            stableTurns = 0;
+        }
+    }
+
+    private static async Task YieldToNextTurnAsync()
+    {
+        await Task.Yield();
     }
 
     private void TryExecute()
@@ -87,12 +137,6 @@ public class Immediate : IDisposable
         {
             if (Volatile.Read(ref _state) != StateScheduled)
             {
-                return;
-            }
-
-            if (Environment.TickCount64 < _readyAfterTick)
-            {
-                PendingHandles.Enqueue(this);
                 return;
             }
 
@@ -160,6 +204,7 @@ public class Immediate : IDisposable
     /// </summary>
     public void Dispose()
     {
+        RecordApiOperation();
         if (Interlocked.CompareExchange(ref _state, StateCancelled, StateScheduled) == StateScheduled)
         {
             _cancellation.Cancel();

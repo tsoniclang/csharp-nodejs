@@ -1,8 +1,8 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj" />
+  <Folder Name="/csharp/src/">
+    <Project Path="csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Tsonic.CSharp.Node.Tests/Tsonic.CSharp.Node.Tests.csproj" />
+  <Folder Name="/csharp/test/">
+    <Project Path="csharp/test/Tsonic.CSharp.Node.Tests/Tsonic.CSharp.Node.Tests.csproj" />
   </Folder>
 </Solution>

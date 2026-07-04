@@ -72,6 +72,8 @@ tools/VERIFICATION-SUMMARY.md
 
 # Node.js
 node_modules/
+dist/
+runtimes/
 
 # Test outputs
 tests/**/TestResults/
