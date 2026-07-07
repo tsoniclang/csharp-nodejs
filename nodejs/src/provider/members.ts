@@ -2,6 +2,7 @@ export {
   getNodejsCallTargetMember,
 } from "./members/call-targets.js";
 export {
+  hasNodejsCallTargetMemberForDeclarationFromMetadata,
   getNodejsUnsupportedTargetIdentityFromMetadata,
 } from "./members/metadata-index.js";
 export {

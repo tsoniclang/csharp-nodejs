@@ -20,8 +20,8 @@
   },
   "scripts": {
     "build": "bash scripts/build.sh",
-    "test": "npm run build && dotnet build Tsonic.CSharp.Node.slnx --verbosity minimal && npm run test:prepared",
-    "test:prepared": "TSONIC_TEST_PREPARED=1 node --test test/*.test.mjs && dotnet test Tsonic.CSharp.Node.slnx --no-build --no-restore --verbosity minimal"
+    "test": "npm run build && dotnet build Tsonic.CSharp.Node.slnx --verbosity minimal && npm run test:parallel",
+    "test:parallel": "bash scripts/test-parallel.sh"
   },
   "peerDependencies": {
     "@tsonic/target-api": "0.0.1",

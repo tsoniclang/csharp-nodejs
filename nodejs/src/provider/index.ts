@@ -26,6 +26,7 @@ import type {
 import {
   csharpProviderDiagnostic,
   csharpProviderPackageOperationsMapperKind,
+  targetOperation,
 } from "@tsonic/target-csharp";
 import {
   csharpJsSurfaceExtensionId,
@@ -47,6 +48,7 @@ import type {
 import {
   getCsharpNodejsElementOperationForReceiverType,
   getCsharpNodejsPropertyOperation,
+  hasNodejsCallTargetMemberForDeclarationFromMetadata,
   getNodejsCallTargetMember,
   getNodejsUnsupportedTargetIdentityFromMetadata,
 } from "./members.js";
@@ -190,6 +192,15 @@ export function createCsharpNodejsProviderPackageMappers(extensionId: string): C
         if (unsupported !== undefined) {
           return rejectObservation(unsupportedNodejsProviderPackageOperationDiagnostic(extensionId, "property", declaration, unsupported, request.expression));
         }
+        if (hasNodejsCallTargetMemberForDeclarationFromMetadata(declaration)) {
+          return acceptObservation<CheckedOperationMappingResult>({
+            operation: targetOperation(
+              `tsonic.csharp.nodejs.${nodejsProviderPackageCallableDeclarationOperationKey(declaration)}.callee`,
+              "method",
+              formatNodejsDeclarationIdentity(declaration),
+            ),
+          }, [{ message: `C# NodeJS provider package callable property accepted from checked provider module '${declaration.moduleSpecifier}'. Call expressions select the concrete target member from checked provider signature identity.` }]);
+        }
         return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_PROPERTY_NOT_MAPPED", 9100201, `C# NodeJS provider package could not map checked ${formatNodejsDeclarationIdentity(declaration)} to a target property.`));
       }
       recordCsharpTargetOperation(context, request.expression, operation.csharpOperation, [{ message: `C# NodeJS provider package property operation recorded from checked provider module '${declaration.moduleSpecifier}'.` }]);
@@ -236,6 +247,18 @@ function formatNodejsDeclarationIdentity(declaration: NodejsProviderDeclarationI
   const member = declaration.memberName === undefined ? "" : ` member '${declaration.memberName}'`;
   const signature = declaration.signatureId === undefined ? "" : ` signature '${declaration.signatureId}'`;
   return `'${declaration.moduleSpecifier}' export '${exportName}'${member}${signature}`;
+}
+
+function nodejsProviderPackageCallableDeclarationOperationKey(declaration: NodejsProviderDeclarationIdentity): string {
+  return [
+    declaration.providerId,
+    declaration.providerVersion,
+    declaration.providerModuleId,
+    declaration.moduleSpecifier,
+    declaration.exportName ?? "",
+    declaration.memberName ?? "",
+    declaration.memberId ?? "",
+  ].join(":");
 }
 
 function unsupportedNodejsProviderPackageOperationDiagnostic(

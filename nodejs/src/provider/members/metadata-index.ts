@@ -31,6 +31,12 @@ export function getNodejsCallTargetMemberFromMetadata(
   return getNodejsTargetMemberFromMetadata(declaration);
 }
 
+export function hasNodejsCallTargetMemberForDeclarationFromMetadata(
+  declaration: NodejsProviderDeclarationIdentity,
+): boolean {
+  return nodejsCallableDeclarationStemKeys.has(nodejsDeclarationStemKey(canonicalNodejsDeclarationIdentity(declaration)));
+}
+
 export function getNodejsPropertyTargetMemberFromMetadata(
   declaration: NodejsProviderDeclarationIdentity,
 ): CsharpTargetMember | undefined {
@@ -84,6 +90,14 @@ const nodejsTargetMemberByDeclarationIdentity = new Map<string, CsharpTargetMemb
   ),
 );
 
+const nodejsCallableDeclarationStemKeys = new Set(
+  nodejsTargetMemberRecords.flatMap((record) =>
+    record.declarationIdentities
+      .filter((identity) => identity.signatureId !== undefined)
+      .map((identity) => nodejsDeclarationStemKey(canonicalNodejsDeclarationIdentity(identity)))
+  ),
+);
+
 const nodejsUnsupportedIdentityByDeclarationSymbol = new Map<string, NodejsUnsupportedTargetIdentity>(
   nodejsUnsupportedTargetMetadataRecords().flatMap((record) =>
     record.symbolIdentities.map((identity) => [
@@ -92,3 +106,12 @@ const nodejsUnsupportedIdentityByDeclarationSymbol = new Map<string, NodejsUnsup
     ] as const)
   ),
 );
+
+function nodejsDeclarationStemKey(
+  declaration: NodejsProviderDeclarationIdentity,
+): string {
+  return nodejsProviderDeclarationIdentityKey({
+    ...declaration,
+    signatureId: undefined,
+  });
+}
