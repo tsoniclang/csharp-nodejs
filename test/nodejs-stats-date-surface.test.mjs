@@ -11,10 +11,15 @@ import {
 import { createTsonicCoreSourceExtension } from "../../tsonic/packages/source-core/dist/index.js";
 import { csharpTargetOperationFactKey } from "../../tsonic-csharp/dist/index.js";
 import {
+  createCsharpTargetPack,
   createCsharpJsSurfaceExtension,
   createCsharpSourceSemanticsExtension,
   createCsharpTargetSemanticsExtension,
 } from "../../tsonic-csharp/dist/index.js";
+import {
+  normalizeTargetSourceProfileSegment,
+  tsonicSourceProfileVirtualDirectory,
+} from "../../tsonic/packages/target-api/dist/index.js";
 import {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
@@ -151,7 +156,9 @@ function fakeContext(facts) {
 }
 
 function createCsharpSession(sourceText, options = {}) {
+  const targetPack = createCsharpTargetPack();
   const target = { id: "csharp" };
+  const selectedSurfaces = selectedTargetSurfaces(targetPack, options.selectedSurfaces ?? []);
   const selectedCapabilities = selectedProviderPackages(options.selectedCapabilities ?? []);
   const context = {
     project: {
@@ -159,17 +166,25 @@ function createCsharpSession(sourceText, options = {}) {
       targets: [target],
     },
     target,
-    selectedSurfaces: options.selectedSurfaces ?? [],
+    targetPack,
+    selectedSurfaces,
     selectedCapabilities,
   };
+  const sourceProfileFiles = csharpTestSourceProfileFiles(context);
   return createCompilerSessionFromFiles({
     currentDirectory: "/src",
     files: new Map([
+      ...sourceProfileFiles.map((file) => [file.path, file.text]),
       ["/src/index.ts", sourceText],
     ]),
+    rootFiles: [
+      ...sourceProfileFiles.map((file) => file.path),
+      "/src/index.ts",
+    ],
     compilerOptions: {
       module: "esnext",
       moduleResolution: "bundler",
+      noLib: true,
       strictNullChecks: true,
       target: "es2022",
     },
@@ -181,15 +196,45 @@ function createCsharpSession(sourceText, options = {}) {
         createCsharpTargetSemanticsExtension(context),
         ...context.selectedSurfaces.flatMap((surface) =>
           surface.id === "js"
-            ? [createCsharpJsSurfaceExtension({ ...context, surface, targetPack: fakeTargetPack })]
+            ? [createCsharpJsSurfaceExtension({ ...context, surface })]
             : []
         ),
         ...context.selectedCapabilities.flatMap((providerPackage) =>
-          providerPackage.createExtensions?.({ ...context, capability: providerPackage, targetPack: fakeTargetPack }) ?? []
+          providerPackage.createExtensions?.({ ...context, capability: providerPackage }) ?? []
         ),
       ],
     },
   });
+}
+
+function selectedTargetSurfaces(targetPack, requestedSurfaces) {
+  return requestedSurfaces.map((surface) =>
+    targetPack.surfaces?.find((candidate) => candidate.id === surface.id) ?? surface
+  );
+}
+
+function csharpTestSourceProfileFiles(context) {
+  const files = [];
+  appendSourceProfileDeclarations(files, context.targetPack.provider?.id, context.targetPack.provider?.sourceProfileContributions?.(context)?.declarations ?? []);
+  for (const surface of context.selectedSurfaces) {
+    appendSourceProfileDeclarations(files, surface.id, surface.sourceProfileContributions?.({ ...context, surface })?.declarations ?? []);
+  }
+  for (const capability of context.selectedCapabilities) {
+    appendSourceProfileDeclarations(files, capability.id, capability.sourceProfileContributions?.({ ...context, capability })?.declarations ?? []);
+  }
+  return files;
+}
+
+function appendSourceProfileDeclarations(files, ownerId, declarations) {
+  if (ownerId === undefined) {
+    return;
+  }
+  for (const declaration of declarations) {
+    files.push({
+      path: `/src/${tsonicSourceProfileVirtualDirectory}/${normalizeTargetSourceProfileSegment(ownerId)}/${declaration.fileName}`,
+      text: declaration.text,
+    });
+  }
 }
 
 function selectedProviderPackages(requestedPackages) {
@@ -211,11 +256,6 @@ const nodejsTestProviderPackage = {
   createExtensions(context) {
     return [createCsharpNodejsProviderPackageExtension(context)];
   },
-};
-
-const fakeTargetPack = {
-  id: "csharp",
-  displayName: "C#",
 };
 
 function collectFactValues(sourceFile, session, extensionHost, factKey) {
