@@ -21,7 +21,7 @@
   "scripts": {
     "build": "bash scripts/build.sh",
     "test": "npm run build && dotnet build Tsonic.CSharp.Node.slnx --verbosity minimal && npm run test:parallel",
-    "test:parallel": "bash scripts/test-parallel.sh"
+    "test:parallel": "node ../tsonic/scripts/test/run-parallel.mjs --scope csharp-nodejs"
   },
   "peerDependencies": {
     "@tsonic/target-api": "0.0.1",
