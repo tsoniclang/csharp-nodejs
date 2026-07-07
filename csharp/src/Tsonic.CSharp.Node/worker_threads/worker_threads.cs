@@ -49,7 +49,14 @@ public sealed class Worker : EventEmitter
             throw new ArgumentNullException(nameof(workerBody));
 
         threadId = -1;
-        _task = Task.Run(() =>
+        _task = RunWorkerAsync(workerBody);
+    }
+
+    private async Task RunWorkerAsync(Action workerBody)
+    {
+        await Task.Yield();
+        _cancellation.Token.ThrowIfCancellationRequested();
+        await Task.Run(() =>
         {
             threadId = Environment.CurrentManagedThreadId;
             try
