@@ -276,12 +276,16 @@ test("NodeJS provider package hard-rejects selected unsupported provider identit
   const processStdinDeclaration = {};
   const utilFormatSignature = {};
   const urlPatternTestSignature = {};
+  const processNextTickDeclaration = {};
+  const processNextTickSignature = {};
   const staleReaddirSignature = {};
   const staleReaddirCall = {};
   facts.set(cryptoCipherSignature, providerVirtualDeclarationFactKey, nodejsVirtualDeclaration("crypto", "createCipheriv", "node:crypto.createCipheriv(System.String,System.Object,System.Object)"));
   facts.set(processStdinDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualDeclaration("process", "stdin"));
   facts.set(utilFormatSignature, providerVirtualDeclarationFactKey, nodejsVirtualDeclaration("node:util", "format", "node:util.format(System.Object,System.Object[])"));
   facts.set(urlPatternTestSignature, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:url", "URLPattern", "test", "node:url.URLPattern.test", "node:url.URLPattern.test(System.String)"));
+  facts.set(processNextTickDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:process", "NodeProcessModule", "nextTick", "node:process.NodeProcessModule.nextTick"));
+  facts.set(processNextTickSignature, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:process", "NodeProcessModule", "nextTick", "node:process.NodeProcessModule.nextTick", "node:process.nextTick(Function,System.Object[])"));
   facts.set(staleReaddirSignature, providerVirtualDeclarationFactKey, nodejsVirtualDeclaration("node:fs", "readdirSync", "node:fs.readdirSync(System.String,System.Boolean)"));
 
   for (const unsupported of nodeFsUnsupportedTargetIdentities()) {
@@ -319,6 +323,10 @@ test("NodeJS provider package hard-rejects selected unsupported provider identit
   assertUnsupportedProperty(provider, facts, processStdinDeclaration, "unsupported:Tsonic.CSharp.Node.process.stdin");
   assertUnsupportedCall(provider, facts, utilFormatSignature, "unsupported:Tsonic.CSharp.Node.util.format(System.Object,System.Object[])");
   assertUnsupportedCall(provider, facts, urlPatternTestSignature, "unsupported:Tsonic.CSharp.Node.URLPattern.test(System.String)");
+  const processNextTickCalleeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest({}, processNextTickDeclaration), fakeContext(facts));
+  assert.equal(processNextTickCalleeResult.kind, "accept");
+  assert.equal(processNextTickCalleeResult.value.operation.operationKind, "method");
+  assertUnsupportedCall(provider, facts, processNextTickSignature, "unsupported:Tsonic.CSharp.Node.process.nextTick(Function,System.Object[])");
   const staleReaddirResult = provider.mapCheckedCall(nodejsCallRequest(staleReaddirCall, staleReaddirSignature), fakeContext(facts));
   assert.equal(staleReaddirResult.kind, "reject");
   assert.equal(staleReaddirResult.diagnostic.extensionCode, "CSHARP_NODEJS_CALL_NOT_MAPPED");

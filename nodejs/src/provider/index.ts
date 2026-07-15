@@ -48,7 +48,7 @@ import type {
 import {
   getCsharpNodejsElementOperationForReceiverType,
   getCsharpNodejsPropertyOperation,
-  hasNodejsCallTargetMemberForDeclarationFromMetadata,
+  hasNodejsCallableDeclarationFromMetadata,
   getNodejsCallTargetMember,
   getNodejsUnsupportedTargetIdentityFromMetadata,
 } from "./members.js";
@@ -192,7 +192,7 @@ export function createCsharpNodejsProviderPackageMappers(extensionId: string): C
         if (unsupported !== undefined) {
           return rejectObservation(unsupportedNodejsProviderPackageOperationDiagnostic(extensionId, "property", declaration, unsupported, request.expression));
         }
-        if (hasNodejsCallTargetMemberForDeclarationFromMetadata(declaration)) {
+        if (hasNodejsCallableDeclarationFromMetadata(declaration)) {
           return acceptObservation<CheckedOperationMappingResult>({
             operation: targetOperation(
               `tsonic.csharp.nodejs.${nodejsProviderPackageCallableDeclarationOperationKey(declaration)}.callee`,
