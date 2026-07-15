@@ -23,7 +23,7 @@ import {
 import {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
+  createCsharpNodejsTargetContributions,
   createCsharpNodejsProviderPackageOperationsProvider,
 } from "../dist/provider/index.js";
 
@@ -251,7 +251,7 @@ const nodejsTestProviderPackage = {
   displayName: "Node.js provider package",
   requiredSurfaces: ["js"],
   moduleOwnership: [],
-  createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
+  createTargetContributions: createCsharpNodejsTargetContributions,
   createExtensions(context) {
     return [createCsharpNodejsProviderPackageExtension(context)];
   },

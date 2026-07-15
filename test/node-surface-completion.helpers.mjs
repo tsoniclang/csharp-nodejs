@@ -21,7 +21,7 @@ import {
 import {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
+  createCsharpNodejsTargetContributions,
   createCsharpNodejsProviderPackageOperationsProvider,
 } from "../dist/provider/index.js";
 import {
@@ -43,7 +43,7 @@ import {
   nodeOsPropertyTargetMembers,
   nodeOsUnsupportedTargetIdentities,
 } from "../dist/provider/os.js";
-export { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpTargetPack, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsProviderPackageOperationsMappers, createCsharpNodejsProviderPackageOperationsProvider, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities };
+export { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpTargetPack, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsProviderPackageOperationsProvider, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities };
 
 
 
@@ -341,7 +341,7 @@ export const nodejsTestProviderPackage = {
   displayName: "Node.js provider package",
   requiredSurfaces: ["js"],
   moduleOwnership: [],
-  createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
+  createTargetContributions: createCsharpNodejsTargetContributions,
   createExtensions(context) {
     return [createCsharpNodejsProviderPackageExtension(context)];
   },

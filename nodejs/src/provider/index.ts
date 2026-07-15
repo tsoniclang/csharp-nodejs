@@ -21,11 +21,11 @@ import type {
 import type {
   TargetProviderModuleOwnership,
   TargetCapabilityContext,
-  TargetCapabilityOperationMapper,
+  TargetCapabilityContribution,
 } from "@tsonic/target-api";
 import {
   csharpProviderDiagnostic,
-  csharpProviderPackageOperationsMapperKind,
+  csharpProviderOperationsContributionKind,
   targetOperation,
 } from "@tsonic/target-csharp";
 import {
@@ -97,22 +97,22 @@ export function createCsharpNodejsProviderPackageExtension(context: TargetCapabi
   };
 }
 
-export function createCsharpNodejsProviderPackageOperationsMappers(_context: TargetCapabilityContext): readonly TargetCapabilityOperationMapper[] {
-  return [createCsharpNodejsProviderPackageMappers(csharpNodejsProviderPackageExtensionId)];
+export function createCsharpNodejsTargetContributions(_context: TargetCapabilityContext): readonly TargetCapabilityContribution[] {
+  return [createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId)];
 }
 
 export function createCsharpNodejsProviderPackageOperationsProvider(): TargetSemanticProvider {
-  const mapper = createCsharpNodejsProviderPackageMappers(csharpNodejsProviderPackageExtensionId);
+  const contribution = createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId);
   return {
     identity: nodejsProviderPackageSemanticProviderIdentity(),
     mapCheckedCall(request, context) {
-      return mapper.mapCheckedCall(request, context);
+      return contribution.mapCheckedCall(request, context);
     },
     mapCheckedPropertyAccess(request, context) {
-      return mapper.mapCheckedPropertyAccess(request, context);
+      return contribution.mapCheckedPropertyAccess(request, context);
     },
     mapCheckedElementAccess(request, context) {
-      return mapper.mapCheckedElementAccess(request, context);
+      return contribution.mapCheckedElementAccess(request, context);
     },
   };
 }
@@ -128,8 +128,8 @@ function nodejsProviderPackageSemanticProviderIdentity(): ProviderIdentity {
   };
 }
 
-export interface CsharpNodejsProviderPackageMappers extends TargetCapabilityOperationMapper {
-  readonly kind: typeof csharpProviderPackageOperationsMapperKind;
+export interface CsharpNodejsProviderOperationsContribution extends TargetCapabilityContribution {
+  readonly kind: typeof csharpProviderOperationsContributionKind;
   readonly mapCheckedCall: (
     request: CheckedCallMappingRequest,
     context: ExtensionObservationContext<"operation.mapCheckedCall">,
@@ -144,9 +144,9 @@ export interface CsharpNodejsProviderPackageMappers extends TargetCapabilityOper
   ) => ExtensionObservation<CheckedOperationMappingResult>;
 }
 
-export function createCsharpNodejsProviderPackageMappers(extensionId: string): CsharpNodejsProviderPackageMappers {
+export function createCsharpNodejsProviderOperationsContribution(extensionId: string): CsharpNodejsProviderOperationsContribution {
   return {
-    kind: csharpProviderPackageOperationsMapperKind,
+    kind: csharpProviderOperationsContributionKind,
     mapCheckedCall(request, context) {
       if (request.target !== undefined && request.target !== csharpTargetId) {
         return deferObservation;

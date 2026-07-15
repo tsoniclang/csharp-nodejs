@@ -5,14 +5,14 @@ import type {
 } from "@tsonic/target-api";
 import {
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
+  createCsharpNodejsTargetContributions,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
 
 export {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
+  createCsharpNodejsTargetContributions,
   createCsharpNodejsProviderPackageOperationsProvider,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
@@ -28,7 +28,7 @@ export function createTsonicPlugin(): TsonicTargetCapabilityPlugin {
     createExtensions(context: TargetCapabilityContext) {
       return [createCsharpNodejsProviderPackageExtension(context)];
     },
-    createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
+    createTargetContributions: createCsharpNodejsTargetContributions,
     runtimeContributions(): TargetRuntimeContributions {
       return {
         references: [
