@@ -33,7 +33,7 @@ export const dateProviderType = {
   target: "csharp",
   id: "Tsonic.CSharp.Js.Date",
   displayName: "Date",
-  sourceShape: { kind: "provider-ref", moduleSpecifier: "global:js", exportName: "Date" },
+  sourceShape: { kind: "source-global", name: "Date" },
 } satisfies ProviderTypeExpression;
 export const bufferProviderType = {
   kind: "provider-ref",
@@ -60,9 +60,8 @@ export function promiseProviderType(resultType: ProviderTypeExpression): Provide
     id: resultType.kind === "void" ? "System.Threading.Tasks.Task" : "System.Threading.Tasks.Task`1",
     ...(resultType.kind === "void" ? {} : { typeArguments: [resultType] }),
     sourceShape: {
-      kind: "provider-ref",
-      moduleSpecifier: "global:js",
-      exportName: "Promise",
+      kind: "source-global",
+      name: "Promise",
       typeArguments: [resultType],
     },
   };

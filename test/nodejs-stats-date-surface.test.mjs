@@ -40,8 +40,7 @@ test("NodeJS fs Stats Date declarations expose JS Date source type", () => {
   const mtimeMs = stats.members.find((member) => member.name === "mtimeMs");
   assert.equal(mtime.type.kind, "target-named");
   assert.equal(mtime.type.id, "Tsonic.CSharp.Js.Date");
-  assert.equal(mtime.type.sourceShape.kind, "provider-ref");
-  assert.equal(mtime.type.sourceShape.exportName, "Date");
+  assert.deepEqual(mtime.type.sourceShape, { kind: "source-global", name: "Date" });
   assert.equal(mtimeMs.type.kind, "number");
 });
 

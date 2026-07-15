@@ -36,6 +36,32 @@ test("NodeJS provider package exposes completion metadata for assigned modules",
   assertDefaultModuleCall(bindingProvider, "node:util", "NodeUtilModule", "toUSVString", "node:util.toUSVString(System.String)", "Tsonic.CSharp.Node.util.toUSVString(System.String)");
   assertDefaultModuleCall(bindingProvider, "node:url", "NodeUrlModule", "pathToFileURL", "node:url.pathToFileURL(System.String)", "Tsonic.CSharp.Node.url.pathToFileURL(System.String)");
 });
+test("NodeJS promise declarations preserve the target Task carrier and exact source-global shape", () => {
+  const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
+  const resolution = bindingProvider.resolveModule("node:fs/promises", {});
+  assert.equal(resolution.kind, "virtual");
+  const model = bindingProvider.getDeclarationModel(resolution);
+  const readFile = model.exports.find((entry) => entry.name === "readFile");
+  const signature = readFile?.signatures?.find((entry) => entry.id === "node:fs/promises.readFile(System.String)");
+
+  assert.equal(signature?.returnType?.kind, "target-named");
+  assert.equal(signature.returnType.target, "csharp");
+  assert.equal(signature.returnType.id, "System.Threading.Tasks.Task`1");
+  assert.deepEqual(signature.returnType.typeArguments, [{
+    kind: "provider-ref",
+    moduleSpecifier: "node:buffer",
+    exportName: "Buffer",
+  }]);
+  assert.deepEqual(signature.returnType.sourceShape, {
+    kind: "source-global",
+    name: "Promise",
+    typeArguments: [{
+      kind: "provider-ref",
+      moduleSpecifier: "node:buffer",
+      exportName: "Buffer",
+    }],
+  });
+});
 test("NodeJS process provider metadata exposes provider-owned nullish union shapes", () => {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
   const resolution = bindingProvider.resolveModule("node:process", {});

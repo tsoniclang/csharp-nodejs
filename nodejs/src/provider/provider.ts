@@ -206,6 +206,11 @@ function rebaseNodejsProviderType(
           : type.moduleSpecifier,
         ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
       };
+    case "source-global":
+      return {
+        ...type,
+        ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
+      };
     case "target-named":
       return {
         ...type,
@@ -232,7 +237,19 @@ function rebaseNodejsProviderType(
       return type.sourceShape === undefined
         ? type
         : { ...type, sourceShape: mapType(type.sourceShape) };
-    default:
+    case "any":
+    case "unknown":
+    case "void":
+    case "never":
+    case "undefined":
+    case "boolean":
+    case "string":
+    case "number":
+    case "bigint":
+    case "object":
+    case "literal":
+    case "source-primitive":
+    case "type-parameter":
       return type;
   }
 }
@@ -362,13 +379,31 @@ function visitProviderType(
         visitProviderType(typeArgument, visit);
       }
       return;
+    case "source-global":
+      for (const typeArgument of type.typeArguments ?? []) {
+        visitProviderType(typeArgument, visit);
+      }
+      return;
     case "target-named":
       for (const typeArgument of type.typeArguments ?? []) {
         visitProviderType(typeArgument, visit);
       }
       visitOptionalProviderType(type.sourceShape, visit);
       return;
-    default:
+    case "any":
+    case "unknown":
+    case "void":
+    case "never":
+    case "undefined":
+    case "boolean":
+    case "string":
+    case "number":
+    case "bigint":
+    case "object":
+    case "literal":
+    case "source-primitive":
+    case "type-parameter":
+    case "opaque":
       return;
   }
 }
