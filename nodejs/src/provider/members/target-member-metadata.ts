@@ -88,6 +88,7 @@ export interface NodejsClassPropertyTargetMetadataRow {
   readonly exportName: string;
   readonly memberName: string;
   readonly memberId: string;
+  readonly signatureId?: string;
   readonly targetMemberId: string;
   readonly sourceName: string;
   readonly targetName: string;
@@ -177,6 +178,7 @@ export function nodejsClassPropertyTargetMetadata(
     exportName: row.exportName,
     memberName: row.memberName,
     memberId: row.memberId,
+    ...(row.signatureId === undefined ? {} : { signatureId: row.signatureId }),
     targetMemberId: row.targetMemberId,
     targetName: row.targetName,
     memberKind: row.memberKind,

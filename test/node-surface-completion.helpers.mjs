@@ -63,16 +63,10 @@ export function assertModuleExport(bindingProvider, moduleSpecifier, exportName,
   const model = bindingProvider.getDeclarationModel(resolution);
   const declaration = model.exports.find((entry) => entry.name === exportName);
   assert.ok(declaration?.signatures?.some((signature) => signature.id === signatureId));
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName,
-    signatureId,
-  });
-  if (targetIdentityId === undefined) {
-    assert.ok(identity?.id);
-  } else {
-    assert.equal(identity?.id, targetIdentityId);
-  }
+  assertCallMapping(
+    nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId),
+    targetIdentityId,
+  );
 }
 
 export function assertClassMember(bindingProvider, moduleSpecifier, exportName, memberName, signatureId, targetIdentityId) {
@@ -82,17 +76,16 @@ export function assertClassMember(bindingProvider, moduleSpecifier, exportName, 
   const declaration = model.exports.find((entry) => entry.name === exportName);
   const member = declaration?.members?.find((entry) => entry.name === memberName);
   assert.ok(member?.signatures?.some((signature) => signature.id === signatureId));
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName,
-    memberName,
-    signatureId,
-  });
-  if (targetIdentityId === undefined) {
-    assert.ok(identity?.id);
-  } else {
-    assert.equal(identity?.id, targetIdentityId);
-  }
+  assertCallMapping(
+    nodejsVirtualMemberDeclaration(
+      moduleSpecifier,
+      exportName,
+      memberName,
+      member.id,
+      signatureId,
+    ),
+    targetIdentityId,
+  );
 }
 
 export function assertClassProperty(bindingProvider, moduleSpecifier, exportName, memberName, memberId, targetIdentityId = memberId) {
@@ -102,12 +95,10 @@ export function assertClassProperty(bindingProvider, moduleSpecifier, exportName
   const declaration = model.exports.find((entry) => entry.name === exportName);
   const member = declaration?.members?.find((entry) => entry.name === memberName);
   assert.equal(member?.id, memberId);
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName,
-    memberName,
-  });
-  assert.equal(identity?.id, targetIdentityId);
+  assertPropertyMapping(
+    nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memberName, memberId),
+    targetIdentityId,
+  );
 }
 
 export function assertModuleValue(bindingProvider, moduleSpecifier, exportName, targetIdentityId) {
@@ -116,11 +107,10 @@ export function assertModuleValue(bindingProvider, moduleSpecifier, exportName, 
   const model = bindingProvider.getDeclarationModel(resolution);
   const declaration = model.exports.find((entry) => entry.name === exportName);
   assert.equal(declaration?.kind, "value");
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName,
-  });
-  assert.equal(identity?.id, targetIdentityId);
+  assertPropertyMapping(
+    nodejsVirtualDeclaration(moduleSpecifier, exportName),
+    targetIdentityId,
+  );
 }
 
 export function assertProviderUnionType(type, expectedKinds) {
@@ -137,36 +127,45 @@ export function providerTypeKey(type) {
 export function assertDefaultModuleCall(bindingProvider, moduleSpecifier, interfaceName, memberName, signatureId, targetIdentityId) {
   const member = assertDefaultModuleMember(bindingProvider, moduleSpecifier, interfaceName, memberName);
   assert.equal(member?.signatures?.[0]?.id, signatureId);
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName: interfaceName,
-    memberName,
-    signatureId,
-  });
-  assert.equal(identity?.id, targetIdentityId);
+  assertCallMapping(
+    nodejsVirtualMemberDeclaration(
+      moduleSpecifier,
+      interfaceName,
+      memberName,
+      member.id,
+      signatureId,
+    ),
+    targetIdentityId,
+  );
 }
 
 export function assertDefaultModuleSignature(bindingProvider, moduleSpecifier, interfaceName, memberName, signatureId, targetIdentityId) {
   const member = assertDefaultModuleMember(bindingProvider, moduleSpecifier, interfaceName, memberName);
   assert.ok(member?.signatures?.some((signature) => signature.id === signatureId));
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName: interfaceName,
-    memberName,
-    signatureId,
-  });
-  assert.equal(identity?.id, targetIdentityId);
+  assertCallMapping(
+    nodejsVirtualMemberDeclaration(
+      moduleSpecifier,
+      interfaceName,
+      memberName,
+      member.id,
+      signatureId,
+    ),
+    targetIdentityId,
+  );
 }
 
 export function assertDefaultModuleProperty(bindingProvider, moduleSpecifier, interfaceName, memberName, memberId, targetIdentityId) {
   const member = assertDefaultModuleMember(bindingProvider, moduleSpecifier, interfaceName, memberName);
   assert.equal(member?.id, memberId);
-  const identity = bindingProvider.getTargetIdentity({
-    moduleSpecifier,
-    exportName: interfaceName,
-    memberName,
-  });
-  assert.equal(identity?.id, targetIdentityId);
+  assertPropertyMapping(
+    nodejsVirtualMemberDeclaration(
+      moduleSpecifier,
+      interfaceName,
+      memberName,
+      memberId,
+    ),
+    targetIdentityId,
+  );
 }
 
 export function assertDefaultModuleMember(bindingProvider, moduleSpecifier, interfaceName, memberName) {
@@ -184,6 +183,42 @@ export function assertDefaultModuleMember(bindingProvider, moduleSpecifier, inte
 export function assertSelectedMember(result, memberId) {
   assert.equal(result.kind, "accept");
   assert.equal(result.value.selectedSignature.member.id, memberId);
+}
+
+function assertCallMapping(declaration, targetIdentityId) {
+  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const facts = new TestFactStore();
+  const selectedSignature = {};
+  facts.set(selectedSignature, providerVirtualDeclarationFactKey, declaration);
+  const result = provider.mapCheckedCall(
+    nodejsCallRequest({}, selectedSignature),
+    fakeContext(facts),
+  );
+  assert.notEqual(result.kind, "defer");
+  if (result.kind === "accept") {
+    if (targetIdentityId === undefined) {
+      assert.ok(result.value.selectedSignature.member.id);
+    } else {
+      assert.equal(result.value.selectedSignature.member.id, targetIdentityId);
+    }
+    return;
+  }
+  assert.equal(targetIdentityId, undefined);
+  assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED");
+  assert.ok(result.diagnostic.evidence?.[0]?.details?.targetIdentityId);
+}
+
+function assertPropertyMapping(declaration, targetIdentityId) {
+  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const facts = new TestFactStore();
+  const selectedDeclaration = {};
+  facts.set(selectedDeclaration, providerVirtualDeclarationFactKey, declaration);
+  const result = provider.mapCheckedPropertyAccess(
+    nodejsPropertyRequest({}, selectedDeclaration),
+    fakeContext(facts),
+  );
+  assert.equal(result.kind, "accept");
+  assert.equal(result.value.operation.operationId, targetIdentityId);
 }
 
 export function assertUnsupportedCall(provider, facts, selectedSignature, targetIdentityId) {
@@ -349,7 +384,7 @@ export function nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureI
     providerVersion: "0.0.1",
     providerModuleId: moduleSpecifier,
     moduleSpecifier,
-    virtualFileName: `tsts-provider://csharp-nodejs/${encodeURIComponent(moduleSpecifier)}.d.ts`,
+    artifactFileName: `tsts-provider://csharp-nodejs/${encodeURIComponent(moduleSpecifier)}.d.ts`,
     exportName,
     ...(signatureId !== undefined ? { signatureId } : {}),
   };
@@ -359,6 +394,7 @@ export function nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memb
   return {
     ...nodejsVirtualDeclaration(moduleSpecifier, exportName),
     memberName,
+    memberKey: { kind: "property-key", name: memberName },
     memberId,
     ...(signatureId !== undefined ? { signatureId } : {}),
   };

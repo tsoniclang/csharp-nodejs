@@ -7,18 +7,10 @@ import type {
   CheckedPropertyAccessMappingRequest,
   ExtensionFactSubject,
   ExtensionObservationContext,
-  Signature,
 } from "@tsonic/tsts";
 import {
   isCsharpNodejsProviderDeclaration,
 } from "./identity.js";
-import {
-  getCsharpCheckedCallRequestContext,
-} from "@tsonic/target-csharp";
-import {
-  getCsharpCheckedElementAccessRequestContext,
-  getCsharpCheckedPropertyAccessRequestContext,
-} from "@tsonic/target-csharp";
 import type {
   NodejsProviderDeclarationIdentity,
 } from "./identity.js";
@@ -30,9 +22,12 @@ export function getNodejsCheckedCallDeclaration(
   if (request.sourceSelectedSignature === undefined) {
     return undefined;
   }
-  return getProviderSignatureDeclaration(context, request.sourceSelectedSignature) ??
-    getProviderExportDeclaration(context, request.sourceSelectedSignature) ??
-    getProviderExportDeclaration(context, request.sourceSelectedDeclaration);
+  return firstProviderDeclarationWithSignature(context, [
+    request.sourceSelectedDeclaration,
+    request.sourceSelectedSignature,
+    request.sourceCalleeDeclaration,
+    request.sourceCalleeSymbol,
+  ]);
 }
 
 export function getNodejsCallDeclarationWithoutSelectedSignature(
@@ -42,12 +37,9 @@ export function getNodejsCallDeclarationWithoutSelectedSignature(
   if (request.sourceSelectedSignature !== undefined) {
     return undefined;
   }
-  const requestContext = getCsharpCheckedCallRequestContext(request, context);
   for (const subject of [
     request.sourceSelectedDeclaration,
-    requestContext.calleeAliasedSymbol,
-    requestContext.calleeResolvedSymbol,
-    requestContext.calleeSymbol,
+    request.sourceCalleeDeclaration,
     request.sourceCalleeSymbol,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
@@ -62,10 +54,9 @@ export function getNodejsCheckedPropertyDeclaration(
   request: CheckedPropertyAccessMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedPropertyAccess">,
 ): NodejsProviderDeclarationIdentity | undefined {
-  const requestContext = getCsharpCheckedPropertyAccessRequestContext(request, context);
   for (const subject of [
     request.sourceSelectedSymbol,
-    requestContext.sourceSelectedDeclaration,
+    request.sourceSelectedDeclaration,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
     if (declaration !== undefined) {
@@ -79,10 +70,9 @@ export function getNodejsCheckedElementDeclaration(
   request: CheckedElementAccessMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedElementAccess">,
 ): NodejsProviderDeclarationIdentity | undefined {
-  const requestContext = getCsharpCheckedElementAccessRequestContext(request, context);
   for (const subject of [
     request.sourceSelectedSymbol,
-    requestContext.sourceSelectedDeclaration,
+    request.sourceSelectedDeclaration,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
     if (declaration !== undefined) {
@@ -102,14 +92,15 @@ function getProviderExportDeclaration(
     : declaration;
 }
 
-function getProviderSignatureDeclaration(
+function firstProviderDeclarationWithSignature(
   context: ExtensionObservationContext,
-  subject: ExtensionFactSubject | undefined,
+  subjects: readonly (ExtensionFactSubject | undefined)[],
 ): NodejsProviderDeclarationIdentity | undefined {
-  if (subject === undefined) {
-    return undefined;
+  for (const subject of subjects) {
+    const declaration = getProviderExportDeclaration(context, subject);
+    if (declaration?.signatureId !== undefined) {
+      return declaration;
+    }
   }
-  const compiler = (context as { readonly compiler?: ExtensionObservationContext["compiler"] }).compiler;
-  const declaration = compiler?.checker.getSignatureDeclaration(subject as Signature);
-  return getProviderExportDeclaration(context, declaration);
+  return undefined;
 }

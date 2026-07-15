@@ -24,11 +24,15 @@ export interface NodejsProviderDeclarationIdentity {
   readonly providerVersion: string;
   readonly providerModuleId: string;
   readonly moduleSpecifier: string;
-  readonly virtualFileName: string;
+  readonly artifactFileName: string;
   readonly exportName?: string;
+  readonly exportId?: string;
   readonly memberName?: string;
+  readonly memberKey?: ProviderVirtualDeclarationFact["memberKey"];
   readonly memberId?: string;
+  readonly memberStatic?: boolean;
   readonly signatureId?: string;
+  readonly targetIdentity?: ProviderVirtualDeclarationFact["targetIdentity"];
 }
 
 export function csharpNodejsVirtualDeclarationFileName(specifier: string): string {
@@ -44,7 +48,7 @@ export function nodejsExportDeclarationIdentity(
     providerVersion: csharpNodejsProviderPackageProviderIdentity.version,
     providerModuleId: moduleSpecifier,
     moduleSpecifier,
-    virtualFileName: csharpNodejsVirtualDeclarationFileName(moduleSpecifier),
+    artifactFileName: csharpNodejsVirtualDeclarationFileName(moduleSpecifier),
     exportName,
   };
 }
@@ -69,6 +73,7 @@ export function nodejsExportMemberDeclarationIdentity(
   return {
     ...nodejsExportDeclarationIdentity(moduleSpecifier, exportName),
     memberName,
+    memberKey: { kind: "property-key", name: memberName },
     memberId,
   };
 }
@@ -92,9 +97,11 @@ export function nodejsProviderDeclarationIdentityKey(declaration: NodejsProvider
     declaration.providerVersion,
     declaration.providerModuleId,
     declaration.moduleSpecifier,
-    declaration.virtualFileName,
     declaration.exportName ?? "",
     declaration.memberName ?? "",
+    declaration.memberKey === undefined
+      ? ""
+      : `${declaration.memberKey.kind}:${declaration.memberKey.name}`,
     declaration.memberId ?? "",
     declaration.signatureId ?? "",
   ].join("\u0000");

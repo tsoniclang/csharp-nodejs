@@ -296,7 +296,7 @@ function nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId) {
     providerVersion: "0.0.1",
     providerModuleId: moduleSpecifier,
     moduleSpecifier,
-    virtualFileName: `tsts-provider://csharp-nodejs/${encodeURIComponent(moduleSpecifier)}.d.ts`,
+    artifactFileName: `tsts-provider://csharp-nodejs/${encodeURIComponent(moduleSpecifier)}.d.ts`,
     exportName,
     ...(signatureId !== undefined ? { signatureId } : {}),
   };
@@ -306,6 +306,7 @@ function nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memberName,
   return {
     ...nodejsVirtualDeclaration(moduleSpecifier, exportName),
     memberName,
+    memberKey: { kind: "property-key", name: memberName },
     memberId,
     ...(signatureId !== undefined ? { signatureId } : {}),
   };

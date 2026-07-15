@@ -2,7 +2,6 @@ import type {
   ProviderExportDeclaration,
   ProviderMemberDeclaration,
   ProviderSignatureDeclaration,
-  ProviderSymbolIdentity,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import {
@@ -88,25 +87,6 @@ export function nodejsDefaultModuleMemberDeclarationIdentities(
         nodejsExportMemberDeclarationIdentity(moduleSpecifier, metadata.interfaceName, exportName, memberId),
         nodejsExportMemberSignatureDeclarationIdentity(moduleSpecifier, metadata.interfaceName, exportName, memberId, signatureId),
       ];
-}
-
-export function nodejsDefaultModuleMemberSymbolIdentities(
-  moduleSpecifier: string,
-  exportName: string,
-  signatureId: string | undefined,
-): readonly ProviderSymbolIdentity[] {
-  const metadata = nodejsDefaultModuleObjectMetadata(moduleSpecifier);
-  if (metadata === undefined) {
-    return [];
-  }
-  return [
-    {
-      moduleSpecifier,
-      exportName: metadata.interfaceName,
-      memberName: exportName,
-      ...(signatureId !== undefined ? { signatureId } : {}),
-    },
-  ];
 }
 
 function nodejsDefaultModuleObjectMembersForDeclaration(

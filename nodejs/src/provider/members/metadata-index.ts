@@ -12,7 +12,6 @@ import type {
 } from "../identity.js";
 import {
   canonicalNodejsDeclarationIdentity,
-  nodejsProviderSymbolIdentityKey,
 } from "./provider-identity.js";
 import {
   nodejsTargetMemberMetadataRecords,
@@ -63,15 +62,9 @@ export function getNodejsUnsupportedTargetIdentityFromMetadata(
   declaration: NodejsProviderDeclarationIdentity,
 ): NodejsUnsupportedTargetIdentity | undefined {
   const canonicalDeclaration = canonicalNodejsDeclarationIdentity(declaration);
-  if (canonicalDeclaration.exportName === undefined) {
-    return undefined;
-  }
-  return nodejsUnsupportedIdentityByDeclarationSymbol.get(nodejsProviderSymbolIdentityKey({
-    moduleSpecifier: canonicalDeclaration.moduleSpecifier,
-    exportName: canonicalDeclaration.exportName,
-    ...(canonicalDeclaration.memberName !== undefined ? { memberName: canonicalDeclaration.memberName } : {}),
-    ...(canonicalDeclaration.signatureId !== undefined ? { signatureId: canonicalDeclaration.signatureId } : {}),
-  }));
+  return nodejsUnsupportedIdentityByDeclarationIdentity.get(
+    nodejsProviderDeclarationIdentityKey(canonicalDeclaration),
+  );
 }
 
 function getNodejsTargetMemberFromMetadata(declaration: NodejsProviderDeclarationIdentity): CsharpTargetMember | undefined {
@@ -98,10 +91,10 @@ const nodejsCallableDeclarationStemKeys = new Set(
   ),
 );
 
-const nodejsUnsupportedIdentityByDeclarationSymbol = new Map<string, NodejsUnsupportedTargetIdentity>(
+const nodejsUnsupportedIdentityByDeclarationIdentity = new Map<string, NodejsUnsupportedTargetIdentity>(
   nodejsUnsupportedTargetMetadataRecords().flatMap((record) =>
-    record.symbolIdentities.map((identity) => [
-      nodejsProviderSymbolIdentityKey(identity),
+    record.declarationIdentities.map((identity) => [
+      nodejsProviderDeclarationIdentityKey(identity),
       record.identity,
     ] as const)
   ),

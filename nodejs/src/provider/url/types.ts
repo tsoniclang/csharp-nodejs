@@ -42,6 +42,7 @@ export interface NodeUrlClassPropertyTargetMember {
 export interface NodeUrlUnsupportedTargetIdentity {
   readonly exportName: string;
   readonly memberName?: string;
+  readonly memberId?: string;
   readonly signatureId?: string;
   readonly targetIdentityId: string;
   readonly displayName: string;

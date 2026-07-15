@@ -219,6 +219,7 @@ function nodeProcessEnvClassPropertyTargetMembers(): readonly NodejsClassPropert
       exportName: nodeProcessProcessEnvExportName,
       memberName: "Item",
       memberId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
+      signatureId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       targetMemberId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       sourceName: "Item",
       targetName: "Item",
