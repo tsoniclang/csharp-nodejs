@@ -21,6 +21,7 @@ import type {
 } from "@tsonic/target-api";
 import type {
   CsharpProviderOperationsContribution,
+  CsharpTargetBindingsContribution,
 } from "@tsonic/target-csharp";
 import {
   csharpProviderDiagnostic,
@@ -63,6 +64,9 @@ import {
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
 } from "./module-specifiers.js";
+import {
+  createCsharpNodejsTargetBindingsContribution,
+} from "./target-bindings.js";
 
 export const csharpNodejsProviderPackageExtensionId = "tsonic.csharp.provider-package.nodejs";
 
@@ -96,8 +100,13 @@ export function createCsharpNodejsProviderPackageExtension(context: TargetCapabi
   };
 }
 
-export function createCsharpNodejsTargetContributions(_context: TargetCapabilityContext): readonly CsharpProviderOperationsContribution[] {
-  return [createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId)];
+export function createCsharpNodejsTargetContributions(
+  _context: TargetCapabilityContext,
+): readonly (CsharpProviderOperationsContribution | CsharpTargetBindingsContribution)[] {
+  return [
+    createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId),
+    createCsharpNodejsTargetBindingsContribution(),
+  ];
 }
 
 export function createCsharpNodejsProviderOperationsContribution(extensionId: string): Required<CsharpProviderOperationsContribution> {

@@ -24,9 +24,11 @@ export const nodejsDefaultModuleObjects = [
   { moduleSpecifier: "node:crypto", interfaceName: "NodeCryptoModule", valueName: "crypto" },
   { moduleSpecifier: "node:fs", interfaceName: "NodeFsModule", valueName: "fs" },
   { moduleSpecifier: "node:fs/promises", interfaceName: "NodeFsPromisesModule", valueName: "fsPromises" },
+  { moduleSpecifier: "node:http", interfaceName: "NodeHttpModule", valueName: "http" },
   { moduleSpecifier: "node:os", interfaceName: "NodeOsModule", valueName: "os" },
   { moduleSpecifier: "node:path", interfaceName: "NodePathModule", valueName: "path" },
   { moduleSpecifier: "node:process", interfaceName: "NodeProcessModule", valueName: "process" },
+  { moduleSpecifier: "node:timers", interfaceName: "NodeTimersModule", valueName: "timers" },
   { moduleSpecifier: "node:url", interfaceName: "NodeUrlModule", valueName: "url" },
   { moduleSpecifier: "node:util", interfaceName: "NodeUtilModule", valueName: "util" },
 ] satisfies readonly NodejsDefaultModuleObjectMetadata[];

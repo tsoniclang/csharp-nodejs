@@ -35,17 +35,16 @@ import {
   numberProviderType,
   statsTargetType,
 } from "./types.js";
+import {
+  nodejsProviderTargetIdentity,
+} from "../target-bindings.js";
 
 export function nodeFsStatsExportDeclaration(): ProviderExportDeclaration {
   return {
     id: `node:fs.${nodeFsStatsExportName}`,
     name: nodeFsStatsExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: statsTargetType.id,
-      displayName: "Tsonic.CSharp.Node.Stats",
-    },
+    targetIdentity: nodejsProviderTargetIdentity("node:fs", nodeFsStatsExportName),
     members: [
       ...nodeFsStatsPropertyTargetMetadataRows.map(providerMemberForNodeFsStatsProperty),
       ...nodeFsStatsCallTargetMetadataRows.map(providerMemberForNodeFsStatsCall),

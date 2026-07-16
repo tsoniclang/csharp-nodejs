@@ -7,10 +7,6 @@ import {
   nodeUrlUrlSearchParamsExportName,
 } from "./identities.js";
 import {
-  urlTargetType,
-  urlSearchParamsTargetType,
-} from "./helpers.js";
-import {
   nodeUrlCallTargetMembers,
   nodeUrlUrlClassCallTargetMembers,
   nodeUrlUrlClassPropertyTargetMembers,
@@ -36,6 +32,9 @@ import {
 import type {
   NodeUrlUnsupportedClassMemberDeclaration,
 } from "./unsupported.js";
+import {
+  nodejsProviderTargetIdentity,
+} from "../target-bindings.js";
 
 export function nodeUrlExports(): readonly ProviderExportDeclaration[] {
   const exports = [
@@ -79,11 +78,7 @@ function nodeUrlUrlExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlExportName}`,
     name: nodeUrlUrlExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: urlTargetType.id,
-      displayName: "Tsonic.CSharp.Node.URL",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeUrlModuleSpecifier, nodeUrlUrlExportName),
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlClassCallTargetMembers()),
       ...nodeUrlUrlClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),
@@ -98,11 +93,7 @@ function nodeUrlUrlSearchParamsExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlSearchParamsExportName}`,
     name: nodeUrlUrlSearchParamsExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: urlSearchParamsTargetType.id,
-      displayName: "Tsonic.CSharp.Node.URLSearchParams",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeUrlModuleSpecifier, nodeUrlUrlSearchParamsExportName),
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlSearchParamsClassCallTargetMembers()),
       ...nodeUrlUrlSearchParamsClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),

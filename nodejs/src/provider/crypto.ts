@@ -32,6 +32,9 @@ import {
 import type {
   NodejsUnsupportedTargetIdentity,
 } from "./members/types.js";
+import {
+  nodejsProviderTargetIdentity,
+} from "./target-bindings.js";
 import type {
   NodejsClassCallTargetMetadata,
   NodejsClassCallTargetMetadataRow,
@@ -210,7 +213,6 @@ function nodeCryptoHmacClassCallTargetMembers(): readonly NodeCryptoClassCallTar
 function nodeCryptoHashExportDeclaration(): ProviderExportDeclaration {
   return cryptoClassExportDeclaration(
     nodeCryptoHashExportName,
-    "Tsonic.CSharp.Node.Hash",
     nodeCryptoHashClassCallTargetMembers(),
   );
 }
@@ -218,25 +220,19 @@ function nodeCryptoHashExportDeclaration(): ProviderExportDeclaration {
 function nodeCryptoHmacExportDeclaration(): ProviderExportDeclaration {
   return cryptoClassExportDeclaration(
     nodeCryptoHmacExportName,
-    "Tsonic.CSharp.Node.Hmac",
     nodeCryptoHmacClassCallTargetMembers(),
   );
 }
 
 function cryptoClassExportDeclaration(
   exportName: string,
-  targetIdentityId: string,
   members: readonly NodeCryptoClassCallTargetMember[],
 ): ProviderExportDeclaration {
   return {
     id: `node:crypto.${exportName}`,
     name: exportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: targetIdentityId,
-      displayName: targetIdentityId,
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeCryptoModuleSpecifier, exportName),
     members: providerMembersForCryptoClassCalls(members),
   };
 }

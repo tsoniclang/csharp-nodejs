@@ -37,6 +37,9 @@ import type {
 import type {
   NodejsClassPropertyTargetMember,
 } from "./members/types.js";
+import {
+  nodejsProviderTargetIdentity,
+} from "./target-bindings.js";
 
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
@@ -310,11 +313,7 @@ function nodeProcessEnvExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessEnvExportName}`,
     name: nodeProcessProcessEnvExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processEnvTargetType.id,
-      displayName: "Tsonic.CSharp.Node.ProcessEnv",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeProcessModuleSpecifier, nodeProcessProcessEnvExportName),
     members: [{
       id: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       name: "Item",
@@ -333,11 +332,7 @@ function nodeProcessMemoryUsageExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessMemoryUsageExportName}`,
     name: nodeProcessProcessMemoryUsageExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processMemoryUsageTargetType.id,
-      displayName: "Tsonic.CSharp.Node.MemoryUsage",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeProcessModuleSpecifier, nodeProcessProcessMemoryUsageExportName),
     members: nodeProcessMemoryUsageClassPropertyTargetMembers()
       .map((member) => ({
         id: member.memberId,
@@ -354,11 +349,7 @@ function nodeProcessVersionsExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessVersionsExportName}`,
     name: nodeProcessProcessVersionsExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processVersionsTargetType.id,
-      displayName: "Tsonic.CSharp.Node.ProcessVersions",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeProcessModuleSpecifier, nodeProcessProcessVersionsExportName),
     members: nodeProcessVersionsClassPropertyTargetMembers()
       .map((member) => ({
         id: member.memberId,

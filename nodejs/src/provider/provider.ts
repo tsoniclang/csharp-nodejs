@@ -37,6 +37,10 @@ import {
   nodeFsPromisesModuleSpecifier,
 } from "./filesystem/index.js";
 import {
+  nodeHttpExports,
+  nodeHttpModuleSpecifier,
+} from "./http.js";
+import {
   nodeOsExports,
   nodeOsModuleSpecifier,
 } from "./os.js";
@@ -48,6 +52,10 @@ import {
   nodeProcessExports,
   nodeProcessModuleSpecifier,
 } from "./process.js";
+import {
+  nodeTimersExports,
+  nodeTimersModuleSpecifier,
+} from "./timers.js";
 import {
   nodeUtilExports,
   nodeUtilModuleSpecifier,
@@ -67,9 +75,11 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodePathModuleSpecifier, nodePathExports()],
   [nodeFsModuleSpecifier, nodeFsExports()],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
+  [nodeHttpModuleSpecifier, nodeHttpExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],
+  [nodeTimersModuleSpecifier, nodeTimersExports()],
   [nodeUtilModuleSpecifier, nodeUtilExports()],
   [nodeUrlModuleSpecifier, nodeUrlExports()],
 ]);

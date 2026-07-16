@@ -3,7 +3,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   nodeBufferExportName,
-  nodeBufferTargetType,
+  nodeBufferModuleSpecifier,
 } from "../identities.js";
 import {
   nodeBufferInstanceMemberDeclarations,
@@ -14,17 +14,16 @@ import {
 import {
   nodeBufferUnsupportedClassMemberDeclarations,
 } from "../unsupported.js";
+import {
+  nodejsProviderTargetIdentity,
+} from "../../target-bindings.js";
 
 export function nodeBufferClassExport(): ProviderExportDeclaration {
   return {
     id: "node:buffer.Buffer",
     name: nodeBufferExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: nodeBufferTargetType.id,
-      displayName: "Tsonic.CSharp.Node.Buffer",
-    },
+    targetIdentity: nodejsProviderTargetIdentity(nodeBufferModuleSpecifier, nodeBufferExportName),
     members: [
       ...nodeBufferStaticMemberDeclarations(),
       ...nodeBufferInstanceMemberDeclarations(),

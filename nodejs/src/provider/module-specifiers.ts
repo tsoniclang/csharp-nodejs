@@ -15,11 +15,17 @@ import {
   nodeOsModuleSpecifier,
 } from "./os.js";
 import {
+  nodeHttpModuleSpecifier,
+} from "./http.js";
+import {
   nodePathModuleSpecifier,
 } from "./path.js";
 import {
   nodeProcessModuleSpecifier,
 } from "./process.js";
+import {
+  nodeTimersModuleSpecifier,
+} from "./timers.js";
 import {
   nodeUtilModuleSpecifier,
 } from "./util.js";
@@ -40,12 +46,16 @@ const canonicalBySpecifier = new Map<string, string>([
   [nodeFsModuleSpecifier, nodeFsModuleSpecifier],
   ["fs/promises", nodeFsPromisesModuleSpecifier],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesModuleSpecifier],
+  ["http", nodeHttpModuleSpecifier],
+  [nodeHttpModuleSpecifier, nodeHttpModuleSpecifier],
   ["os", nodeOsModuleSpecifier],
   [nodeOsModuleSpecifier, nodeOsModuleSpecifier],
   ["path", nodePathModuleSpecifier],
   [nodePathModuleSpecifier, nodePathModuleSpecifier],
   ["process", nodeProcessModuleSpecifier],
   [nodeProcessModuleSpecifier, nodeProcessModuleSpecifier],
+  ["timers", nodeTimersModuleSpecifier],
+  [nodeTimersModuleSpecifier, nodeTimersModuleSpecifier],
   ["util", nodeUtilModuleSpecifier],
   [nodeUtilModuleSpecifier, nodeUtilModuleSpecifier],
   ["url", nodeUrlModuleSpecifier],
