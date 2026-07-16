@@ -21,8 +21,8 @@ import {
 import {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
+  createCsharpNodejsProviderOperationsContribution,
   createCsharpNodejsTargetContributions,
-  createCsharpNodejsProviderPackageOperationsProvider,
 } from "../dist/provider/index.js";
 import {
   nodeFsCallTargetMembers,
@@ -43,7 +43,12 @@ import {
   nodeOsPropertyTargetMembers,
   nodeOsUnsupportedTargetIdentities,
 } from "../dist/provider/os.js";
-export { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpTargetPack, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsProviderPackageOperationsProvider, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities };
+
+function createCsharpNodejsOperationsTestContribution() {
+  return createCsharpNodejsProviderOperationsContribution("tsonic.csharp.provider-package.nodejs.test");
+}
+
+export { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpTargetPack, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsOperationsTestContribution, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities };
 
 
 
@@ -186,7 +191,7 @@ export function assertSelectedMember(result, memberId) {
 }
 
 function assertCallMapping(declaration, targetIdentityId) {
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const facts = new TestFactStore();
   const selectedSignature = {};
   facts.set(selectedSignature, providerVirtualDeclarationFactKey, declaration);
@@ -209,7 +214,7 @@ function assertCallMapping(declaration, targetIdentityId) {
 }
 
 function assertPropertyMapping(declaration, targetIdentityId) {
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const facts = new TestFactStore();
   const selectedDeclaration = {};
   facts.set(selectedDeclaration, providerVirtualDeclarationFactKey, declaration);

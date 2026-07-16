@@ -1,4 +1,4 @@
-import { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsProviderPackageOperationsProvider, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities, assertModuleExport, assertClassMember, assertClassProperty, assertModuleValue, assertProviderUnionType, providerTypeKey, assertDefaultModuleCall, assertDefaultModuleSignature, assertDefaultModuleProperty, assertDefaultModuleMember, assertSelectedMember, assertUnsupportedCall, assertUnsupportedProperty, fakeContext, createCsharpSession, selectedProviderPackages, nodejsTestProviderPackage, nodejsCallRequest, nodejsCallRequestWithoutSignature, nodejsPropertyRequest, nodejsVirtualDeclaration, nodejsVirtualMemberDeclaration, collectFactValues, collectAllNodes, TestFactStore } from "./node-surface-completion.helpers.mjs";
+import { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsOperationsTestContribution, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities, assertModuleExport, assertClassMember, assertClassProperty, assertModuleValue, assertProviderUnionType, providerTypeKey, assertDefaultModuleCall, assertDefaultModuleSignature, assertDefaultModuleProperty, assertDefaultModuleMember, assertSelectedMember, assertUnsupportedCall, assertUnsupportedProperty, fakeContext, createCsharpSession, selectedProviderPackages, nodejsTestProviderPackage, nodejsCallRequest, nodejsCallRequestWithoutSignature, nodejsPropertyRequest, nodejsVirtualDeclaration, nodejsVirtualMemberDeclaration, collectFactValues, collectAllNodes, TestFactStore } from "./node-surface-completion.helpers.mjs";
 
 test("NodeJS provider package exposes completion metadata for assigned modules", () => {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
@@ -109,7 +109,7 @@ test("NodeJS Buffer, crypto, and os provider metadata exposes operation rows by 
 });
 test("NodeJS provider package maps closed operations from selected provider identities", () => {
   const facts = new TestFactStore();
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const readFileCall = {};
   const readFileSignature = {};
   const readdirSyncCall = {};
@@ -271,7 +271,7 @@ test("NodeJS provider package maps closed operations from selected provider iden
 });
 test("NodeJS provider package hard-rejects selected unsupported provider identities", () => {
   const facts = new TestFactStore();
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const cryptoCipherSignature = {};
   const processStdinDeclaration = {};
   const utilFormatSignature = {};
@@ -336,7 +336,7 @@ test("NodeJS provider package requires selected signatures before target member 
   const call = {};
   const selectedDeclaration = {};
   const facts = new TestFactStore();
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   facts.set(selectedDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration(
     "node:buffer",
     "Buffer",

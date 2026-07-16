@@ -13,7 +13,6 @@ export {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
   createCsharpNodejsTargetContributions,
-  createCsharpNodejsProviderPackageOperationsProvider,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
 

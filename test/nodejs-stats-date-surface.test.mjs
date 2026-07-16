@@ -23,9 +23,13 @@ import {
 import {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
+  createCsharpNodejsProviderOperationsContribution,
   createCsharpNodejsTargetContributions,
-  createCsharpNodejsProviderPackageOperationsProvider,
 } from "../dist/provider/index.js";
+
+function createCsharpNodejsOperationsTestContribution() {
+  return createCsharpNodejsProviderOperationsContribution("tsonic.csharp.provider-package.nodejs.test");
+}
 
 test("NodeJS fs Stats Date declarations expose JS Date source type", () => {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
@@ -46,7 +50,7 @@ test("NodeJS fs Stats Date declarations expose JS Date source type", () => {
 
 test("NodeJS provider package maps Stats Date properties from selected provider member identity", () => {
   const facts = new TestFactStore();
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const mtimeExpression = {};
   const mtimeMsExpression = {};
   const mtimeDeclaration = {};
@@ -78,7 +82,7 @@ test("NodeJS provider package maps Stats Date properties from selected provider 
 
 test("NodeJS provider package rejects Stats Date property mapping without selected provider member identity", () => {
   const facts = new TestFactStore();
-  const provider = createCsharpNodejsProviderPackageOperationsProvider();
+  const provider = createCsharpNodejsOperationsTestContribution();
   const expression = {};
   const declaration = {};
   facts.set(declaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration(

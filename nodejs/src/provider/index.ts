@@ -1,5 +1,4 @@
 import {
-  TstsProviderContractVersion,
   acceptObservation,
   deferObservation,
   rejectObservation,
@@ -15,14 +14,14 @@ import type {
   ExtensionEvidence,
   ExtensionObservation,
   ExtensionObservationContext,
-  ProviderIdentity,
-  TargetSemanticProvider,
 } from "@tsonic/tsts";
 import type {
   TargetProviderModuleOwnership,
   TargetCapabilityContext,
-  TargetCapabilityContribution,
 } from "@tsonic/target-api";
+import type {
+  CsharpProviderOperationsContribution,
+} from "@tsonic/target-csharp";
 import {
   csharpProviderDiagnostic,
   csharpProviderOperationsContributionKind,
@@ -97,54 +96,11 @@ export function createCsharpNodejsProviderPackageExtension(context: TargetCapabi
   };
 }
 
-export function createCsharpNodejsTargetContributions(_context: TargetCapabilityContext): readonly TargetCapabilityContribution[] {
+export function createCsharpNodejsTargetContributions(_context: TargetCapabilityContext): readonly CsharpProviderOperationsContribution[] {
   return [createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId)];
 }
 
-export function createCsharpNodejsProviderPackageOperationsProvider(): TargetSemanticProvider {
-  const contribution = createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId);
-  return {
-    identity: nodejsProviderPackageSemanticProviderIdentity(),
-    mapCheckedCall(request, context) {
-      return contribution.mapCheckedCall(request, context);
-    },
-    mapCheckedPropertyAccess(request, context) {
-      return contribution.mapCheckedPropertyAccess(request, context);
-    },
-    mapCheckedElementAccess(request, context) {
-      return contribution.mapCheckedElementAccess(request, context);
-    },
-  };
-}
-
-function nodejsProviderPackageSemanticProviderIdentity(): ProviderIdentity {
-  return {
-    id: `${csharpNodejsProviderPackageExtensionId}.semantic`,
-    version: csharpProviderVersion,
-    target: csharpTargetId,
-    extensionContractVersion: TstsProviderContractVersion,
-    providerKind: "semantic",
-    displayName: "Tsonic C# NodeJS provider-package semantic mapper",
-  };
-}
-
-export interface CsharpNodejsProviderOperationsContribution extends TargetCapabilityContribution {
-  readonly kind: typeof csharpProviderOperationsContributionKind;
-  readonly mapCheckedCall: (
-    request: CheckedCallMappingRequest,
-    context: ExtensionObservationContext<"operation.mapCheckedCall">,
-  ) => ExtensionObservation<CheckedCallMappingResult>;
-  readonly mapCheckedPropertyAccess: (
-    request: CheckedPropertyAccessMappingRequest,
-    context: ExtensionObservationContext<"operation.mapCheckedPropertyAccess">,
-  ) => ExtensionObservation<CheckedOperationMappingResult>;
-  readonly mapCheckedElementAccess: (
-    request: CheckedElementAccessMappingRequest,
-    context: ExtensionObservationContext<"operation.mapCheckedElementAccess">,
-  ) => ExtensionObservation<CheckedOperationMappingResult>;
-}
-
-export function createCsharpNodejsProviderOperationsContribution(extensionId: string): CsharpNodejsProviderOperationsContribution {
+export function createCsharpNodejsProviderOperationsContribution(extensionId: string): Required<CsharpProviderOperationsContribution> {
   return {
     kind: csharpProviderOperationsContributionKind,
     mapCheckedCall(request, context) {
