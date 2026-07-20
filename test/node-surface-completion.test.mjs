@@ -1,4 +1,4 @@
-import { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsOperationsTestContribution, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities, assertModuleExport, assertClassMember, assertClassProperty, assertModuleValue, assertProviderUnionType, providerTypeKey, assertDefaultModuleCall, assertDefaultModuleSignature, assertDefaultModuleProperty, assertDefaultModuleMember, assertSelectedMember, assertUnsupportedCall, assertUnsupportedProperty, fakeContext, createCsharpSession, selectedProviderPackages, nodejsTestProviderPackage, nodejsCallRequest, nodejsCallRequestWithoutSignature, nodejsPropertyRequest, nodejsVirtualDeclaration, nodejsVirtualMemberDeclaration, collectFactValues, collectAllNodes, TestFactStore } from "./node-surface-completion.helpers.mjs";
+import { test, assert, createCompilerSessionFromFiles, formatDiagnostics, providerVirtualDeclarationFactKey, selectedTargetSignatureFactKey, createTsonicCoreSourceExtension, csharpTargetOperationFactKey, createCsharpJsSurfaceExtension, createCsharpSourceSemanticsExtension, createCsharpTargetSemanticsExtension, createCsharpNodejsProviderPackageBindingProvider, createCsharpNodejsProviderPackageExtension, createCsharpNodejsTargetContributions, createCsharpNodejsOperationsTestContribution, nodeFsCallTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeCryptoCallTargetMembers, nodeCryptoClassCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities, nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities, assertModuleExport, assertClassMember, assertClassProperty, assertClassElement, assertModuleValue, assertProviderUnionType, providerTypeKey, assertDefaultModuleCall, assertDefaultModuleSignature, assertDefaultModuleProperty, assertDefaultModuleMember, assertSelectedMember, assertUnsupportedCall, assertUnsupportedProperty, fakeContext, createCsharpSession, selectedProviderPackages, nodejsTestProviderPackage, mapNodejsCheckedCall, nodejsCallRequest, nodejsCallRequestWithoutSignature, nodejsPropertyRequest, nodejsVirtualDeclaration, nodejsVirtualMemberDeclaration, collectFactValues, collectAllNodes, TestFactStore } from "./node-surface-completion.helpers.mjs";
 
 test("NodeJS provider package exposes completion metadata for assigned modules", () => {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
@@ -75,7 +75,14 @@ test("NodeJS process provider metadata exposes provider-owned nullish union shap
   assertProviderUnionType(exitCode?.type, ["number", "literal:null"]);
   assert.equal(envIndexer?.kind, "indexer");
   assertProviderUnionType(envIndexerSignature?.returnType, ["string", "void"]);
-  assertClassProperty(bindingProvider, "node:process", "ProcessEnv", "Item", "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)");
+  assertClassElement(
+    bindingProvider,
+    "node:process",
+    "ProcessEnv",
+    "Item",
+    "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
+    "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
+  );
 });
 test("NodeJS fs provider metadata exposes every supported operation row by provider signature identity", () => {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
@@ -196,34 +203,34 @@ test("NodeJS provider package maps closed operations from selected provider iden
   facts.set(urlSearchParamsAppendSignature, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:url", "URLSearchParams", "append", "node:url.URLSearchParams.append", "node:url.URLSearchParams.append(System.String,System.String)"));
   facts.set(urlSearchParamsSizeDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:url", "URLSearchParams", "size", "node:url.URLSearchParams.size"));
 
-  const readFileResult = provider.mapCheckedCall(nodejsCallRequest(readFileCall, readFileSignature, 2), fakeContext(facts));
-  const readdirSyncResult = provider.mapCheckedCall(nodejsCallRequest(readdirSyncCall, readdirSyncSignature, 1), fakeContext(facts));
-  const pathParseResult = provider.mapCheckedCall(nodejsCallRequest(pathParseCall, pathParseSignature, 1), fakeContext(facts));
-  const fsPromisesReadResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadCall, fsPromisesReadSignature, 2), fakeContext(facts));
-  const fsPromisesReadBytesResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadBytesCall, fsPromisesReadBytesSignature, 1), fakeContext(facts));
-  const fsPromisesReaddirResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReaddirCall, fsPromisesReaddirSignature, 1), fakeContext(facts));
-  const parsedBaseResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(parsedBaseExpression, parsedBaseDeclaration), fakeContext(facts));
-  const processCwdResult = provider.mapCheckedCall(nodejsCallRequest(processCwdCall, processCwdSignature), fakeContext(facts));
-  const bufferCompareResult = provider.mapCheckedCall(nodejsCallRequest(bufferCompareCall, bufferCompareSignature, 2), fakeContext(facts));
-  const bufferIncludesResult = provider.mapCheckedCall(nodejsCallRequest(bufferIncludesCall, bufferIncludesSignature, 3), fakeContext(facts));
-  const bufferReadUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferReadUInt8Call, bufferReadUInt8Signature, 1), fakeContext(facts));
-  const bufferWriteUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferWriteUInt8Call, bufferWriteUInt8Signature, 2), fakeContext(facts));
-  const bufferIsBufferResult = provider.mapCheckedCall(nodejsCallRequest({}, bufferIsBufferSignature, 1), fakeContext(facts));
-  const bufferPoolSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(bufferPoolSizeExpression, bufferPoolSizeDeclaration), fakeContext(facts));
-  const bufferTranscodeResult = provider.mapCheckedCall(nodejsCallRequest(bufferTranscodeCall, bufferTranscodeSignature, 3), fakeContext(facts));
-  const cryptoHmacResult = provider.mapCheckedCall(nodejsCallRequest(cryptoHmacCall, cryptoHmacSignature, 2), fakeContext(facts));
-  const osHomedirResult = provider.mapCheckedCall(nodejsCallRequest(osHomedirCall, osHomedirSignature), fakeContext(facts));
-  const processHrtimeResult = provider.mapCheckedCall(nodejsCallRequest(processHrtimeCall, processHrtimeSignature, 1), fakeContext(facts));
-  const processMemoryResult = provider.mapCheckedCall(nodejsCallRequest(processMemoryCall, processMemorySignature), fakeContext(facts));
-  const processMemoryRssResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(processMemoryRssExpression, processMemoryRssDeclaration), fakeContext(facts));
-  const processUptimeResult = provider.mapCheckedCall(nodejsCallRequest(processUptimeCall, processUptimeSignature), fakeContext(facts));
-  const utilResult = provider.mapCheckedCall(nodejsCallRequest(utilCall, utilSignature, 1), fakeContext(facts));
-  const utilStyleTextResult = provider.mapCheckedCall(nodejsCallRequest(utilStyleTextCall, utilStyleTextSignature, 2), fakeContext(facts));
-  const defaultFsExistsResult = provider.mapCheckedCall(nodejsCallRequest(defaultFsExistsCall, defaultFsExistsSignature, 1), fakeContext(facts));
-  const defaultProcessPlatformResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(defaultProcessPlatformExpression, defaultProcessPlatformDeclaration), fakeContext(facts));
-  const urlCanParseResult = provider.mapCheckedCall(nodejsCallRequest(urlCanParseCall, urlCanParseSignature, 2), fakeContext(facts));
-  const urlSearchParamsAppendResult = provider.mapCheckedCall(nodejsCallRequest(urlSearchParamsAppendCall, urlSearchParamsAppendSignature, 2), fakeContext(facts));
-  const urlSearchParamsSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(urlSearchParamsSizeExpression, urlSearchParamsSizeDeclaration), fakeContext(facts));
+  const readFileResult = mapNodejsCheckedCall(provider, facts, readFileCall, readFileSignature, 2);
+  const readdirSyncResult = mapNodejsCheckedCall(provider, facts, readdirSyncCall, readdirSyncSignature, 1);
+  const pathParseResult = mapNodejsCheckedCall(provider, facts, pathParseCall, pathParseSignature, 1);
+  const fsPromisesReadResult = mapNodejsCheckedCall(provider, facts, fsPromisesReadCall, fsPromisesReadSignature, 2);
+  const fsPromisesReadBytesResult = mapNodejsCheckedCall(provider, facts, fsPromisesReadBytesCall, fsPromisesReadBytesSignature, 1);
+  const fsPromisesReaddirResult = mapNodejsCheckedCall(provider, facts, fsPromisesReaddirCall, fsPromisesReaddirSignature, 1);
+  const parsedBaseResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(parsedBaseExpression, parsedBaseDeclaration, "base"), fakeContext(facts));
+  const processCwdResult = mapNodejsCheckedCall(provider, facts, processCwdCall, processCwdSignature);
+  const bufferCompareResult = mapNodejsCheckedCall(provider, facts, bufferCompareCall, bufferCompareSignature, 2);
+  const bufferIncludesResult = mapNodejsCheckedCall(provider, facts, bufferIncludesCall, bufferIncludesSignature, 3);
+  const bufferReadUInt8Result = mapNodejsCheckedCall(provider, facts, bufferReadUInt8Call, bufferReadUInt8Signature, 1);
+  const bufferWriteUInt8Result = mapNodejsCheckedCall(provider, facts, bufferWriteUInt8Call, bufferWriteUInt8Signature, 2);
+  const bufferIsBufferResult = mapNodejsCheckedCall(provider, facts, {}, bufferIsBufferSignature, 1);
+  const bufferPoolSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(bufferPoolSizeExpression, bufferPoolSizeDeclaration, "poolSize"), fakeContext(facts));
+  const bufferTranscodeResult = mapNodejsCheckedCall(provider, facts, bufferTranscodeCall, bufferTranscodeSignature, 3);
+  const cryptoHmacResult = mapNodejsCheckedCall(provider, facts, cryptoHmacCall, cryptoHmacSignature, 2);
+  const osHomedirResult = mapNodejsCheckedCall(provider, facts, osHomedirCall, osHomedirSignature);
+  const processHrtimeResult = mapNodejsCheckedCall(provider, facts, processHrtimeCall, processHrtimeSignature);
+  const processMemoryResult = mapNodejsCheckedCall(provider, facts, processMemoryCall, processMemorySignature);
+  const processMemoryRssResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(processMemoryRssExpression, processMemoryRssDeclaration, "rss"), fakeContext(facts));
+  const processUptimeResult = mapNodejsCheckedCall(provider, facts, processUptimeCall, processUptimeSignature);
+  const utilResult = mapNodejsCheckedCall(provider, facts, utilCall, utilSignature, 1);
+  const utilStyleTextResult = mapNodejsCheckedCall(provider, facts, utilStyleTextCall, utilStyleTextSignature, 2);
+  const defaultFsExistsResult = mapNodejsCheckedCall(provider, facts, defaultFsExistsCall, defaultFsExistsSignature, 1);
+  const defaultProcessPlatformResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(defaultProcessPlatformExpression, defaultProcessPlatformDeclaration, "platform"), fakeContext(facts));
+  const urlCanParseResult = mapNodejsCheckedCall(provider, facts, urlCanParseCall, urlCanParseSignature, 2);
+  const urlSearchParamsAppendResult = mapNodejsCheckedCall(provider, facts, urlSearchParamsAppendCall, urlSearchParamsAppendSignature, 2);
+  const urlSearchParamsSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(urlSearchParamsSizeExpression, urlSearchParamsSizeDeclaration, "size"), fakeContext(facts));
 
   assertSelectedMember(readFileResult, "Tsonic.CSharp.Node.fs.readFileSync(System.String,System.String)");
   assertSelectedMember(readdirSyncResult, "Tsonic.CSharp.Node.fs.readdirSync(System.String)");
@@ -331,11 +338,25 @@ test("NodeJS provider package hard-rejects selected unsupported provider identit
   assertUnsupportedProperty(provider, facts, processStdinDeclaration, "unsupported:Tsonic.CSharp.Node.process.stdin");
   assertUnsupportedCall(provider, facts, utilFormatSignature, "unsupported:Tsonic.CSharp.Node.util.format(System.Object,System.Object[])");
   assertUnsupportedCall(provider, facts, urlPatternTestSignature, "unsupported:Tsonic.CSharp.Node.URLPattern.test(System.String)");
-  const processNextTickCalleeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest({}, processNextTickDeclaration), fakeContext(facts));
+  const processNextTickCalleeResult = provider.mapCheckedPropertyAccess(
+    nodejsPropertyRequest({}, processNextTickDeclaration, "nextTick", "call-callee"),
+    fakeContext(facts),
+  );
   assert.equal(processNextTickCalleeResult.kind, "accept");
   assert.equal(processNextTickCalleeResult.value.operation.operationKind, "method");
   assertUnsupportedCall(provider, facts, processNextTickSignature, "unsupported:Tsonic.CSharp.Node.process.nextTick(Function,System.Object[])");
-  const staleReaddirResult = provider.mapCheckedCall(nodejsCallRequest(staleReaddirCall, staleReaddirSignature), fakeContext(facts));
+  const staleReaddirResult = provider.mapCheckedCall(nodejsCallRequest(
+    staleReaddirCall,
+    staleReaddirSignature,
+    {
+      id: "node:fs.readdirSync(System.String,System.Boolean)",
+      parameters: [
+        { name: "path", type: { kind: "string" } },
+        { name: "withFileTypes", type: { kind: "boolean" } },
+      ],
+    },
+    2,
+  ), fakeContext(facts));
   assert.equal(staleReaddirResult.kind, "reject");
   assert.equal(staleReaddirResult.diagnostic.extensionCode, "CSHARP_NODEJS_CALL_NOT_MAPPED");
   assert.equal(facts.get(staleReaddirCall, csharpTargetOperationFactKey), undefined);
@@ -352,7 +373,7 @@ test("NodeJS provider package requires selected signatures before target member 
     "node:buffer.Buffer.compare",
   ));
 
-  const result = provider.mapCheckedCall(nodejsCallRequestWithoutSignature(call, selectedDeclaration), fakeContext(facts));
+  const result = provider.mapCheckedCall(nodejsCallRequestWithoutSignature(call, selectedDeclaration, 2), fakeContext(facts));
 
   assert.equal(result.kind, "reject");
   assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_CALL_REQUIRES_SELECTED_SIGNATURE");

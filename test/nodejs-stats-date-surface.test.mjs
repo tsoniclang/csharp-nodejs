@@ -68,16 +68,16 @@ test("NodeJS provider package maps Stats Date properties from selected provider 
     "node:fs.Stats.mtimeMs",
   ));
 
-  const mtimeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeExpression, mtimeDeclaration), fakeContext(facts));
-  const mtimeMsResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeMsExpression, mtimeMsDeclaration), fakeContext(facts));
+  const mtimeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeExpression, mtimeDeclaration, "mtime"), fakeContext(facts));
+  const mtimeMsResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeMsExpression, mtimeMsDeclaration, "mtimeMs"), fakeContext(facts));
 
   assert.equal(mtimeResult.kind, "accept");
   assert.equal(mtimeResult.value.operation.operationId, "Tsonic.CSharp.Node.Stats.mtime");
-  assert.equal(mtimeResult.value.operation.resultType.id, "Tsonic.CSharp.Js.Date");
+  assert.equal(mtimeResult.value.resultType.id, "Tsonic.CSharp.Js.Date");
   assert.equal(facts.get(mtimeExpression, csharpTargetOperationFactKey).resultType.id, "Tsonic.CSharp.Js.Date");
   assert.equal(mtimeMsResult.kind, "accept");
   assert.equal(mtimeMsResult.value.operation.operationId, "Tsonic.CSharp.Node.Stats.mtimeMs");
-  assert.equal(mtimeMsResult.value.operation.resultType.name, "float64");
+  assert.equal(mtimeMsResult.value.resultType.name, "float64");
 });
 
 test("NodeJS provider package rejects Stats Date property mapping without selected provider member identity", () => {
@@ -92,7 +92,7 @@ test("NodeJS provider package rejects Stats Date property mapping without select
     "node:fs.Stats.notMtime",
   ));
 
-  const result = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(expression, declaration), fakeContext(facts));
+  const result = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(expression, declaration, "mtime"), fakeContext(facts));
 
   assert.equal(result.kind, "reject");
   assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_PROPERTY_NOT_MAPPED");
@@ -282,14 +282,14 @@ function collectAllNodes(node, ast, result = []) {
   return result;
 }
 
-function nodejsPropertyRequest(expression, sourceSelectedDeclaration) {
+function nodejsPropertyRequest(expression, sourceSelectedDeclaration, propertyName) {
   const receiver = {};
   return {
     target: "csharp",
     sourceOperationKind: "property-access",
     expression,
     receiver,
-    propertyName: "mtime",
+    propertyName,
     sourceReceiver: {
       expression: receiver,
       type: {},

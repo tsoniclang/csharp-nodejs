@@ -72,7 +72,7 @@ export function assertModuleExport(bindingProvider, moduleSpecifier, exportName,
   assertCallMapping(
     nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId),
     targetIdentityId,
-    signature.parameters.length,
+    signature,
   );
 }
 
@@ -93,7 +93,7 @@ export function assertClassMember(bindingProvider, moduleSpecifier, exportName, 
       signatureId,
     ),
     targetIdentityId,
-    signature.parameters.length,
+    signature,
   );
 }
 
@@ -107,6 +107,21 @@ export function assertClassProperty(bindingProvider, moduleSpecifier, exportName
   assertPropertyMapping(
     nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memberName, memberId),
     targetIdentityId,
+    memberName,
+  );
+}
+
+export function assertClassElement(bindingProvider, moduleSpecifier, exportName, memberName, signatureId, targetIdentityId) {
+  const resolution = bindingProvider.resolveModule(moduleSpecifier, {});
+  assert.equal(resolution.kind, "virtual");
+  const model = bindingProvider.getDeclarationModel(resolution);
+  const declaration = model.exports.find((entry) => entry.name === exportName);
+  const member = declaration?.members?.find((entry) => entry.name === memberName);
+  const signature = member?.signatures?.find((candidate) => candidate.id === signatureId);
+  assert.ok(signature);
+  assertElementMapping(
+    nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memberName, member.id, signatureId),
+    targetIdentityId,
   );
 }
 
@@ -119,6 +134,7 @@ export function assertModuleValue(bindingProvider, moduleSpecifier, exportName, 
   assertPropertyMapping(
     nodejsVirtualDeclaration(moduleSpecifier, exportName),
     targetIdentityId,
+    exportName,
   );
 }
 
@@ -146,7 +162,7 @@ export function assertDefaultModuleCall(bindingProvider, moduleSpecifier, interf
       signatureId,
     ),
     targetIdentityId,
-    signature.parameters.length,
+    signature,
   );
 }
 
@@ -163,7 +179,7 @@ export function assertDefaultModuleSignature(bindingProvider, moduleSpecifier, i
       signatureId,
     ),
     targetIdentityId,
-    signature.parameters.length,
+    signature,
   );
 }
 
@@ -178,6 +194,7 @@ export function assertDefaultModuleProperty(bindingProvider, moduleSpecifier, in
       memberId,
     ),
     targetIdentityId,
+    memberName,
   );
 }
 
@@ -198,13 +215,13 @@ export function assertSelectedMember(result, memberId) {
   assert.equal(result.value.selectedSignature.member.id, memberId);
 }
 
-function assertCallMapping(declaration, targetIdentityId, sourceArgumentCount) {
+function assertCallMapping(declaration, targetIdentityId, signature) {
   const provider = createCsharpNodejsOperationsTestContribution();
   const facts = new TestFactStore();
   const selectedSignature = {};
   facts.set(selectedSignature, providerVirtualDeclarationFactKey, declaration);
   const result = provider.mapCheckedCall(
-    nodejsCallRequest({}, selectedSignature, sourceArgumentCount),
+    nodejsCallRequest({}, selectedSignature, signature),
     fakeContext(facts),
   );
   assert.notEqual(result.kind, "defer");
@@ -221,13 +238,26 @@ function assertCallMapping(declaration, targetIdentityId, sourceArgumentCount) {
   assert.ok(result.diagnostic.evidence?.[0]?.details?.targetIdentityId);
 }
 
-function assertPropertyMapping(declaration, targetIdentityId) {
+function assertPropertyMapping(declaration, targetIdentityId, propertyName) {
   const provider = createCsharpNodejsOperationsTestContribution();
   const facts = new TestFactStore();
   const selectedDeclaration = {};
   facts.set(selectedDeclaration, providerVirtualDeclarationFactKey, declaration);
   const result = provider.mapCheckedPropertyAccess(
-    nodejsPropertyRequest({}, selectedDeclaration),
+    nodejsPropertyRequest({}, selectedDeclaration, propertyName),
+    fakeContext(facts),
+  );
+  assert.equal(result.kind, "accept");
+  assert.equal(result.value.operation.operationId, targetIdentityId);
+}
+
+function assertElementMapping(declaration, targetIdentityId) {
+  const provider = createCsharpNodejsOperationsTestContribution();
+  const facts = new TestFactStore();
+  const selectedDeclaration = {};
+  facts.set(selectedDeclaration, providerVirtualDeclarationFactKey, declaration);
+  const result = provider.mapCheckedElementAccess(
+    nodejsElementRequest({}, selectedDeclaration),
     fakeContext(facts),
   );
   assert.equal(result.kind, "accept");
@@ -235,14 +265,20 @@ function assertPropertyMapping(declaration, targetIdentityId) {
 }
 
 export function assertUnsupportedCall(provider, facts, selectedSignature, targetIdentityId) {
-  const result = provider.mapCheckedCall(nodejsCallRequest({}, selectedSignature), fakeContext(facts));
+  const result = mapNodejsCheckedCall(provider, facts, {}, selectedSignature);
   assert.equal(result.kind, "reject");
   assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED");
   assert.equal(result.diagnostic.evidence?.[0]?.details?.targetIdentityId, targetIdentityId);
 }
 
 export function assertUnsupportedProperty(provider, facts, selectedDeclaration, targetIdentityId) {
-  const result = provider.mapCheckedPropertyAccess(nodejsPropertyRequest({}, selectedDeclaration), fakeContext(facts));
+  const declaration = facts.get(selectedDeclaration, providerVirtualDeclarationFactKey);
+  const propertyName = declaration?.memberName ?? declaration?.exportName;
+  assert.equal(typeof propertyName, "string");
+  const result = provider.mapCheckedPropertyAccess(
+    nodejsPropertyRequest({}, selectedDeclaration, propertyName),
+    fakeContext(facts),
+  );
   assert.equal(result.kind, "reject");
   assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED");
   assert.equal(result.diagnostic.evidence?.[0]?.details?.targetIdentityId, targetIdentityId);
@@ -360,22 +396,32 @@ export const nodejsTestProviderPackage = {
   },
 };
 
-export function nodejsCallRequest(call, sourceSelectedSignature, sourceArgumentCount = 0) {
+export function mapNodejsCheckedCall(provider, facts, call, sourceSelectedSignature, sourceArgumentCount) {
+  const declaration = facts.get(sourceSelectedSignature, providerVirtualDeclarationFactKey);
+  assert.ok(declaration);
+  const signature = getNodejsProviderSignature(declaration);
+  assert.ok(signature);
+  return provider.mapCheckedCall(
+    nodejsCallRequest(call, sourceSelectedSignature, signature, sourceArgumentCount),
+    fakeContext(facts),
+  );
+}
+
+export function nodejsCallRequest(call, sourceSelectedSignature, signature, sourceArgumentCount = minimumSourceArgumentCount(signature)) {
   const callee = {};
   const sourceArguments = Array.from({ length: sourceArgumentCount }, () => ({
     expression: {},
     type: {},
   }));
-  const parameters = Array.from({ length: sourceArgumentCount }, (_, parameterIndex) => ({
+  const parameters = signature.parameters.map((parameter, parameterIndex) => ({
     parameterIndex,
-    parameterName: `parameter${parameterIndex}`,
+    parameterName: parameter.name,
     parameterSymbol: {},
-    parameterDeclaration: {},
     selectedType: {},
-    authoredTypeNode: {},
-    acceptsOmission: false,
-    rest: false,
+    acceptsOmission: parameter.optional === true || parameter.rest === true,
+    rest: parameter.rest === true,
   }));
+  assert.ok(sourceArgumentCount <= parameters.length || parameters.at(-1)?.rest === true);
   return {
     target: "csharp",
     sourceOperationKind: "call",
@@ -386,18 +432,22 @@ export function nodejsCallRequest(call, sourceSelectedSignature, sourceArgumentC
     sourceSelection: {
       kind: "applicable",
       signature: sourceSelectedSignature,
-      declaration: sourceSelectedSignature,
       methodTypeArguments: [],
       parameters,
-      argumentBindings: sourceArguments.map((argument, sourceArgumentIndex) => ({
-        sourceArgumentIndex,
-        effectiveArgumentIndex: sourceArgumentIndex,
-        sourceForm: "value",
-        sourceParameterIndex: sourceArgumentIndex,
-        sourceParameterForm: "parameter",
-        selectedArgumentType: argument.type,
-        selectedParameterType: parameters[sourceArgumentIndex].selectedType,
-      })),
+      argumentBindings: sourceArguments.map((argument, sourceArgumentIndex) => {
+        const sourceParameterIndex = Math.min(sourceArgumentIndex, parameters.length - 1);
+        const parameter = parameters[sourceParameterIndex];
+        assert.ok(parameter);
+        return {
+          sourceArgumentIndex,
+          effectiveArgumentIndex: sourceArgumentIndex,
+          sourceForm: "value",
+          sourceParameterIndex,
+          sourceParameterForm: parameter.rest ? "rest-element" : "parameter",
+          selectedArgumentType: argument.type,
+          selectedParameterType: parameter.selectedType,
+        };
+      }),
     },
     sourceCallee: {
       expression: callee,
@@ -416,14 +466,18 @@ export function nodejsCallRequest(call, sourceSelectedSignature, sourceArgumentC
   };
 }
 
-export function nodejsCallRequestWithoutSignature(call, sourceSelectedDeclaration) {
+export function nodejsCallRequestWithoutSignature(call, sourceSelectedDeclaration, sourceArgumentCount = 0) {
   const callee = {};
+  const sourceArguments = Array.from({ length: sourceArgumentCount }, () => ({
+    expression: {},
+    type: {},
+  }));
   return {
     target: "csharp",
     sourceOperationKind: "call",
     call,
     callee,
-    arguments: [],
+    arguments: sourceArguments.map((argument) => argument.expression),
     callKind: "call",
     sourceSelection: { kind: "untyped" },
     sourceCallee: {
@@ -431,7 +485,7 @@ export function nodejsCallRequestWithoutSignature(call, sourceSelectedDeclaratio
       type: {},
       selectedDeclaration: sourceSelectedDeclaration,
     },
-    sourceArguments: [],
+    sourceArguments,
     sourceResult: {
       expression: call,
       type: {},
@@ -443,14 +497,45 @@ export function nodejsCallRequestWithoutSignature(call, sourceSelectedDeclaratio
   };
 }
 
-export function nodejsPropertyRequest(expression, sourceSelectedDeclaration) {
+export function nodejsPropertyRequest(expression, sourceSelectedDeclaration, propertyName, use = "value") {
   const receiver = {};
   return {
     target: "csharp",
     sourceOperationKind: "property-access",
     expression,
     receiver,
-    propertyName: "selectedByProviderIdentity",
+    propertyName,
+    sourceReceiver: {
+      expression: receiver,
+      type: {},
+    },
+    accessMode: "read",
+    use,
+    sourceReadResult: {
+      expression,
+      type: {},
+      selectedDeclaration: sourceSelectedDeclaration,
+    },
+    chainRole: {
+      kind: "ordinary",
+      participant: "property-access",
+    },
+  };
+}
+
+export function nodejsElementRequest(expression, sourceSelectedDeclaration) {
+  const receiver = {};
+  const argument = {};
+  return {
+    target: "csharp",
+    sourceOperationKind: "element-access",
+    expression,
+    receiver,
+    argument,
+    sourceArgument: {
+      expression: argument,
+      type: {},
+    },
     sourceReceiver: {
       expression: receiver,
       type: {},
@@ -464,9 +549,33 @@ export function nodejsPropertyRequest(expression, sourceSelectedDeclaration) {
     },
     chainRole: {
       kind: "ordinary",
-      participant: "property-access",
+      participant: "element-access",
     },
   };
+}
+
+function minimumSourceArgumentCount(signature) {
+  let count = 0;
+  for (const [index, parameter] of signature.parameters.entries()) {
+    if (parameter.optional !== true && parameter.rest !== true) {
+      count = index + 1;
+    }
+  }
+  return count;
+}
+
+function getNodejsProviderSignature(declaration) {
+  const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
+  const resolution = bindingProvider.resolveModule(declaration.moduleSpecifier, {});
+  if (resolution.kind !== "virtual") {
+    return undefined;
+  }
+  const model = bindingProvider.getDeclarationModel(resolution);
+  const exported = model.exports.find((entry) => entry.name === declaration.exportName);
+  const callable = declaration.memberName === undefined
+    ? exported
+    : exported?.members?.find((entry) => entry.name === declaration.memberName);
+  return callable?.signatures?.find((entry) => entry.id === declaration.signatureId);
 }
 
 export function nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId) {
