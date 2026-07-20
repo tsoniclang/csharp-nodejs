@@ -76,9 +76,9 @@ const httpTargetType = csharpTargetNamedType(
 const incomingMessageProviderType = providerRef(nodeHttpIncomingMessageExportName);
 const serverResponseProviderType = providerRef(nodeHttpServerResponseExportName);
 const serverProviderType = providerRef(nodeHttpServerExportName);
-const voidCallbackProviderType = callbackProviderType([], voidProviderType);
+const voidCallbackProviderType = callbackProviderType("node:http.listen.callback", [], voidProviderType);
 const voidCallbackTargetType = csharpDelegateTargetType("System.Action", []);
-const requestListenerProviderType = callbackProviderType([
+const requestListenerProviderType = callbackProviderType("node:http.request-listener", [
   { name: "request", type: incomingMessageProviderType },
   { name: "response", type: serverResponseProviderType },
 ], voidProviderType);
@@ -356,10 +356,11 @@ function providerRef(exportName: string): ProviderTypeExpression {
 }
 
 function callbackProviderType(
+  id: string,
   parameters: readonly ProviderParameterDeclaration[],
   returnType: ProviderTypeExpression,
 ): ProviderTypeExpression {
-  return { kind: "function", parameters, returnType };
+  return { kind: "function", id, parameters, returnType };
 }
 
 function stringParameter(name: string): ProviderParameterDeclaration {

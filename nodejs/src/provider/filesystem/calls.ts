@@ -260,6 +260,7 @@ const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression
 const optionalUnknownProviderType = { kind: "union", types: [unknownProviderType, { kind: "void" }] } satisfies ProviderTypeExpression;
 const callbackProviderType = {
   kind: "function",
+  id: "node:fs.callback",
   parameters: [{ name: "args", type: { kind: "array", elementType: unknownProviderType }, rest: true }],
   returnType: voidProviderType,
 } satisfies ProviderTypeExpression;

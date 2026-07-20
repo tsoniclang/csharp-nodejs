@@ -1,5 +1,5 @@
 import type {
-  TargetOperationFact,
+  CheckedOperationMappingResult,
   TargetTypeRef,
 } from "@tsonic/tsts";
 import type {
@@ -20,28 +20,29 @@ import {
 
 export function getCsharpNodejsPropertyOperation(
   declaration: NodejsProviderDeclarationIdentity,
-): { readonly operation: TargetOperationFact; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
+): { readonly mapping: CheckedOperationMappingResult; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
   const member = getNodejsPropertyTargetMemberFromMetadata(declaration);
   return operationFromNodejsTargetMember(member);
 }
 
 export function getCsharpNodejsElementOperationForReceiverType(
   receiverType: TargetTypeRef | undefined,
-): { readonly operation: TargetOperationFact; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
+): { readonly mapping: CheckedOperationMappingResult; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
   return operationFromNodejsTargetMember(getNodejsIndexerTargetMemberFromReceiverTypeMetadata(receiverType));
 }
 
 function operationFromNodejsTargetMember(
   member: ReturnType<typeof getNodejsPropertyTargetMemberFromMetadata>,
-): { readonly operation: TargetOperationFact; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
+): { readonly mapping: CheckedOperationMappingResult; readonly csharpOperation: CsharpTargetOperationFact } | undefined {
   return member === undefined
     ? undefined
     : {
-        operation: member.returnType === undefined
-          ? targetOperationFromMember(member)
-          : targetOperation(member.id, member.kind === "field" || member.kind === "event" ? "property" : member.kind, member.targetName, {
-              resultType: member.returnType,
-            }),
+        mapping: {
+          operation: member.returnType === undefined
+            ? targetOperationFromMember(member)
+            : targetOperation(member.id, member.kind === "field" || member.kind === "event" ? "property" : member.kind, member.targetName),
+          ...(member.returnType === undefined ? {} : { resultType: member.returnType }),
+        },
         csharpOperation: csharpTargetOperationFromMember(member),
       };
 }

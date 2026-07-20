@@ -32,6 +32,7 @@ const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const callbackProviderType = {
   kind: "function",
+  id: "node:assert.callback",
   parameters: [],
   returnType: unknownProviderType,
 } satisfies ProviderTypeExpression;

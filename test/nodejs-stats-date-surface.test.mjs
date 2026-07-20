@@ -282,14 +282,29 @@ function collectAllNodes(node, ast, result = []) {
   return result;
 }
 
-function nodejsPropertyRequest(expression, sourceSelectedSymbol) {
+function nodejsPropertyRequest(expression, sourceSelectedDeclaration) {
+  const receiver = {};
   return {
     target: "csharp",
+    sourceOperationKind: "property-access",
     expression,
-    receiver: {},
-    receiverType: {},
+    receiver,
     propertyName: "mtime",
-    sourceSelectedSymbol,
+    sourceReceiver: {
+      expression: receiver,
+      type: {},
+    },
+    accessMode: "read",
+    use: "value",
+    sourceReadResult: {
+      expression,
+      type: {},
+      selectedDeclaration: sourceSelectedDeclaration,
+    },
+    chainRole: {
+      kind: "ordinary",
+      participant: "property-access",
+    },
   };
 }
 

@@ -30,11 +30,6 @@ const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
-const callbackProviderType = {
-  kind: "function",
-  parameters: [{ name: "args", type: { kind: "array", elementType: unknownProviderType }, rest: true }],
-  returnType: voidProviderType,
-} satisfies ProviderTypeExpression;
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const utilTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.util", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "util"));
@@ -200,10 +195,19 @@ function stringParameter(name: string, optional = false): ProviderParameterDecla
   };
 }
 
-function callbackParameter(name: string): ProviderParameterDeclaration {
+function callbackParameter(name: string, id: string): ProviderParameterDeclaration {
   return {
     name,
-    type: callbackProviderType,
+    type: callbackProviderType(id),
+  };
+}
+
+function callbackProviderType(id: string): ProviderTypeExpression {
+  return {
+    kind: "function",
+    id,
+    parameters: [{ name: "args", type: { kind: "array", elementType: unknownProviderType }, rest: true }],
+    returnType: voidProviderType,
   };
 }
 
@@ -264,7 +268,7 @@ const nodeUtilUnsupportedCalls = [
     parameters: [
       stringParameter("section"),
     ],
-    returnType: callbackProviderType,
+    returnType: callbackProviderType("node:util.debuglog.callback-result"),
   },
   {
     exportName: nodeUtilDeprecateExportName,
@@ -272,11 +276,11 @@ const nodeUtilUnsupportedCalls = [
     targetIdentityId: "unsupported:Tsonic.CSharp.Node.util.deprecate(Function,System.String,System.String)",
     displayName: "unsupported NodeJS util.deprecate",
     parameters: [
-      callbackParameter("fn"),
+      callbackParameter("fn", "node:util.deprecate.callback-parameter"),
       stringParameter("msg"),
       stringParameter("code", true),
     ],
-    returnType: callbackProviderType,
+    returnType: callbackProviderType("node:util.deprecate.callback-result"),
   },
   {
     exportName: nodeUtilIsDeepStrictEqualExportName,

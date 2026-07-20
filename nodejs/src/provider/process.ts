@@ -434,7 +434,7 @@ const nodeProcessUnsupportedExports = [
     targetIdentityId: "unsupported:Tsonic.CSharp.Node.process.nextTick(Function,System.Object[])",
     displayName: "unsupported NodeJS process.nextTick",
     providerParameters: [
-      { name: "callback", type: { kind: "function", parameters: [], returnType: voidProviderType } },
+      { name: "callback", type: { kind: "function", id: "node:process.nextTick.callback", parameters: [], returnType: voidProviderType } },
       unknownRestParameter("args"),
     ],
     providerType: voidProviderType,

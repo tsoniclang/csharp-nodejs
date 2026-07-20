@@ -196,33 +196,33 @@ test("NodeJS provider package maps closed operations from selected provider iden
   facts.set(urlSearchParamsAppendSignature, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:url", "URLSearchParams", "append", "node:url.URLSearchParams.append", "node:url.URLSearchParams.append(System.String,System.String)"));
   facts.set(urlSearchParamsSizeDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration("node:url", "URLSearchParams", "size", "node:url.URLSearchParams.size"));
 
-  const readFileResult = provider.mapCheckedCall(nodejsCallRequest(readFileCall, readFileSignature), fakeContext(facts));
-  const readdirSyncResult = provider.mapCheckedCall(nodejsCallRequest(readdirSyncCall, readdirSyncSignature), fakeContext(facts));
-  const pathParseResult = provider.mapCheckedCall(nodejsCallRequest(pathParseCall, pathParseSignature), fakeContext(facts));
-  const fsPromisesReadResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadCall, fsPromisesReadSignature), fakeContext(facts));
-  const fsPromisesReadBytesResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadBytesCall, fsPromisesReadBytesSignature), fakeContext(facts));
-  const fsPromisesReaddirResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReaddirCall, fsPromisesReaddirSignature), fakeContext(facts));
+  const readFileResult = provider.mapCheckedCall(nodejsCallRequest(readFileCall, readFileSignature, 2), fakeContext(facts));
+  const readdirSyncResult = provider.mapCheckedCall(nodejsCallRequest(readdirSyncCall, readdirSyncSignature, 1), fakeContext(facts));
+  const pathParseResult = provider.mapCheckedCall(nodejsCallRequest(pathParseCall, pathParseSignature, 1), fakeContext(facts));
+  const fsPromisesReadResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadCall, fsPromisesReadSignature, 2), fakeContext(facts));
+  const fsPromisesReadBytesResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReadBytesCall, fsPromisesReadBytesSignature, 1), fakeContext(facts));
+  const fsPromisesReaddirResult = provider.mapCheckedCall(nodejsCallRequest(fsPromisesReaddirCall, fsPromisesReaddirSignature, 1), fakeContext(facts));
   const parsedBaseResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(parsedBaseExpression, parsedBaseDeclaration), fakeContext(facts));
   const processCwdResult = provider.mapCheckedCall(nodejsCallRequest(processCwdCall, processCwdSignature), fakeContext(facts));
-  const bufferCompareResult = provider.mapCheckedCall(nodejsCallRequest(bufferCompareCall, bufferCompareSignature), fakeContext(facts));
-  const bufferIncludesResult = provider.mapCheckedCall(nodejsCallRequest(bufferIncludesCall, bufferIncludesSignature), fakeContext(facts));
-  const bufferReadUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferReadUInt8Call, bufferReadUInt8Signature), fakeContext(facts));
-  const bufferWriteUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferWriteUInt8Call, bufferWriteUInt8Signature), fakeContext(facts));
-  const bufferIsBufferResult = provider.mapCheckedCall(nodejsCallRequest({}, bufferIsBufferSignature), fakeContext(facts));
+  const bufferCompareResult = provider.mapCheckedCall(nodejsCallRequest(bufferCompareCall, bufferCompareSignature, 2), fakeContext(facts));
+  const bufferIncludesResult = provider.mapCheckedCall(nodejsCallRequest(bufferIncludesCall, bufferIncludesSignature, 3), fakeContext(facts));
+  const bufferReadUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferReadUInt8Call, bufferReadUInt8Signature, 1), fakeContext(facts));
+  const bufferWriteUInt8Result = provider.mapCheckedCall(nodejsCallRequest(bufferWriteUInt8Call, bufferWriteUInt8Signature, 2), fakeContext(facts));
+  const bufferIsBufferResult = provider.mapCheckedCall(nodejsCallRequest({}, bufferIsBufferSignature, 1), fakeContext(facts));
   const bufferPoolSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(bufferPoolSizeExpression, bufferPoolSizeDeclaration), fakeContext(facts));
-  const bufferTranscodeResult = provider.mapCheckedCall(nodejsCallRequest(bufferTranscodeCall, bufferTranscodeSignature), fakeContext(facts));
-  const cryptoHmacResult = provider.mapCheckedCall(nodejsCallRequest(cryptoHmacCall, cryptoHmacSignature), fakeContext(facts));
+  const bufferTranscodeResult = provider.mapCheckedCall(nodejsCallRequest(bufferTranscodeCall, bufferTranscodeSignature, 3), fakeContext(facts));
+  const cryptoHmacResult = provider.mapCheckedCall(nodejsCallRequest(cryptoHmacCall, cryptoHmacSignature, 2), fakeContext(facts));
   const osHomedirResult = provider.mapCheckedCall(nodejsCallRequest(osHomedirCall, osHomedirSignature), fakeContext(facts));
-  const processHrtimeResult = provider.mapCheckedCall(nodejsCallRequest(processHrtimeCall, processHrtimeSignature), fakeContext(facts));
+  const processHrtimeResult = provider.mapCheckedCall(nodejsCallRequest(processHrtimeCall, processHrtimeSignature, 1), fakeContext(facts));
   const processMemoryResult = provider.mapCheckedCall(nodejsCallRequest(processMemoryCall, processMemorySignature), fakeContext(facts));
   const processMemoryRssResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(processMemoryRssExpression, processMemoryRssDeclaration), fakeContext(facts));
   const processUptimeResult = provider.mapCheckedCall(nodejsCallRequest(processUptimeCall, processUptimeSignature), fakeContext(facts));
-  const utilResult = provider.mapCheckedCall(nodejsCallRequest(utilCall, utilSignature), fakeContext(facts));
-  const utilStyleTextResult = provider.mapCheckedCall(nodejsCallRequest(utilStyleTextCall, utilStyleTextSignature), fakeContext(facts));
-  const defaultFsExistsResult = provider.mapCheckedCall(nodejsCallRequest(defaultFsExistsCall, defaultFsExistsSignature), fakeContext(facts));
+  const utilResult = provider.mapCheckedCall(nodejsCallRequest(utilCall, utilSignature, 1), fakeContext(facts));
+  const utilStyleTextResult = provider.mapCheckedCall(nodejsCallRequest(utilStyleTextCall, utilStyleTextSignature, 2), fakeContext(facts));
+  const defaultFsExistsResult = provider.mapCheckedCall(nodejsCallRequest(defaultFsExistsCall, defaultFsExistsSignature, 1), fakeContext(facts));
   const defaultProcessPlatformResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(defaultProcessPlatformExpression, defaultProcessPlatformDeclaration), fakeContext(facts));
-  const urlCanParseResult = provider.mapCheckedCall(nodejsCallRequest(urlCanParseCall, urlCanParseSignature), fakeContext(facts));
-  const urlSearchParamsAppendResult = provider.mapCheckedCall(nodejsCallRequest(urlSearchParamsAppendCall, urlSearchParamsAppendSignature), fakeContext(facts));
+  const urlCanParseResult = provider.mapCheckedCall(nodejsCallRequest(urlCanParseCall, urlCanParseSignature, 2), fakeContext(facts));
+  const urlSearchParamsAppendResult = provider.mapCheckedCall(nodejsCallRequest(urlSearchParamsAppendCall, urlSearchParamsAppendSignature, 2), fakeContext(facts));
   const urlSearchParamsSizeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(urlSearchParamsSizeExpression, urlSearchParamsSizeDeclaration), fakeContext(facts));
 
   assertSelectedMember(readFileResult, "Tsonic.CSharp.Node.fs.readFileSync(System.String,System.String)");
@@ -230,8 +230,16 @@ test("NodeJS provider package maps closed operations from selected provider iden
   assertSelectedMember(pathParseResult, "Tsonic.CSharp.Node.path.parse(System.String)");
   assertSelectedMember(fsPromisesReadResult, "Tsonic.CSharp.Node.fs_promises.readFile(System.String,System.String)");
   assertSelectedMember(fsPromisesReadBytesResult, "Tsonic.CSharp.Node.fs_promises.readFile(System.String)");
-  assert.equal(fsPromisesReadResult.value.selectedSignature.member.returnType.csharpTaskResultType.id, "System.String");
-  assert.equal(fsPromisesReadBytesResult.value.selectedSignature.member.returnType.csharpTaskResultType.id, "Tsonic.CSharp.Node.Buffer");
+  assert.deepEqual(fsPromisesReadResult.value.selectedSignature.member.returnType, {
+    kind: "target-named",
+    id: "System.Threading.Tasks.Task`1",
+    typeArguments: [{ kind: "target-named", id: "System.String" }],
+  });
+  assert.deepEqual(fsPromisesReadBytesResult.value.selectedSignature.member.returnType, {
+    kind: "target-named",
+    id: "System.Threading.Tasks.Task`1",
+    typeArguments: [{ kind: "target-named", id: "Tsonic.CSharp.Node.Buffer" }],
+  });
   assertSelectedMember(fsPromisesReaddirResult, "Tsonic.CSharp.Node.fs_promises.readdir(System.String)");
   assert.equal(parsedBaseResult.kind, "accept");
   assert.equal(parsedBaseResult.value.operation.operationId, "Tsonic.CSharp.Node.ParsedPath.@base");

@@ -48,6 +48,7 @@ const timersTargetType = csharpTargetNamedType(
 );
 const callbackProviderType = {
   kind: "function",
+  id: "node:timers.callback",
   parameters: [],
   returnType: voidProviderType,
 } satisfies ProviderTypeExpression;

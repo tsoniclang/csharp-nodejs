@@ -26,6 +26,7 @@ import type {
 import {
   csharpProviderDiagnostic,
   csharpProviderOperationsContributionKind,
+  csharpCheckedCallMappingResultForMember,
   targetOperation,
 } from "@tsonic/target-csharp";
 import {
@@ -139,9 +140,18 @@ export function createCsharpNodejsProviderOperationsContribution(extensionId: st
         }
         return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_CALL_NOT_MAPPED", 9100200, `C# NodeJS provider package could not map checked ${formatNodejsDeclarationIdentity(declaration)} to a target member.`));
       }
-      return acceptObservation<CheckedCallMappingResult>({
-        selectedSignature: { member },
-      }, [{ message: `C# NodeJS provider package target call selected from checked provider module '${declaration.moduleSpecifier}'.` }]);
+      const mapping = csharpCheckedCallMappingResultForMember(request, member);
+      if (mapping === undefined) {
+        return rejectObservation(csharpProviderDiagnostic(
+          extensionId,
+          "CSHARP_NODEJS_CALL_ARGUMENT_MAPPING_NOT_PROVEN",
+          9100205,
+          `C# NodeJS provider package could not prove target argument slots for checked ${formatNodejsDeclarationIdentity(declaration)}.`,
+          [{ message: "Target argument mapping requires the exact TSTS-selected source argument bindings and provider target parameter contract." }],
+          request.call,
+        ));
+      }
+      return acceptObservation<CheckedCallMappingResult>(mapping, [{ message: `C# NodeJS provider package target call selected from checked provider module '${declaration.moduleSpecifier}'.` }]);
     },
     mapCheckedPropertyAccess(request, context) {
       if (request.target !== undefined && request.target !== csharpTargetId) {
@@ -170,7 +180,7 @@ export function createCsharpNodejsProviderOperationsContribution(extensionId: st
       }
       recordCsharpTargetOperation(context, request.expression, operation.csharpOperation, [{ message: `C# NodeJS provider package property operation recorded from checked provider module '${declaration.moduleSpecifier}'.` }]);
       return acceptObservation<CheckedOperationMappingResult>({
-        operation: operation.operation,
+        ...operation.mapping,
       }, [{ message: `C# NodeJS provider package target property selected from checked provider module '${declaration.moduleSpecifier}'.` }]);
     },
     mapCheckedElementAccess(request, context) {
@@ -201,7 +211,7 @@ export function createCsharpNodejsProviderOperationsContribution(extensionId: st
         : `checked provider module '${declaration.moduleSpecifier}'`;
       recordCsharpTargetOperation(context, request.expression, operation.csharpOperation, [{ message: `C# NodeJS provider package element operation recorded from ${elementEvidenceSource}.` }]);
       return acceptObservation<CheckedOperationMappingResult>({
-        operation: operation.operation,
+        ...operation.mapping,
       }, [{ message: `C# NodeJS provider package target element access selected from ${elementEvidenceSource}.` }]);
     },
   };

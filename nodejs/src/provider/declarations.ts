@@ -19,14 +19,14 @@ export function getNodejsCheckedCallDeclaration(
   request: CheckedCallMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedCall">,
 ): NodejsProviderDeclarationIdentity | undefined {
-  if (request.sourceSelectedSignature === undefined) {
+  if (request.sourceSelection.kind !== "applicable") {
     return undefined;
   }
   return firstProviderDeclarationWithSignature(context, [
-    request.sourceSelectedDeclaration,
-    request.sourceSelectedSignature,
-    request.sourceCalleeDeclaration,
-    request.sourceCalleeSymbol,
+    request.sourceSelection.declaration,
+    request.sourceSelection.signature,
+    request.sourceCallee.selectedDeclaration,
+    request.sourceCallee.selectedSymbol,
   ]);
 }
 
@@ -34,13 +34,12 @@ export function getNodejsCallDeclarationWithoutSelectedSignature(
   request: CheckedCallMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedCall">,
 ): NodejsProviderDeclarationIdentity | undefined {
-  if (request.sourceSelectedSignature !== undefined) {
-    return undefined;
-  }
   for (const subject of [
-    request.sourceSelectedDeclaration,
-    request.sourceCalleeDeclaration,
-    request.sourceCalleeSymbol,
+    ...(request.sourceSelection.kind === "applicable"
+      ? [request.sourceSelection.declaration, request.sourceSelection.signature]
+      : []),
+    request.sourceCallee.selectedDeclaration,
+    request.sourceCallee.selectedSymbol,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
     if (declaration !== undefined) {
@@ -54,9 +53,12 @@ export function getNodejsCheckedPropertyDeclaration(
   request: CheckedPropertyAccessMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedPropertyAccess">,
 ): NodejsProviderDeclarationIdentity | undefined {
+  const sourceResult = request.accessMode === "write"
+    ? request.sourceWriteType
+    : request.sourceReadResult;
   for (const subject of [
-    request.sourceSelectedSymbol,
-    request.sourceSelectedDeclaration,
+    sourceResult.selectedDeclaration,
+    sourceResult.selectedSymbol,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
     if (declaration !== undefined) {
@@ -70,9 +72,12 @@ export function getNodejsCheckedElementDeclaration(
   request: CheckedElementAccessMappingRequest,
   context: ExtensionObservationContext<"operation.mapCheckedElementAccess">,
 ): NodejsProviderDeclarationIdentity | undefined {
+  const sourceResult = request.accessMode === "write"
+    ? request.sourceWriteType
+    : request.sourceReadResult;
   for (const subject of [
-    request.sourceSelectedSymbol,
-    request.sourceSelectedDeclaration,
+    sourceResult.selectedDeclaration,
+    sourceResult.selectedSymbol,
   ]) {
     const declaration = getProviderExportDeclaration(context, subject);
     if (declaration !== undefined) {
