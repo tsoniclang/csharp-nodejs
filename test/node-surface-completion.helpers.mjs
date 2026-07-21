@@ -564,18 +564,57 @@ function minimumSourceArgumentCount(signature) {
   return count;
 }
 
-function getNodejsProviderSignature(declaration) {
+/**
+ * Resolves a provider test record through exact provider identity only.
+ *
+ * Nothing here matches on spelling: the export is located by its exact id, or
+ * by owning the exact member or signature id under test; the member is located
+ * by exact member id and validated against memberStatic and memberKey; the
+ * signature is located by exact signature id. A same-spelling static/instance
+ * or overload sibling therefore cannot be selected by accident.
+ */
+export function getNodejsProviderSignature(declaration) {
   const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
   const resolution = bindingProvider.resolveModule(declaration.moduleSpecifier, {});
   if (resolution.kind !== "virtual") {
     return undefined;
   }
   const model = bindingProvider.getDeclarationModel(resolution);
-  const exported = model.exports.find((entry) => entry.name === declaration.exportName);
-  const callable = declaration.memberName === undefined
-    ? exported
-    : exported?.members?.find((entry) => entry.name === declaration.memberName);
-  return callable?.signatures?.find((entry) => entry.id === declaration.signatureId);
+  const exported = findProviderExportByIdentity(model, declaration);
+  if (exported === undefined) {
+    return undefined;
+  }
+  if (declaration.memberId === undefined) {
+    return exported.signatures?.find((entry) => entry.id === declaration.signatureId);
+  }
+  const member = exported.members?.find((entry) => entry.id === declaration.memberId);
+  if (member === undefined || !providerMemberMatchesIdentity(member, declaration)) {
+    return undefined;
+  }
+  return member.signatures?.find((entry) => entry.id === declaration.signatureId);
+}
+
+function findProviderExportByIdentity(model, declaration) {
+  if (declaration.exportId !== undefined) {
+    return model.exports.find((entry) => entry.id === declaration.exportId);
+  }
+  if (declaration.memberId !== undefined) {
+    return model.exports.find((entry) =>
+      entry.members?.some((member) => member.id === declaration.memberId));
+  }
+  if (declaration.signatureId !== undefined) {
+    return model.exports.find((entry) =>
+      entry.signatures?.some((signature) => signature.id === declaration.signatureId));
+  }
+  return undefined;
+}
+
+function providerMemberMatchesIdentity(member, declaration) {
+  if (declaration.memberStatic !== undefined && declaration.memberStatic !== (member.static === true)) {
+    return false;
+  }
+  return declaration.memberKey?.kind !== "property-key" ||
+    declaration.memberKey.name === member.name;
 }
 
 export function nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId) {
