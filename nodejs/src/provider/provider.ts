@@ -12,7 +12,7 @@ import type {
   ProviderSignatureDeclaration,
   ProviderTypeParameterDeclaration,
   ProviderTypeExpression,
-  TargetBindingProvider,
+  SourceDeclarationProvider,
 } from "@tsonic/tsts";
 import {
   csharpNodejsProviderPackageProviderIdentity,
@@ -84,7 +84,14 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeUrlModuleSpecifier, nodeUrlExports()],
 ]);
 
-export function createCsharpNodejsProviderPackageBindingProvider(): TargetBindingProvider {
+export function nodejsCanonicalProviderExports(
+  moduleSpecifier: string,
+): readonly ProviderExportDeclaration[] | undefined {
+  return canonicalModules.get(moduleSpecifier);
+}
+
+export function createCsharpNodejsProviderPackageBindingProvider():
+  SourceDeclarationProvider {
   return {
     identity: csharpNodejsProviderPackageProviderIdentity,
     ownsModule(specifier: string, _context: ProviderModuleContext): ProviderOwnership {
@@ -221,12 +228,6 @@ function rebaseNodejsProviderType(
         ...type,
         ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
       };
-    case "target-named":
-      return {
-        ...type,
-        ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
-        ...(type.sourceShape === undefined ? {} : { sourceShape: mapType(type.sourceShape) }),
-      };
     case "array":
       return { ...type, elementType: mapType(type.elementType) };
     case "tuple":
@@ -243,10 +244,6 @@ function rebaseNodejsProviderType(
           ? {}
           : { typeParameters: type.typeParameters.map((parameter) => rebaseNodejsProviderTypeParameter(parameter, mapType)) }),
       };
-    case "opaque":
-      return type.sourceShape === undefined
-        ? type
-        : { ...type, sourceShape: mapType(type.sourceShape) };
     case "any":
     case "unknown":
     case "void":
@@ -394,12 +391,6 @@ function visitProviderType(
         visitProviderType(typeArgument, visit);
       }
       return;
-    case "target-named":
-      for (const typeArgument of type.typeArguments ?? []) {
-        visitProviderType(typeArgument, visit);
-      }
-      visitOptionalProviderType(type.sourceShape, visit);
-      return;
     case "any":
     case "unknown":
     case "void":
@@ -413,7 +404,6 @@ function visitProviderType(
     case "literal":
     case "source-primitive":
     case "type-parameter":
-    case "opaque":
       return;
   }
 }

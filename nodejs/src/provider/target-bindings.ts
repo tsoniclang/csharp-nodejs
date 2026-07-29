@@ -1,17 +1,12 @@
-import type {
-  ProviderExportDeclaration,
-} from "@tsonic/tsts";
 import {
   csharpQualifiedTypeRenderShape,
-  csharpTargetBindingsContributionKind,
   csharpTargetNamedType,
 } from "@tsonic/target-csharp";
 import type {
   CsharpTargetBindingFact,
-  CsharpTargetBindingsContribution,
 } from "@tsonic/target-csharp";
 
-interface NodejsProviderTargetTypeRow {
+export interface NodejsProviderTargetTypeRow {
   readonly moduleSpecifier: string;
   readonly exportName: string;
   readonly kind: CsharpTargetBindingFact["kind"];
@@ -19,7 +14,7 @@ interface NodejsProviderTargetTypeRow {
   readonly targetName: string;
 }
 
-const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
+export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
   { moduleSpecifier: "node:buffer", exportName: "Buffer", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Buffer" },
   { moduleSpecifier: "node:crypto", exportName: "Hash", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Hash" },
   { moduleSpecifier: "node:crypto", exportName: "Hmac", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Hmac" },
@@ -56,26 +51,13 @@ const bindingByProviderExport = new Map(
   }),
 );
 
-export function createCsharpNodejsTargetBindingsContribution(): CsharpTargetBindingsContribution {
-  return {
-    kind: csharpTargetBindingsContributionKind,
-    bindings: Object.freeze([...bindingByProviderExport.values()]),
-  };
-}
-
-export function nodejsProviderTargetIdentity(
+export function nodejsProviderTargetBinding(
   moduleSpecifier: string,
   exportName: string,
-): NonNullable<ProviderExportDeclaration["targetIdentity"]> {
-  const binding = bindingByProviderExport.get(providerExportKey(moduleSpecifier, exportName));
-  if (binding === undefined) {
-    throw new Error(`Missing C# NodeJS target binding metadata for '${moduleSpecifier}' export '${exportName}'.`);
-  }
-  return {
-    target: "csharp",
-    id: binding.id,
-    displayName: binding.targetName,
-  };
+): CsharpTargetBindingFact | undefined {
+  return bindingByProviderExport.get(
+    providerExportKey(moduleSpecifier, exportName),
+  );
 }
 
 function providerExportKey(moduleSpecifier: string, exportName: string): string {

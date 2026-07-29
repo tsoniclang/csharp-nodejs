@@ -33,9 +33,6 @@ import {
   promiseProviderType,
   taskTargetType,
 } from "./filesystem/types.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "./target-bindings.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
 export const nodeHttpIncomingMessageExportName = "IncomingMessage";
@@ -289,7 +286,6 @@ function providerClassDeclaration(
     id: `${nodeHttpModuleSpecifier}.${exportName}`,
     name: exportName,
     kind: "class",
-    targetIdentity: nodejsProviderTargetIdentity(nodeHttpModuleSpecifier, exportName),
     members,
   };
 }

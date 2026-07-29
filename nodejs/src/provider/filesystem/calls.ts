@@ -2,8 +2,8 @@ import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
   ProviderTypeExpression,
-  TargetMember,
 } from "@tsonic/tsts";
+import type { TargetMember } from "@tsonic/target-csharp";
 import {
   csharpNullableValueTargetType,
   targetParameter,

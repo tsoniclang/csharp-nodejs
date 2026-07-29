@@ -1,6 +1,6 @@
 import type {
   TargetMember,
-} from "@tsonic/tsts";
+} from "@tsonic/target-csharp";
 import {
   getNodejsProviderExportDeclarationTargetMember,
   nodejsProviderExportDeclarationTargetMemberIndex,

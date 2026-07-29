@@ -1,11 +1,11 @@
 import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
-  TargetParameter,
-  TargetTypeRef,
 } from "@tsonic/tsts";
 import type {
   CsharpTargetMember,
+  TargetParameter,
+  TargetTypeRef,
 } from "@tsonic/target-csharp";
 import type {
   NodejsClassCallTargetMember,

@@ -20,9 +20,6 @@ import type {
 import {
   nodejsDefaultModuleObjectExports,
 } from "./module-defaults.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "./target-bindings.js";
 
 export const nodeTimersModuleSpecifier = "node:timers";
 export const nodeTimersTimeoutExportName = "Timeout";
@@ -61,7 +58,6 @@ export function nodeTimersExports(): readonly ProviderExportDeclaration[] {
       id: `${nodeTimersModuleSpecifier}.${nodeTimersTimeoutExportName}`,
       name: nodeTimersTimeoutExportName,
       kind: "class" as const,
-      targetIdentity: nodejsProviderTargetIdentity(nodeTimersModuleSpecifier, nodeTimersTimeoutExportName),
       members: [],
     },
     ...nodeTimersCallTargetMembers().map((member) => ({

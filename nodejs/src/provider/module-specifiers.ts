@@ -66,6 +66,17 @@ export function nodejsProviderPackageOwnedModuleSpecifiers(): readonly string[] 
   return Array.from(canonicalBySpecifier.keys());
 }
 
+export function nodejsPublicModuleSpecifiers(
+  canonicalModuleSpecifier: string,
+): readonly string[] {
+  return Object.freeze(
+    [...canonicalBySpecifier.entries()]
+      .filter(([, canonical]) => canonical === canonicalModuleSpecifier)
+      .map(([specifier]) => specifier)
+      .sort(),
+  );
+}
+
 export function canonicalNodejsModuleSpecifier(specifier: string | undefined): string | undefined {
   return specifier === undefined ? undefined : canonicalBySpecifier.get(specifier);
 }

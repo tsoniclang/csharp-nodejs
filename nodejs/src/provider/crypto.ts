@@ -3,9 +3,11 @@ import type {
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
   ProviderTypeExpression,
+} from "@tsonic/tsts";
+import type {
   TargetMember,
   TargetTypeRef,
-} from "@tsonic/tsts";
+} from "@tsonic/target-csharp";
 import {
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
@@ -32,9 +34,6 @@ import {
 import type {
   NodejsUnsupportedTargetIdentity,
 } from "./members/types.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "./target-bindings.js";
 import type {
   NodejsClassCallTargetMetadata,
   NodejsClassCallTargetMetadataRow,
@@ -232,7 +231,6 @@ function cryptoClassExportDeclaration(
     id: `node:crypto.${exportName}`,
     name: exportName,
     kind: "class",
-    targetIdentity: nodejsProviderTargetIdentity(nodeCryptoModuleSpecifier, exportName),
     members: providerMembersForCryptoClassCalls(members),
   };
 }

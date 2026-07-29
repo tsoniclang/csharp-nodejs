@@ -14,16 +14,12 @@ import {
 import {
   nodeBufferUnsupportedClassMemberDeclarations,
 } from "../unsupported.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "../../target-bindings.js";
 
 export function nodeBufferClassExport(): ProviderExportDeclaration {
   return {
     id: "node:buffer.Buffer",
     name: nodeBufferExportName,
     kind: "class",
-    targetIdentity: nodejsProviderTargetIdentity(nodeBufferModuleSpecifier, nodeBufferExportName),
     members: [
       ...nodeBufferStaticMemberDeclarations(),
       ...nodeBufferInstanceMemberDeclarations(),

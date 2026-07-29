@@ -24,9 +24,6 @@ import {
   stringProviderType,
   stringTargetType,
 } from "./types.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "../target-bindings.js";
 
 export function nodePathClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMember[] {
   return nodePathParsedPathTargetMetadataRows.map(nodejsClassPropertyTargetMetadata);
@@ -37,7 +34,6 @@ export function nodePathParsedPathExportDeclaration(): ProviderExportDeclaration
     id: `node:path.${nodePathParsedPathExportName}`,
     name: nodePathParsedPathExportName,
     kind: "interface",
-    targetIdentity: nodejsProviderTargetIdentity("node:path", nodePathParsedPathExportName),
     members: [
       ...nodePathParsedPathTargetMetadataRows.map(({ memberId, memberName }) => parsedPathProperty(memberId, memberName)),
     ],

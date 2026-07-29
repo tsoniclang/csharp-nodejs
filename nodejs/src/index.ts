@@ -22,10 +22,11 @@ export function createTsonicPlugin(): TsonicTargetCapabilityPlugin {
     id: "@tsonic/csharp-nodejs",
     targetId: "csharp",
     displayName: "C# NodeJS capability package",
-    requiredSurfaces: ["js"],
     moduleOwnership: nodejsProviderPackageModuleOwnership,
-    createExtensions(context: TargetCapabilityContext) {
-      return [createCsharpNodejsProviderPackageExtension(context)];
+    sourceCompilerContributions(context: TargetCapabilityContext) {
+      return {
+        extensions: [createCsharpNodejsProviderPackageExtension(context)],
+      };
     },
     createTargetContributions: createCsharpNodejsTargetContributions,
     runtimeContributions(): TargetRuntimeContributions {

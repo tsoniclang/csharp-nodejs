@@ -18,6 +18,7 @@ export interface NodejsClassCallTargetMember {
   readonly memberName: string;
   readonly memberId: string;
   readonly signatureId: string;
+  readonly static?: boolean;
   readonly member: CsharpTargetMember;
 }
 

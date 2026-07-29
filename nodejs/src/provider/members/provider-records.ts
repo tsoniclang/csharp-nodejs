@@ -154,7 +154,11 @@ function moduleCallRecords(
   return entries.map((entry) => ({
     declarationIdentities: [
       nodejsExportSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.signatureId),
-      ...nodejsDefaultModuleMemberDeclarationIdentities(moduleSpecifier, entry.exportName, entry.signatureId),
+      ...nodejsDefaultModuleMemberDeclarationIdentities(
+        moduleSpecifier,
+        entry.exportName,
+        entry.signatureId,
+      ).filter((identity) => identity.signatureId !== undefined),
     ],
     member: entry.member,
   }));
@@ -179,8 +183,14 @@ function classCallRecords(
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
     declarationIdentities: [
-      nodejsExportMemberDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId),
-      nodejsExportMemberSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId, entry.signatureId),
+      nodejsExportMemberSignatureDeclarationIdentity(
+        moduleSpecifier,
+        entry.exportName,
+        entry.memberName,
+        entry.memberId,
+        entry.signatureId,
+        entry.static === true,
+      ),
     ],
     member: entry.member,
   }));
@@ -192,15 +202,21 @@ function classPropertyRecords(
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
     declarationIdentities: [
-      nodejsExportMemberDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId),
       ...(entry.signatureId === undefined
-        ? []
+        ? [nodejsExportMemberDeclarationIdentity(
+            moduleSpecifier,
+            entry.exportName,
+            entry.memberName,
+            entry.memberId,
+            entry.member.static === true,
+          )]
         : [nodejsExportMemberSignatureDeclarationIdentity(
             moduleSpecifier,
             entry.exportName,
             entry.memberName,
             entry.memberId,
             entry.signatureId,
+            entry.member.static === true,
           )]),
     ],
     member: entry.member,

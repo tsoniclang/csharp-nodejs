@@ -27,9 +27,6 @@ import {
   stringProviderType,
   stringTargetType,
 } from "./types.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "../target-bindings.js";
 
 const nodePathPathModuleExportName = "PathModule";
 const nodePathPathModuleMemberPrefix = "node:path.PathModule";
@@ -43,7 +40,6 @@ export function nodePathPathModuleExportDeclaration(): ProviderExportDeclaration
     id: `node:path.${nodePathPathModuleExportName}`,
     name: nodePathPathModuleExportName,
     kind: "interface",
-    targetIdentity: nodejsProviderTargetIdentity("node:path", nodePathPathModuleExportName),
     members: [
       ...nodePathPathModulePropertyTargetMembers().map(providerMemberForPathModuleProperty),
       ...nodePathPathModuleClassCallTargetMembers().map(providerMemberForPathModuleCall),

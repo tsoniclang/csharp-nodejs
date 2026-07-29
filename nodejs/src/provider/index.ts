@@ -1,63 +1,12 @@
-import {
-  acceptObservation,
-  deferObservation,
-  rejectObservation,
-} from "@tsonic/tsts";
 import type {
-  CheckedCallMappingRequest,
-  CheckedCallMappingResult,
-  CheckedElementAccessMappingRequest,
-  CheckedOperationMappingResult,
-  CheckedPropertyAccessMappingRequest,
   CompilerExtension,
-  ExtensionDiagnostic,
-  ExtensionEvidence,
-  ExtensionObservation,
-  ExtensionObservationContext,
 } from "@tsonic/tsts";
 import type {
-  TargetProviderModuleOwnership,
   TargetCapabilityContext,
+  TargetProviderModuleOwnership,
 } from "@tsonic/target-api";
-import type {
-  CsharpProviderOperationsContribution,
-  CsharpTargetBindingsContribution,
-} from "@tsonic/target-csharp";
 import {
-  csharpProviderDiagnostic,
-  csharpProviderOperationsContributionKind,
-  csharpCheckedCallMappingResultForMember,
-  targetOperation,
-} from "@tsonic/target-csharp";
-import {
-  csharpJsSurfaceExtensionId,
   csharpProviderVersion,
-  csharpTargetId,
-} from "@tsonic/target-csharp";
-import {
-  getNodejsCallDeclarationWithoutSelectedSignature,
-  getNodejsCheckedCallDeclaration,
-  getNodejsCheckedElementDeclaration,
-  getNodejsCheckedPropertyDeclaration,
-} from "./declarations.js";
-import type {
-  NodejsProviderDeclarationIdentity,
-} from "./identity.js";
-import type {
-  NodejsUnsupportedTargetIdentity,
-} from "./members/types.js";
-import {
-  getCsharpNodejsElementOperationForReceiverType,
-  getCsharpNodejsPropertyOperation,
-  hasNodejsCallableDeclarationFromMetadata,
-  getNodejsCallTargetMember,
-  getNodejsUnsupportedTargetIdentityFromMetadata,
-} from "./members.js";
-import {
-  recordCsharpTargetOperation,
-} from "@tsonic/target-csharp";
-import {
-  csharpTargetOperationFactKey,
 } from "@tsonic/target-csharp";
 import {
   createCsharpNodejsProviderPackageBindingProvider,
@@ -66,241 +15,50 @@ import {
   nodejsProviderPackageOwnedModuleSpecifiers,
 } from "./module-specifiers.js";
 import {
-  createCsharpNodejsTargetBindingsContribution,
-} from "./target-bindings.js";
+  createCsharpNodejsProviderRelationsContribution,
+} from "./target-relations.js";
 
-export const csharpNodejsProviderPackageExtensionId = "tsonic.csharp.provider-package.nodejs";
+export const csharpNodejsProviderPackageExtensionId =
+  "tsonic.csharp.provider-package.nodejs";
 
 export {
   createCsharpNodejsProviderPackageBindingProvider,
-};
+} from "./provider.js";
 export {
-  getCsharpNodejsPropertyOperation,
-} from "./members.js";
+  createCsharpNodejsProviderRelationsContribution,
+  nodejsProviderTargetRelations,
+} from "./target-relations.js";
 
-export const nodejsProviderPackageModuleOwnership: readonly TargetProviderModuleOwnership[] =
-  nodejsProviderPackageOwnedModuleSpecifiers().map((specifierPrefix) => ({
-    specifierPrefix,
-    message: `target 'csharp' capability '@tsonic/csharp-nodejs' must be installed to import Node.js built-in provider module '${specifierPrefix}'`,
-  }));
+export const nodejsProviderPackageModuleOwnership:
+  readonly TargetProviderModuleOwnership[] =
+    nodejsProviderPackageOwnedModuleSpecifiers().map((specifierPrefix) => ({
+      specifierPrefix,
+      message:
+        `target 'csharp' capability '@tsonic/csharp-nodejs' must be installed to import Node.js built-in provider module '${specifierPrefix}'`,
+    }));
 
-export function createCsharpNodejsProviderPackageExtension(context: TargetCapabilityContext): CompilerExtension {
+export function createCsharpNodejsProviderPackageExtension(
+  _context: TargetCapabilityContext,
+): CompilerExtension {
   return {
     identity: {
       id: csharpNodejsProviderPackageExtensionId,
       version: csharpProviderVersion,
       capabilityNamespace: "tsonic.csharp.provider-package.nodejs",
     },
-    dependencies: {
-      dependsOn: [csharpJsSurfaceExtensionId],
+    composition: {
+      kind: "source",
     },
     initialize(extensionContext): void {
-      void context;
-      extensionContext.registerTargetBindingProvider(createCsharpNodejsProviderPackageBindingProvider());
+      extensionContext.registerSourceDeclarationProvider(
+        createCsharpNodejsProviderPackageBindingProvider(),
+      );
     },
   };
 }
 
 export function createCsharpNodejsTargetContributions(
   _context: TargetCapabilityContext,
-): readonly (CsharpProviderOperationsContribution | CsharpTargetBindingsContribution)[] {
-  return [
-    createCsharpNodejsProviderOperationsContribution(csharpNodejsProviderPackageExtensionId),
-    createCsharpNodejsTargetBindingsContribution(),
-  ];
-}
-
-export function createCsharpNodejsProviderOperationsContribution(extensionId: string): Required<CsharpProviderOperationsContribution> {
-  return {
-    kind: csharpProviderOperationsContributionKind,
-    mapCheckedCall(request, context) {
-      if (request.target !== undefined && request.target !== csharpTargetId) {
-        return deferObservation;
-      }
-      const declaration = getNodejsCheckedCallDeclaration(request, context);
-      if (declaration === undefined) {
-        const missingSignatureDeclaration = getNodejsCallDeclarationWithoutSelectedSignature(request, context);
-        if (missingSignatureDeclaration !== undefined) {
-          return rejectObservation(csharpProviderDiagnostic(
-            extensionId,
-            "CSHARP_NODEJS_CALL_REQUIRES_SELECTED_SIGNATURE",
-            9100202,
-            `C# NodeJS provider package requires a selected provider signature for checked ${formatNodejsDeclarationIdentity(missingSignatureDeclaration)}.`,
-            missingNodejsSelectedSignatureEvidence(missingSignatureDeclaration),
-            request.call,
-          ));
-        }
-        return deferObservation;
-      }
-      const member = getNodejsCallTargetMember(declaration);
-      if (member === undefined) {
-        const unsupported = getNodejsUnsupportedTargetIdentityFromMetadata(declaration);
-        if (unsupported !== undefined) {
-          return rejectObservation(unsupportedNodejsProviderPackageOperationDiagnostic(extensionId, "call", declaration, unsupported, request.call));
-        }
-        return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_CALL_NOT_MAPPED", 9100200, `C# NodeJS provider package could not map checked ${formatNodejsDeclarationIdentity(declaration)} to a target member.`));
-      }
-      const mapping = csharpCheckedCallMappingResultForMember(request, member);
-      if (mapping === undefined) {
-        return rejectObservation(csharpProviderDiagnostic(
-          extensionId,
-          "CSHARP_NODEJS_CALL_ARGUMENT_MAPPING_NOT_PROVEN",
-          9100205,
-          `C# NodeJS provider package could not prove target argument slots for checked ${formatNodejsDeclarationIdentity(declaration)}.`,
-          [{ message: "Target argument mapping requires the exact TSTS-selected source argument bindings and provider target parameter contract." }],
-          request.call,
-        ));
-      }
-      return acceptObservation<CheckedCallMappingResult>(mapping, [{ message: `C# NodeJS provider package target call selected from checked provider module '${declaration.moduleSpecifier}'.` }]);
-    },
-    mapCheckedPropertyAccess(request, context) {
-      if (request.target !== undefined && request.target !== csharpTargetId) {
-        return deferObservation;
-      }
-      const declaration = getNodejsCheckedPropertyDeclaration(request, context);
-      if (declaration === undefined) {
-        return deferObservation;
-      }
-      const operation = getCsharpNodejsPropertyOperation(declaration);
-      if (operation === undefined) {
-        const unsupported = getNodejsUnsupportedTargetIdentityFromMetadata(declaration);
-        if (unsupported !== undefined) {
-          return rejectObservation(unsupportedNodejsProviderPackageOperationDiagnostic(extensionId, "property", declaration, unsupported, request.expression));
-        }
-        if (hasNodejsCallableDeclarationFromMetadata(declaration)) {
-          return acceptObservation<CheckedOperationMappingResult>({
-            operation: targetOperation(
-              `tsonic.csharp.nodejs.${nodejsProviderPackageCallableDeclarationOperationKey(declaration)}.callee`,
-              "method",
-              formatNodejsDeclarationIdentity(declaration),
-            ),
-          }, [{ message: `C# NodeJS provider package callable property accepted from checked provider module '${declaration.moduleSpecifier}'. Call expressions select the concrete target member from checked provider signature identity.` }]);
-        }
-        return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_PROPERTY_NOT_MAPPED", 9100201, `C# NodeJS provider package could not map checked ${formatNodejsDeclarationIdentity(declaration)} to a target property.`));
-      }
-      recordCsharpTargetOperation(context, request.expression, operation.csharpOperation, [{ message: `C# NodeJS provider package property operation recorded from checked provider module '${declaration.moduleSpecifier}'.` }]);
-      return acceptObservation<CheckedOperationMappingResult>({
-        ...operation.mapping,
-      }, [{ message: `C# NodeJS provider package target property selected from checked provider module '${declaration.moduleSpecifier}'.` }]);
-    },
-    mapCheckedElementAccess(request, context) {
-      if (request.target !== undefined && request.target !== csharpTargetId) {
-        return deferObservation;
-      }
-      const declaration = getNodejsCheckedElementDeclaration(request, context);
-      const receiverOperation = context.factResolver.resolve(request.receiver, csharpTargetOperationFactKey) ??
-        context.facts.get(request.receiver, csharpTargetOperationFactKey);
-      const operation = declaration === undefined
-        ? getCsharpNodejsElementOperationForReceiverType(receiverOperation?.resultType)
-        : getCsharpNodejsPropertyOperation(declaration);
-      if (declaration === undefined && operation === undefined) {
-        return deferObservation;
-      }
-      if (operation === undefined) {
-        if (declaration === undefined) {
-          return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_ELEMENT_ACCESS_NOT_MAPPED", 9100204, "C# NodeJS provider package could not map checked element access from receiver target metadata to a target indexer."));
-        }
-        const unsupported = getNodejsUnsupportedTargetIdentityFromMetadata(declaration);
-        if (unsupported !== undefined) {
-          return rejectObservation(unsupportedNodejsProviderPackageOperationDiagnostic(extensionId, "element", declaration, unsupported, request.expression));
-        }
-        return rejectObservation(csharpProviderDiagnostic(extensionId, "CSHARP_NODEJS_ELEMENT_ACCESS_NOT_MAPPED", 9100204, `C# NodeJS provider package could not map checked element access ${formatNodejsDeclarationIdentity(declaration)} to a target indexer.`));
-      }
-      const elementEvidenceSource = declaration === undefined
-        ? "checked receiver target operation metadata"
-        : `checked provider module '${declaration.moduleSpecifier}'`;
-      recordCsharpTargetOperation(context, request.expression, operation.csharpOperation, [{ message: `C# NodeJS provider package element operation recorded from ${elementEvidenceSource}.` }]);
-      return acceptObservation<CheckedOperationMappingResult>({
-        ...operation.mapping,
-      }, [{ message: `C# NodeJS provider package target element access selected from ${elementEvidenceSource}.` }]);
-    },
-  };
-}
-
-function formatNodejsDeclarationIdentity(declaration: NodejsProviderDeclarationIdentity): string {
-  const exportName = declaration.exportName === undefined ? "<module>" : declaration.exportName;
-  const member = declaration.memberName === undefined ? "" : ` member '${declaration.memberName}'`;
-  const signature = declaration.signatureId === undefined ? "" : ` signature '${declaration.signatureId}'`;
-  return `'${declaration.moduleSpecifier}' export '${exportName}'${member}${signature}`;
-}
-
-function nodejsProviderPackageCallableDeclarationOperationKey(declaration: NodejsProviderDeclarationIdentity): string {
-  return [
-    declaration.providerId,
-    declaration.providerVersion,
-    declaration.providerModuleId,
-    declaration.moduleSpecifier,
-    declaration.exportName ?? "",
-    declaration.memberName ?? "",
-    declaration.memberId ?? "",
-  ].join(":");
-}
-
-function unsupportedNodejsProviderPackageOperationDiagnostic(
-  extensionId: string,
-  operationKind: "call" | "element" | "property",
-  declaration: NodejsProviderDeclarationIdentity,
-  unsupported: NodejsUnsupportedTargetIdentity,
-  nodeOrSpan?: unknown,
-): ExtensionDiagnostic {
-  return csharpProviderDiagnostic(
-    extensionId,
-    "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED",
-    9100203,
-    `C# NodeJS provider package hard-rejected selected ${operationKind} ${formatNodejsDeclarationIdentity(declaration)}: ${unsupported.displayName} has no closed target/runtime operation metadata.`,
-    unsupportedNodejsProviderPackageOperationEvidence(declaration, unsupported),
-    nodeOrSpan,
-  );
-}
-
-function unsupportedNodejsProviderPackageOperationEvidence(
-  declaration: NodejsProviderDeclarationIdentity,
-  unsupported: NodejsUnsupportedTargetIdentity,
-): readonly ExtensionEvidence[] {
-  return [
-    {
-      message: "Selected NodeJS provider-package operation evidence",
-      details: {
-        providerModuleId: declaration.providerModuleId,
-        moduleSpecifier: declaration.moduleSpecifier,
-        exportName: declaration.exportName ?? null,
-        memberName: declaration.memberName ?? null,
-        signatureId: declaration.signatureId ?? null,
-        targetIdentityId: unsupported.targetIdentityId,
-        reason: "selected NodeJS provider identity is declared unsupported until closed provider-package target/runtime metadata exists",
-        requiredFacts: [
-          "selected NodeJS provider declaration/signature identity",
-          "NodeJS provider-package target operation metadata",
-          "closed runtime/provider carrier metadata",
-        ],
-        capabilityId: "diagnostic.unsupported-selected-surface-operation",
-      },
-    },
-  ];
-}
-
-function missingNodejsSelectedSignatureEvidence(
-  declaration: NodejsProviderDeclarationIdentity,
-): readonly ExtensionEvidence[] {
-  return [
-    {
-      message: "Missing NodeJS selected provider signature evidence",
-      details: {
-        providerModuleId: declaration.providerModuleId,
-        moduleSpecifier: declaration.moduleSpecifier,
-        exportName: declaration.exportName ?? null,
-        memberName: declaration.memberName ?? null,
-        reason: "NodeJS provider-package calls require TSTS-selected provider signature identity before target member selection",
-        requiredFacts: [
-          "selected NodeJS provider declaration identity",
-          "selected NodeJS provider signature identity",
-          "provider-package target operation metadata",
-        ],
-        capabilityIds: [
-          "diagnostic.missing-provider-fact",
-          "diagnostic.unsupported-selected-surface-operation",
-        ],
-      },
-    },
-  ];
+) {
+  return [createCsharpNodejsProviderRelationsContribution()];
 }

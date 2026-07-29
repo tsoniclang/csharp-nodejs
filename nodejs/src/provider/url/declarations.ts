@@ -32,9 +32,6 @@ import {
 import type {
   NodeUrlUnsupportedClassMemberDeclaration,
 } from "./unsupported.js";
-import {
-  nodejsProviderTargetIdentity,
-} from "../target-bindings.js";
 
 export function nodeUrlExports(): readonly ProviderExportDeclaration[] {
   const exports = [
@@ -78,7 +75,6 @@ function nodeUrlUrlExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlExportName}`,
     name: nodeUrlUrlExportName,
     kind: "class",
-    targetIdentity: nodejsProviderTargetIdentity(nodeUrlModuleSpecifier, nodeUrlUrlExportName),
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlClassCallTargetMembers()),
       ...nodeUrlUrlClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),
@@ -93,7 +89,6 @@ function nodeUrlUrlSearchParamsExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlSearchParamsExportName}`,
     name: nodeUrlUrlSearchParamsExportName,
     kind: "class",
-    targetIdentity: nodejsProviderTargetIdentity(nodeUrlModuleSpecifier, nodeUrlUrlSearchParamsExportName),
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlSearchParamsClassCallTargetMembers()),
       ...nodeUrlUrlSearchParamsClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),
