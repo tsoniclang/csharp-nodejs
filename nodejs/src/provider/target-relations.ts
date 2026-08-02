@@ -2,11 +2,14 @@ import type {
   ProviderParameterDeclaration,
 } from "@tsonic/tsts";
 import {
-  csharpProviderRelationsContribution,
+  csharpProviderPolicyContribution,
 } from "@tsonic/target-csharp";
 import type {
   CsharpProviderParameterRelation,
+  CsharpProviderSourceIdentity,
   CsharpProviderSourceIdentityBase,
+  CsharpProviderTargetRejectionDiagnostic,
+  CsharpProviderTargetRejection,
   CsharpProviderTargetRelation,
   CsharpTargetBindingFact,
   CsharpTargetMember,
@@ -19,6 +22,10 @@ import type {
 } from "./identity.js";
 import {
   nodejsTargetMemberMetadataRecords,
+  nodejsUnsupportedTargetMetadataRecords,
+} from "./members/provider-records.js";
+import type {
+  NodejsUnsupportedTargetMetadataRecord,
 } from "./members/provider-records.js";
 import {
   nodejsPublicModuleSpecifiers,
@@ -31,11 +38,12 @@ import {
   nodejsCanonicalProviderExports,
 } from "./provider.js";
 
-export function createCsharpNodejsProviderRelationsContribution() {
-  return csharpProviderRelationsContribution(
+export function createCsharpNodejsProviderPolicyContribution() {
+  return csharpProviderPolicyContribution(
     csharpNodejsProviderPackageProviderIdentity.id,
     csharpNodejsProviderPackageProviderIdentity.version,
     nodejsProviderTargetRelations(),
+    nodejsProviderTargetRejections(),
   );
 }
 
@@ -45,6 +53,20 @@ export function nodejsProviderTargetRelations():
     ...nodejsProviderTypeRelations(),
     ...nodejsProviderMemberRelations(),
   ]);
+}
+
+export function nodejsProviderTargetRejections():
+  readonly CsharpProviderTargetRejection[] {
+  return Object.freeze(
+    nodejsUnsupportedTargetMetadataRecords().flatMap((record) =>
+      record.declarationIdentities.flatMap((identity) =>
+        nodejsPublicModuleSpecifiers(identity.providerModuleId).map(
+          (moduleSpecifier) =>
+            nodejsProviderTargetRejection(record, identity, moduleSpecifier),
+        ),
+      )
+    ),
+  );
 }
 
 function nodejsProviderTypeRelations():
@@ -105,17 +127,12 @@ function nodejsProviderTargetRelation(
   moduleSpecifier: string,
   targetMember: CsharpTargetMember,
 ): CsharpProviderTargetRelation {
-  const source = providerSourceIdentityBase(identity, moduleSpecifier);
+  const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
   const targetBinding = targetBindingForMember(identity, targetMember);
-  if (identity.signatureId !== undefined) {
+  if (source.kind === "signature") {
     return {
       kind: "signature",
-      source: {
-        kind: "signature",
-        ...source,
-        ...providerMemberIdentity(identity),
-        signatureId: identity.signatureId,
-      },
+      source,
       targetBinding,
       targetMember,
       receiver: targetReceiver(identity, targetMember),
@@ -130,26 +147,10 @@ function nodejsProviderTargetRelation(
       methodTypeParameters: [],
     };
   }
-  if (identity.memberId !== undefined) {
-    const member = providerMemberIdentity(identity);
-    if (
-      member.memberId === undefined ||
-      member.memberStatic === undefined ||
-      member.memberKey === undefined
-    ) {
-      throw new Error(
-        `Incomplete C# NodeJS provider member identity '${identity.providerModuleId}:${identity.exportName ?? "<export>"}:${identity.memberId}'.`,
-      );
-    }
+  if (source.kind === "member") {
     return {
       kind: "member",
-      source: {
-        kind: "member",
-        ...source,
-        memberId: member.memberId,
-        memberStatic: member.memberStatic,
-        memberKey: member.memberKey,
-      },
+      source,
       targetBinding,
       targetMember,
       receiver: targetReceiver(identity, targetMember),
@@ -165,10 +166,88 @@ function nodejsProviderTargetRelation(
   }
   return {
     kind: "value",
-    source: { kind: "value", ...source },
+    source,
     targetBinding,
     targetMember,
   };
+}
+
+function nodejsProviderTargetRejection(
+  record: NodejsUnsupportedTargetMetadataRecord,
+  identity: NodejsProviderDeclarationIdentity,
+  moduleSpecifier: string,
+): CsharpProviderTargetRejection {
+  const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
+  return {
+    source,
+    diagnostic: {
+      extensionId: csharpNodejsProviderPackageProviderIdentity.id,
+      extensionCode: "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED",
+      numericCode: 9100203,
+      category: "error",
+      message:
+        `C# NodeJS provider package hard-rejected selected ${sourceOperationKind(source)} ${formatProviderSourceIdentity(source)}: ${record.identity.displayName} has no closed target/runtime operation metadata.`,
+      evidence: [{
+        message:
+          `Selected provider target policy rejection '${record.identity.targetIdentityId}'.`,
+      }],
+    } satisfies CsharpProviderTargetRejectionDiagnostic,
+  };
+}
+
+function nodejsProviderSourceIdentity(
+  identity: NodejsProviderDeclarationIdentity,
+  moduleSpecifier: string,
+): Exclude<CsharpProviderSourceIdentity, { readonly kind: "type" }> {
+  const base = providerSourceIdentityBase(identity, moduleSpecifier);
+  if (identity.signatureId !== undefined) {
+    return {
+      kind: "signature",
+      ...base,
+      ...providerMemberIdentity(identity),
+      signatureId: identity.signatureId,
+    };
+  }
+  if (identity.memberId !== undefined) {
+    const member = providerMemberIdentity(identity);
+    if (
+      member.memberId === undefined ||
+      member.memberStatic === undefined ||
+      member.memberKey === undefined
+    ) {
+      throw new Error(
+        `Incomplete C# NodeJS provider member identity '${identity.providerModuleId}:${identity.exportName ?? "<export>"}:${identity.memberId}'.`,
+      );
+    }
+    return {
+      kind: "member",
+      ...base,
+      memberId: member.memberId,
+      memberStatic: member.memberStatic,
+      memberKey: member.memberKey,
+    };
+  }
+  return { kind: "value", ...base };
+}
+
+function sourceOperationKind(source: CsharpProviderSourceIdentity): string {
+  return source.kind === "member" || source.kind === "value"
+    ? "property"
+    : source.kind === "signature"
+      ? "call"
+      : "type";
+}
+
+function formatProviderSourceIdentity(
+  source: CsharpProviderSourceIdentity,
+): string {
+  const member = source.kind === "member" || source.kind === "signature"
+    ? ` member '${source.memberId ?? "<export>"}'`
+    : "";
+  const signature = source.kind === "signature"
+    ? ` signature '${source.signatureId}'`
+    : "";
+  return `'${source.moduleSpecifier}' export '${source.exportName}'${member}${signature}`;
 }
 
 function providerBindingTypeArgumentSource(

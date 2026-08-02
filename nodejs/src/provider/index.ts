@@ -15,7 +15,7 @@ import {
   nodejsProviderPackageOwnedModuleSpecifiers,
 } from "./module-specifiers.js";
 import {
-  createCsharpNodejsProviderRelationsContribution,
+  createCsharpNodejsProviderPolicyContribution,
 } from "./target-relations.js";
 
 export const csharpNodejsProviderPackageExtensionId =
@@ -25,8 +25,9 @@ export {
   createCsharpNodejsProviderPackageBindingProvider,
 } from "./provider.js";
 export {
-  createCsharpNodejsProviderRelationsContribution,
+  createCsharpNodejsProviderPolicyContribution,
   nodejsProviderTargetRelations,
+  nodejsProviderTargetRejections,
 } from "./target-relations.js";
 
 export const nodejsProviderPackageModuleOwnership:
@@ -56,5 +57,5 @@ export function createCsharpNodejsProviderPackageExtension(
 export function createCsharpNodejsTargetContributions(
   _context: TargetCapabilityContext,
 ) {
-  return [createCsharpNodejsProviderRelationsContribution()];
+  return [createCsharpNodejsProviderPolicyContribution()];
 }

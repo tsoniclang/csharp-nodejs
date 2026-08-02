@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assertCsharpProviderPolicyIsNonContradictory,
+  createCsharpProviderRejectionCatalog,
   createCsharpProviderRelationCatalog,
 } from "../../tsonic-csharp/dist/provider/target-relations/index.js";
 import {
@@ -10,6 +12,7 @@ import {
   createTsonicPlugin,
 } from "../dist/index.js";
 import {
+  nodejsProviderTargetRejections,
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";
 import {
@@ -18,10 +21,33 @@ import {
 
 test("Node provider relations form one contradiction-free exact catalog", () => {
   const relations = nodejsProviderTargetRelations();
-  const catalog = createCsharpProviderRelationCatalog([relations]);
+  const rejections = nodejsProviderTargetRejections();
+  const relationCatalog = createCsharpProviderRelationCatalog([relations]);
+  const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
   assert.equal(relations.length, 894);
-  assert.equal(catalog.relations.length, relations.length);
+  assert.equal(rejections.length, 182);
+  assert.equal(relationCatalog.relations.length, relations.length);
+  assert.equal(rejectionCatalog.rejections.length, rejections.length);
+  assert.doesNotThrow(() =>
+    assertCsharpProviderPolicyIsNonContradictory(
+      relationCatalog,
+      rejectionCatalog,
+    ));
+
+  const readFile = rejections.filter((rejection) =>
+    rejection.source.kind === "signature" &&
+    rejection.source.providerModuleId === "node:fs" &&
+    rejection.source.moduleSpecifier === "node:fs" &&
+    rejection.source.exportName === "readFile" &&
+    rejection.source.signatureId ===
+      "node:fs.readFile(System.String,System.Object,Function)"
+  );
+  assert.equal(readFile.length, 1);
+  assert.equal(
+    readFile[0].diagnostic.extensionCode,
+    "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED",
+  );
 });
 
 test("Node default imports are provider-owned static containers", () => {
