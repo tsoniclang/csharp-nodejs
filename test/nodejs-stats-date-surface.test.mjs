@@ -1,348 +1,88 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
+
 import {
-  createCompilerSessionFromFiles,
-  formatDiagnostics,
-  providerVirtualDeclarationFactKey,
-  runtimeCarrierFactKey,
-  selectedTargetSignatureFactKey,
-  targetOperationFactKey,
-} from "../../tsonic/packages/tsts/dist/src/index.js";
-import { createTsonicCoreSourceExtension } from "../../tsonic/packages/source-core/dist/index.js";
-import { csharpTargetOperationFactKey } from "../../tsonic-csharp/dist/index.js";
+  compileCsharpSource,
+} from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
-  createCsharpTargetPack,
-  createCsharpJsSurfaceExtension,
-  createCsharpSourceSemanticsExtension,
-  createCsharpTargetSemanticsExtension,
-} from "../../tsonic-csharp/dist/index.js";
-import {
-  normalizeTargetSourceProfileSegment,
-  tsonicSourceProfileVirtualDirectory,
-} from "../../tsonic/packages/target-api/dist/index.js";
+  createTsonicPlugin,
+} from "../dist/index.js";
 import {
   createCsharpNodejsProviderPackageBindingProvider,
-  createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderOperationsContribution,
-  createCsharpNodejsTargetContributions,
-} from "../dist/provider/index.js";
+} from "../dist/provider/provider.js";
+import {
+  nodejsProviderTargetRelations,
+} from "../dist/provider/target-relations.js";
 
-function createCsharpNodejsOperationsTestContribution() {
-  return createCsharpNodejsProviderOperationsContribution("tsonic.csharp.provider-package.nodejs.test");
-}
-
-test("NodeJS fs Stats Date declarations expose JS Date source type", () => {
-  const bindingProvider = createCsharpNodejsProviderPackageBindingProvider();
-  const resolution = bindingProvider.resolveModule("node:fs", {});
+test("Node fs Stats Date declarations use the selected source global", () => {
+  const provider = createCsharpNodejsProviderPackageBindingProvider();
+  const resolution = provider.resolveModule("node:fs", {});
   assert.equal(resolution.kind, "virtual");
+  const model = provider.getDeclarationModel(resolution);
+  const stats = model.exports.find((declaration) =>
+    declaration.name === "Stats"
+  );
+  const mtime = stats?.members.find((member) => member.name === "mtime");
+  const mtimeMs = stats?.members.find((member) => member.name === "mtimeMs");
 
-  const model = bindingProvider.getDeclarationModel(resolution);
-  const stats = model.exports.find((declaration) => declaration.name === "Stats");
-  assert.ok(stats);
+  assert.deepEqual(mtime?.type, { kind: "source-global", name: "Date" });
+  assert.deepEqual(mtimeMs?.type, { kind: "number" });
 
-  const mtime = stats.members.find((member) => member.name === "mtime");
-  const mtimeMs = stats.members.find((member) => member.name === "mtimeMs");
-  assert.equal(mtime.type.kind, "target-named");
-  assert.equal(mtime.type.id, "Tsonic.CSharp.Js.Date");
-  assert.deepEqual(mtime.type.sourceShape, { kind: "source-global", name: "Date" });
-  assert.equal(mtimeMs.type.kind, "number");
+  const relation = nodejsProviderTargetRelations().filter((candidate) =>
+    candidate.kind === "member" &&
+    candidate.source.moduleSpecifier === "node:fs" &&
+    candidate.source.memberId === "node:fs.Stats.mtime"
+  );
+  assert.equal(relation.length, 1);
+  assert.equal(
+    relation[0].targetMember.returnType.id,
+    "Tsonic.CSharp.Js.Date",
+  );
 });
 
-test("NodeJS provider package maps Stats Date properties from selected provider member identity", () => {
-  const facts = new TestFactStore();
-  const provider = createCsharpNodejsOperationsTestContribution();
-  const mtimeExpression = {};
-  const mtimeMsExpression = {};
-  const mtimeDeclaration = {};
-  const mtimeMsDeclaration = {};
-  facts.set(mtimeDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration(
-    "node:fs",
-    "Stats",
-    "mtime",
-    "node:fs.Stats.mtime",
-  ));
-  facts.set(mtimeMsDeclaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration(
-    "node:fs",
-    "Stats",
-    "mtimeMs",
-    "node:fs.Stats.mtimeMs",
-  ));
+test("Node Stats Date facts compose with JS Date and nullish operations", () => {
+  const compiled = compileCsharpSource({
+    surface: "js",
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { statSync } from "node:fs";
 
-  const mtimeResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeExpression, mtimeDeclaration, "mtime"), fakeContext(facts));
-  const mtimeMsResult = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(mtimeMsExpression, mtimeMsDeclaration, "mtimeMs"), fakeContext(facts));
-
-  assert.equal(mtimeResult.kind, "accept");
-  assert.equal(mtimeResult.value.operation.operationId, "Tsonic.CSharp.Node.Stats.mtime");
-  assert.equal(mtimeResult.value.resultType.id, "Tsonic.CSharp.Js.Date");
-  assert.equal(facts.get(mtimeExpression, csharpTargetOperationFactKey).resultType.id, "Tsonic.CSharp.Js.Date");
-  assert.equal(mtimeMsResult.kind, "accept");
-  assert.equal(mtimeMsResult.value.operation.operationId, "Tsonic.CSharp.Node.Stats.mtimeMs");
-  assert.equal(mtimeMsResult.value.resultType.name, "float64");
-});
-
-test("NodeJS provider package rejects Stats Date property mapping without selected provider member identity", () => {
-  const facts = new TestFactStore();
-  const provider = createCsharpNodejsOperationsTestContribution();
-  const expression = {};
-  const declaration = {};
-  facts.set(declaration, providerVirtualDeclarationFactKey, nodejsVirtualMemberDeclaration(
-    "node:fs",
-    "Stats",
-    "mtime",
-    "node:fs.Stats.notMtime",
-  ));
-
-  const result = provider.mapCheckedPropertyAccess(nodejsPropertyRequest(expression, declaration, "mtime"), fakeContext(facts));
-
-  assert.equal(result.kind, "reject");
-  assert.equal(result.diagnostic.extensionCode, "CSHARP_NODEJS_PROPERTY_NOT_MAPPED");
-  assert.equal(facts.get(expression, csharpTargetOperationFactKey), undefined);
-});
-
-test("selected NodeJS Stats Date facts compose with JS Date calls after TSTS checking", () => {
-  const session = createCsharpSession(`
-    import { statSync } from "node:fs";
-
-    export function mtimeIso(path: string): string {
-      const stats = statSync(path);
-      return stats.mtime.toISOString() + ":" + stats.mtimeMs;
-    }
-  `, { selectedSurfaces: [{ id: "js" }], selectedCapabilities: [{ id: "@tsonic/csharp-nodejs" }] });
-  const sourceFile = session.getSourceFile("/src/index.ts");
-  assert.equal(formatDiagnostics(session.ensureChecked(sourceFile)), "");
-
-  const extensionHost = session.finalizeExtensions();
-  const selectedMemberIds = collectFactValues(sourceFile, session, extensionHost, selectedTargetSignatureFactKey)
-    .map((fact) => fact.member.id);
-  const operationIds = collectFactValues(sourceFile, session, extensionHost, targetOperationFactKey)
-    .map((fact) => fact.operationId);
-
-  assert.equal(extensionHost.diagnostics.all().map((diagnostic) => diagnostic.extensionCode).join("\n"), "");
-  assert.ok(selectedMemberIds.includes("Tsonic.CSharp.Node.fs.statSync(System.String)"));
-  assert.ok(selectedMemberIds.includes("Tsonic.CSharp.Js.Date.toISOString"));
-  assert.ok(operationIds.includes("Tsonic.CSharp.Node.Stats.mtime"));
-  assert.ok(operationIds.includes("Tsonic.CSharp.Node.Stats.mtimeMs"));
-});
-
-test("selected NodeJS Stats Date facts preserve JS Date carrier through nullish coalescing", () => {
-  const session = createCsharpSession(`
-    import { statSync } from "node:fs";
-
-    export function selectedMtimeIso(path: string, maybeDate: Date | undefined): string {
-      const resolved = maybeDate ?? statSync(path).mtime;
-      return resolved.toISOString();
-    }
-  `, { selectedSurfaces: [{ id: "js" }], selectedCapabilities: [{ id: "@tsonic/csharp-nodejs" }] });
-  const sourceFile = session.getSourceFile("/src/index.ts");
-  assert.equal(formatDiagnostics(session.ensureChecked(sourceFile)), "");
-
-  const extensionHost = session.finalizeExtensions();
-  const binary = collectNodesByKind(sourceFile, session.ast, "KindBinaryExpression")[0];
-  const resolvedDeclaration = collectNodesByKind(sourceFile, session.ast, "KindVariableDeclaration")
-    .find((node) => session.ast.text(Object.getOwnPropertyDescriptor(node, "name")?.value) === "resolved");
-
-  assert.ok(binary);
-  assert.ok(resolvedDeclaration);
-  assert.equal(extensionHost.diagnostics.all().map((diagnostic) => diagnostic.extensionCode).join("\n"), "");
-  assert.equal(extensionHost.facts.get(binary, runtimeCarrierFactKey)?.carrier.id, "Tsonic.CSharp.Js.Date");
-  assert.equal(extensionHost.facts.get(binary, targetOperationFactKey)?.resultType.id, "Tsonic.CSharp.Js.Date");
-  assert.equal(extensionHost.facts.get(resolvedDeclaration, runtimeCarrierFactKey)?.carrier.id, "Tsonic.CSharp.Js.Date");
-});
-
-function fakeContext(facts) {
-  return {
-    facts,
-    factResolver: {
-      resolve: (subject, key) => facts.get(subject, key),
-    },
-  };
-}
-
-function createCsharpSession(sourceText, options = {}) {
-  const targetPack = createCsharpTargetPack();
-  const target = { id: "csharp" };
-  const selectedSurfaces = selectedTargetSurfaces(targetPack, options.selectedSurfaces ?? []);
-  const selectedCapabilities = selectedProviderPackages(options.selectedCapabilities ?? []);
-  const context = {
-    project: {
-      entryPoint: "index.ts",
-      targets: [target],
-    },
-    target,
-    targetPack,
-    selectedSurfaces,
-    selectedCapabilities,
-  };
-  const sourceProfileFiles = csharpTestSourceProfileFiles(context);
-  return createCompilerSessionFromFiles({
-    currentDirectory: "/src",
-    files: new Map([
-      ...sourceProfileFiles.map((file) => [file.path, file.text]),
-      ["/src/index.ts", sourceText],
-    ]),
-    rootFiles: [
-      ...sourceProfileFiles.map((file) => file.path),
-      "/src/index.ts",
-    ],
-    compilerOptions: {
-      module: "esnext",
-      moduleResolution: "bundler",
-      noLib: true,
-      strictNullChecks: true,
-      target: "es2022",
-    },
-    extensionHostOptions: {
-      activeTarget: "csharp",
-      extensions: [
-        createTsonicCoreSourceExtension(),
-        createCsharpSourceSemanticsExtension(context),
-        createCsharpTargetSemanticsExtension(context),
-        ...context.selectedSurfaces.flatMap((surface) =>
-          surface.id === "js"
-            ? [createCsharpJsSurfaceExtension({ ...context, surface })]
-            : []
-        ),
-        ...context.selectedCapabilities.flatMap((providerPackage) =>
-          providerPackage.createExtensions?.({ ...context, capability: providerPackage }) ?? []
-        ),
-      ],
-    },
+      export function stamp(
+        path: string,
+        fallback: Date | undefined,
+      ): string {
+        const stats = statSync(path);
+        const selected = fallback ?? stats.mtime;
+        return selected.toISOString() + ":" + stats.mtimeMs;
+      }
+    `,
   });
-}
 
-function selectedTargetSurfaces(targetPack, requestedSurfaces) {
-  return requestedSurfaces.map((surface) =>
-    targetPack.surfaces?.find((candidate) => candidate.id === surface.id) ?? surface
+  assert.equal(compiled.sourceDiagnosticsText, "");
+  assert.deepEqual(compiled.extensionDiagnostics, []);
+  assert.deepEqual(compiled.result.diagnostics, []);
+  const source = compiled.artifacts.get("src/Index.cs");
+  assert.match(
+    source,
+    /Tsonic\.CSharp\.Js\.Date selected = fallback \?\? stats\.mtime;/u,
   );
-}
+  assert.match(source, /selected\.toISOString\(\)/u);
+});
 
-function csharpTestSourceProfileFiles(context) {
-  const files = [];
-  appendSourceProfileDeclarations(files, context.targetPack.provider?.id, context.targetPack.provider?.sourceProfileContributions?.(context)?.declarations ?? []);
-  for (const surface of context.selectedSurfaces) {
-    appendSourceProfileDeclarations(files, surface.id, surface.sourceProfileContributions?.({ ...context, surface })?.declarations ?? []);
-  }
-  for (const capability of context.selectedCapabilities) {
-    appendSourceProfileDeclarations(files, capability.id, capability.sourceProfileContributions?.({ ...context, capability })?.declarations ?? []);
-  }
-  return files;
-}
+test("Node Stats members are unavailable without the installed capability", () => {
+  const compiled = compileCsharpSource({
+    surface: "js",
+    sourceText: `
+      import { statSync } from "node:fs";
+      export function stamp(path: string): string {
+        return statSync(path).mtime.toISOString();
+      }
+    `,
+  });
 
-function appendSourceProfileDeclarations(files, ownerId, declarations) {
-  if (ownerId === undefined) {
-    return;
-  }
-  for (const declaration of declarations) {
-    files.push({
-      path: `/src/${tsonicSourceProfileVirtualDirectory}/${normalizeTargetSourceProfileSegment(ownerId)}/${declaration.fileName}`,
-      text: declaration.text,
-    });
-  }
-}
-
-function selectedProviderPackages(requestedPackages) {
-  return requestedPackages.map((providerPackage) =>
-    providerPackage.id === nodejsTestProviderPackage.id
-      ? nodejsTestProviderPackage
-      : providerPackage
+  assert.match(
+    compiled.sourceDiagnosticsText,
+    /Cannot find (?:module|name) 'node:fs'/u,
   );
-}
-
-const nodejsTestProviderPackage = {
-  id: "@tsonic/csharp-nodejs",
-  kind: "target-capability",
-  targetId: "csharp",
-  displayName: "Node.js provider package",
-  requiredSurfaces: ["js"],
-  moduleOwnership: [],
-  createTargetContributions: createCsharpNodejsTargetContributions,
-  createExtensions(context) {
-    return [createCsharpNodejsProviderPackageExtension(context)];
-  },
-};
-
-function collectFactValues(sourceFile, session, extensionHost, factKey) {
-  return collectAllNodes(sourceFile, session.ast)
-    .map((node) => extensionHost.facts.get(node, factKey))
-    .filter((fact) => fact !== undefined);
-}
-
-function collectNodesByKind(sourceFile, ast, kindName) {
-  return collectAllNodes(sourceFile, ast).filter((node) => ast.kindName(node) === kindName);
-}
-
-function collectAllNodes(node, ast, result = []) {
-  if (node === undefined) {
-    return result;
-  }
-  result.push(node);
-  for (const child of ast.children(node) ?? []) {
-    collectAllNodes(child, ast, result);
-  }
-  return result;
-}
-
-function nodejsPropertyRequest(expression, sourceSelectedDeclaration, propertyName) {
-  const receiver = {};
-  return {
-    target: "csharp",
-    sourceOperationKind: "property-access",
-    expression,
-    receiver,
-    propertyName,
-    sourceReceiver: {
-      expression: receiver,
-      type: {},
-    },
-    accessMode: "read",
-    use: "value",
-    sourceReadResult: {
-      expression,
-      type: {},
-      selectedDeclaration: sourceSelectedDeclaration,
-    },
-    chainRole: {
-      kind: "ordinary",
-      participant: "property-access",
-    },
-  };
-}
-
-function nodejsVirtualDeclaration(moduleSpecifier, exportName, signatureId) {
-  return {
-    providerId: "tsonic.csharp.provider-package.nodejs",
-    providerVersion: "0.0.1",
-    providerModuleId: moduleSpecifier,
-    moduleSpecifier,
-    artifactFileName: `tsts-provider://csharp-nodejs/${encodeURIComponent(moduleSpecifier)}.d.ts`,
-    exportName,
-    ...(signatureId !== undefined ? { signatureId } : {}),
-  };
-}
-
-function nodejsVirtualMemberDeclaration(moduleSpecifier, exportName, memberName, memberId, signatureId) {
-  return {
-    ...nodejsVirtualDeclaration(moduleSpecifier, exportName),
-    memberName,
-    memberKey: { kind: "property-key", name: memberName },
-    memberId,
-    ...(signatureId !== undefined ? { signatureId } : {}),
-  };
-}
-
-class TestFactStore {
-  #facts = new Map();
-
-  get(subject, key) {
-    return this.#facts.get(subject)?.get(key);
-  }
-
-  set(subject, key, value) {
-    let subjectFacts = this.#facts.get(subject);
-    if (subjectFacts === undefined) {
-      subjectFacts = new Map();
-      this.#facts.set(subject, subjectFacts);
-    }
-    subjectFacts.set(key, value);
-  }
-}
+  assert.equal(compiled.artifacts.size, 0);
+});

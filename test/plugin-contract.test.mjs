@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createTsonicPlugin } from "../dist/index.js";
-import { csharpProviderOperationsContributionKind } from "../../tsonic-csharp/dist/index.js";
+import {
+  csharpProviderPolicyContributionKind,
+} from "../../tsonic-csharp/dist/index.js";
 
 test("C# Node contributes through the standard target capability hook", () => {
   const plugin = createTsonicPlugin();
@@ -16,7 +18,11 @@ test("C# Node contributes through the standard target capability hook", () => {
     selectedSurfaces: [],
     capability: plugin,
   });
-  assert.deepEqual(contributions.map((contribution) => contribution.kind), [
-    csharpProviderOperationsContributionKind,
-  ]);
+  assert.equal(contributions.length, 1);
+  assert.equal(
+    contributions[0].kind,
+    csharpProviderPolicyContributionKind,
+  );
+  assert.equal(contributions[0].relations.length, 894);
+  assert.equal(contributions[0].rejections.length, 182);
 });

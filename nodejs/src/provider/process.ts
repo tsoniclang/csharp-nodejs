@@ -43,7 +43,9 @@ const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
-const undefinedProviderType = { kind: "void" } satisfies ProviderTypeExpression;
+const undefinedProviderType = {
+  kind: "undefined",
+} satisfies ProviderTypeExpression;
 const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" });
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
