@@ -44,10 +44,6 @@ export function createCsharpNodejsProviderPackageExtension(
     identity: {
       id: csharpNodejsProviderPackageExtensionId,
       version: csharpProviderVersion,
-      capabilityNamespace: "tsonic.csharp.provider-package.nodejs",
-    },
-    composition: {
-      kind: "source",
     },
     initialize(extensionContext): void {
       extensionContext.registerSourceDeclarationProvider(

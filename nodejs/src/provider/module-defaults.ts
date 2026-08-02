@@ -2,7 +2,6 @@ import type {
   ProviderExportDeclaration,
   ProviderMemberDeclaration,
   ProviderSignatureDeclaration,
-  ProviderTypeExpression,
 } from "@tsonic/tsts";
 import {
   nodejsExportMemberDeclarationIdentity,
@@ -14,23 +13,22 @@ import type {
 
 export interface NodejsDefaultModuleObjectMetadata {
   readonly moduleSpecifier: string;
-  readonly interfaceName: string;
-  readonly valueName: string;
+  readonly className: string;
 }
 
 export const nodejsDefaultModuleObjects = [
-  { moduleSpecifier: "node:assert", interfaceName: "NodeAssertModule", valueName: "assert" },
-  { moduleSpecifier: "node:buffer", interfaceName: "NodeBufferModule", valueName: "buffer" },
-  { moduleSpecifier: "node:crypto", interfaceName: "NodeCryptoModule", valueName: "crypto" },
-  { moduleSpecifier: "node:fs", interfaceName: "NodeFsModule", valueName: "fs" },
-  { moduleSpecifier: "node:fs/promises", interfaceName: "NodeFsPromisesModule", valueName: "fsPromises" },
-  { moduleSpecifier: "node:http", interfaceName: "NodeHttpModule", valueName: "http" },
-  { moduleSpecifier: "node:os", interfaceName: "NodeOsModule", valueName: "os" },
-  { moduleSpecifier: "node:path", interfaceName: "NodePathModule", valueName: "path" },
-  { moduleSpecifier: "node:process", interfaceName: "NodeProcessModule", valueName: "process" },
-  { moduleSpecifier: "node:timers", interfaceName: "NodeTimersModule", valueName: "timers" },
-  { moduleSpecifier: "node:url", interfaceName: "NodeUrlModule", valueName: "url" },
-  { moduleSpecifier: "node:util", interfaceName: "NodeUtilModule", valueName: "util" },
+  { moduleSpecifier: "node:assert", className: "NodeAssertModule" },
+  { moduleSpecifier: "node:buffer", className: "NodeBufferModule" },
+  { moduleSpecifier: "node:crypto", className: "NodeCryptoModule" },
+  { moduleSpecifier: "node:fs", className: "NodeFsModule" },
+  { moduleSpecifier: "node:fs/promises", className: "NodeFsPromisesModule" },
+  { moduleSpecifier: "node:http", className: "NodeHttpModule" },
+  { moduleSpecifier: "node:os", className: "NodeOsModule" },
+  { moduleSpecifier: "node:path", className: "NodePathModule" },
+  { moduleSpecifier: "node:process", className: "NodeProcessModule" },
+  { moduleSpecifier: "node:timers", className: "NodeTimersModule" },
+  { moduleSpecifier: "node:url", className: "NodeUrlModule" },
+  { moduleSpecifier: "node:util", className: "NodeUtilModule" },
 ] satisfies readonly NodejsDefaultModuleObjectMetadata[];
 
 export function nodejsDefaultModuleObjectExports(
@@ -48,21 +46,11 @@ export function nodejsDefaultModuleObjectExports(
     ? []
     : [
         {
-          id: nodejsDefaultModuleInterfaceId(moduleSpecifier, metadata.interfaceName),
-          name: metadata.interfaceName,
-          kind: "interface" as const,
-          members,
-        },
-        {
-          id: nodejsDefaultModuleValueId(moduleSpecifier),
-          name: metadata.valueName,
+          id: nodejsDefaultModuleClassId(moduleSpecifier),
+          name: metadata.className,
           exportKind: "default" as const,
-          kind: "value" as const,
-          type: {
-            kind: "provider-ref",
-            moduleSpecifier,
-            exportName: metadata.interfaceName,
-          } satisfies ProviderTypeExpression,
+          kind: "class" as const,
+          members,
         },
       ];
 }
@@ -82,12 +70,12 @@ export function nodejsDefaultModuleMemberDeclarationIdentities(
   if (metadata === undefined) {
     return [];
   }
-  const memberId = nodejsDefaultModuleMemberId(moduleSpecifier, metadata.interfaceName, exportName);
+  const memberId = nodejsDefaultModuleMemberId(moduleSpecifier, exportName);
   return signatureId === undefined
-    ? [nodejsExportMemberDeclarationIdentity(moduleSpecifier, metadata.interfaceName, exportName, memberId)]
+    ? [nodejsExportMemberDeclarationIdentity(moduleSpecifier, "default", exportName, memberId, true)]
     : [
-        nodejsExportMemberDeclarationIdentity(moduleSpecifier, metadata.interfaceName, exportName, memberId),
-        nodejsExportMemberSignatureDeclarationIdentity(moduleSpecifier, metadata.interfaceName, exportName, memberId, signatureId),
+        nodejsExportMemberDeclarationIdentity(moduleSpecifier, "default", exportName, memberId, true),
+        nodejsExportMemberSignatureDeclarationIdentity(moduleSpecifier, "default", exportName, memberId, signatureId, true),
       ];
 }
 
@@ -105,6 +93,7 @@ function nodejsDefaultModuleObjectMembersForDeclaration(
         id: nodejsDefaultModuleMemberIdForDeclaration(moduleSpecifier, declaration),
         name: exportName,
         kind: "method",
+        static: true,
         signatures: declaration.signatures?.map((signature) => nodejsDefaultModuleSignature(signature)) ?? [],
       }];
     case "value":
@@ -114,6 +103,7 @@ function nodejsDefaultModuleObjectMembersForDeclaration(
             id: nodejsDefaultModuleMemberIdForDeclaration(moduleSpecifier, declaration),
             name: exportName,
             kind: "property",
+            static: true,
             readonly: true,
             type: declaration.type,
           }];
@@ -145,21 +135,16 @@ function nodejsDefaultModuleMemberIdForDeclaration(
   if (metadata === undefined) {
     throw new Error(`Missing C# NodeJS default module object metadata for '${moduleSpecifier}'.`);
   }
-  return nodejsDefaultModuleMemberId(moduleSpecifier, metadata.interfaceName, providerExportName(declaration));
+  return nodejsDefaultModuleMemberId(moduleSpecifier, providerExportName(declaration));
 }
 
-function nodejsDefaultModuleInterfaceId(moduleSpecifier: string, interfaceName: string): string {
-  return `${moduleSpecifier}.${interfaceName}`;
-}
-
-function nodejsDefaultModuleValueId(moduleSpecifier: string): string {
+function nodejsDefaultModuleClassId(moduleSpecifier: string): string {
   return `${moduleSpecifier}.default`;
 }
 
 function nodejsDefaultModuleMemberId(
   moduleSpecifier: string,
-  interfaceName: string,
   exportName: string,
 ): string {
-  return `${moduleSpecifier}.${interfaceName}.${exportName}`;
+  return `${moduleSpecifier}.default.${exportName}`;
 }

@@ -125,6 +125,8 @@ function nodejsProviderTargetRelation(
         targetMember,
       ),
       bindingTypeParameters: [],
+      bindingTypeArgumentSource:
+        providerBindingTypeArgumentSource(targetMember),
       methodTypeParameters: [],
     };
   }
@@ -152,6 +154,8 @@ function nodejsProviderTargetRelation(
       targetMember,
       receiver: targetReceiver(identity, targetMember),
       bindingTypeParameters: [],
+      bindingTypeArgumentSource:
+        targetMember.static === true ? "callee" : "receiver",
     };
   }
   if (targetMember.static !== true) {
@@ -165,6 +169,19 @@ function nodejsProviderTargetRelation(
     targetBinding,
     targetMember,
   };
+}
+
+function providerBindingTypeArgumentSource(
+  member: CsharpTargetMember,
+): Extract<
+  CsharpProviderTargetRelation,
+  { readonly kind: "member" | "signature" }
+>["bindingTypeArgumentSource"] {
+  return member.kind === "constructor"
+    ? "selected-operation-type-arguments"
+    : member.static === true
+      ? "callee"
+      : "receiver";
 }
 
 function providerSignatureParameters(
@@ -310,10 +327,13 @@ function providerParameterRelations(
       sourcePassingMode: source.passingMode ?? "by-value",
       targetPassingMode: target.passingMode,
       sourceAcceptsOmission:
-        source.optional === true || source.defaultType !== undefined,
+        source.optional === true ||
+        source.defaultType !== undefined ||
+        source.rest === true,
       targetAcceptsOmission:
         target.optional === true ||
-        target.csharpOmittableOptionalArgument === true,
+        target.csharpOmittableOptionalArgument === true ||
+        target.paramsArray === true,
       sourceRest: source.rest === true,
       targetParamsArray: target.paramsArray === true,
     };
