@@ -6,6 +6,9 @@ import {
   createCsharpProviderRelationCatalog,
 } from "../../tsonic-csharp/dist/provider/target-relations/index.js";
 import {
+  getCsharpNullableElementTargetType,
+} from "../../tsonic-csharp/dist/index.js";
+import {
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
@@ -160,3 +163,92 @@ test("Node numeric API parameters preserve the source number carrier", () => {
     relation.targetMember.parameters[0].type.name === "float64"
   ));
 });
+
+test("Node provider relations declare every source-number target adapter exactly", () => {
+  const expectedTargetNames = new Map([
+    ["bool", "ToBoolean"],
+    ["int8", "ToSByte"],
+    ["uint8", "ToByte"],
+    ["int16", "ToInt16"],
+    ["uint16", "ToUInt16"],
+    ["int32", "ToInt32"],
+    ["native-int", "ToInt32"],
+    ["uint32", "ToUInt32"],
+    ["native-uint", "ToUInt32"],
+    ["int64", "ToInt64"],
+    ["uint64", "ToUInt64"],
+    ["float16", "ToSingle"],
+    ["float32", "ToSingle"],
+    ["decimal", "ToDecimal"],
+  ]);
+  let adapterCount = 0;
+
+  for (const relation of nodejsProviderTargetRelations()) {
+    if (relation.kind !== "signature") continue;
+    const sourceSignature = findSourceSignature(relation);
+    for (const parameter of relation.parameters) {
+      const sourceParameter = sourceSignature.parameters[
+        parameter.sourceParameterIndex
+      ];
+      const targetParameter = relation.targetMember.parameters[
+        parameter.targetParameterIndex
+      ];
+      assert.ok(sourceParameter);
+      assert.ok(targetParameter);
+      const resultType = getCsharpNullableElementTargetType(
+        targetParameter.type,
+      ) ?? targetParameter.type;
+      const expectedTargetName = sourceParameter.type.kind === "number" &&
+          resultType.kind === "source-primitive"
+        ? expectedTargetNames.get(resultType.name)
+        : undefined;
+      const identity = `${relation.source.moduleSpecifier}:${relation.source.signatureId}:parameter[${parameter.sourceParameterIndex}]`;
+
+      assert.equal(
+        parameter.argumentAdapter?.targetName,
+        expectedTargetName,
+        identity,
+      );
+      if (expectedTargetName === undefined) continue;
+      adapterCount += 1;
+      assert.deepEqual(parameter.argumentAdapter, {
+        kind: "static-method",
+        id: `System.Convert.${expectedTargetName}(System.Double)`,
+        declaringType: {
+          kind: "target-named",
+          id: "System.Convert",
+          csharpRender: {
+            kind: "named",
+            namespace: ["System"],
+            name: "Convert",
+          },
+        },
+        targetName: expectedTargetName,
+        inputType: { kind: "source-primitive", name: "float64" },
+        resultType,
+      }, identity);
+    }
+  }
+
+  assert.equal(adapterCount, 244);
+});
+
+function findSourceSignature(relation) {
+  const declarations = nodejsCanonicalProviderExports(
+    relation.source.providerModuleId,
+  ) ?? [];
+  const declaration = declarations.find((candidate) =>
+    candidate.id === relation.source.exportId
+  );
+  assert.ok(declaration, `missing source export ${relation.source.exportId}`);
+  const signatures = relation.source.memberId === undefined
+    ? declaration.signatures
+    : declaration.members?.find((member) =>
+        member.id === relation.source.memberId
+      )?.signatures;
+  const signature = signatures?.find((candidate) =>
+    candidate.id === relation.source.signatureId
+  );
+  assert.ok(signature, `missing source signature ${relation.source.signatureId}`);
+  return signature;
+}

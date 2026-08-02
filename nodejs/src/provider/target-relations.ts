@@ -2,9 +2,14 @@ import type {
   ProviderParameterDeclaration,
 } from "@tsonic/tsts";
 import {
+  csharpQualifiedTypeRenderShape,
   csharpProviderPolicyContribution,
+  csharpSourcePrimitiveTargetType,
+  csharpTargetNamedType,
+  getCsharpNullableElementTargetType,
 } from "@tsonic/target-csharp";
 import type {
+  CsharpProviderArgumentAdapter,
   CsharpProviderParameterRelation,
   CsharpProviderSourceIdentity,
   CsharpProviderSourceIdentityBase,
@@ -13,6 +18,7 @@ import type {
   CsharpProviderTargetRelation,
   CsharpTargetBindingFact,
   CsharpTargetMember,
+  TargetTypeRef,
 } from "@tsonic/target-csharp";
 import {
   csharpNodejsProviderPackageProviderIdentity,
@@ -400,6 +406,10 @@ function providerParameterRelations(
   }
   return Object.freeze(sourceParameters.map((source, index) => {
     const target = member.parameters[index]!;
+    const argumentAdapter = nodejsProviderArgumentAdapter(
+      source,
+      target.type,
+    );
     return {
       sourceParameterIndex: index,
       targetParameterIndex: index,
@@ -415,8 +425,77 @@ function providerParameterRelations(
         target.paramsArray === true,
       sourceRest: source.rest === true,
       targetParamsArray: target.paramsArray === true,
+      ...(argumentAdapter === undefined ? {} : { argumentAdapter }),
     };
   }));
+}
+
+function nodejsProviderArgumentAdapter(
+  source: ProviderParameterDeclaration,
+  target: TargetTypeRef,
+): CsharpProviderArgumentAdapter | undefined {
+  if (source.type.kind !== "number") {
+    return undefined;
+  }
+  const resultType = getCsharpNullableElementTargetType(target) ?? target;
+  if (resultType.kind !== "source-primitive") {
+    return undefined;
+  }
+  const targetName = systemConvertTargetName(resultType.name);
+  if (targetName === undefined) {
+    return undefined;
+  }
+  const inputType = csharpSourcePrimitiveTargetType("float64");
+  return Object.freeze({
+    kind: "static-method",
+    id: `System.Convert.${targetName}(System.Double)`,
+    declaringType: csharpTargetNamedType(
+      "System.Convert",
+      undefined,
+      csharpQualifiedTypeRenderShape("System", "Convert"),
+    ),
+    targetName,
+    inputType,
+    resultType,
+  });
+}
+
+function systemConvertTargetName(
+  kind: Extract<TargetTypeRef, { readonly kind: "source-primitive" }>["name"],
+): string | undefined {
+  switch (kind) {
+    case "bool":
+      return "ToBoolean";
+    case "int8":
+      return "ToSByte";
+    case "uint8":
+      return "ToByte";
+    case "int16":
+      return "ToInt16";
+    case "uint16":
+      return "ToUInt16";
+    case "int32":
+    case "native-int":
+      return "ToInt32";
+    case "uint32":
+    case "native-uint":
+      return "ToUInt32";
+    case "int64":
+      return "ToInt64";
+    case "uint64":
+      return "ToUInt64";
+    case "float16":
+    case "float32":
+      return "ToSingle";
+    case "float64":
+      return undefined;
+    case "decimal":
+      return "ToDecimal";
+    case "char":
+    case "int128":
+    case "uint128":
+      return undefined;
+  }
 }
 
 function formatProviderIdentity(
