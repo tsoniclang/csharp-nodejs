@@ -4,14 +4,14 @@ namespace Tsonic.CSharp.Node;
 
 internal static class JsNumeric
 {
-    public static int RequirePort(int value, string paramName)
+    public static int RequirePort(double value, string paramName)
     {
-        if (value < 0 || value > 65535)
+        if (!double.IsFinite(value) || Math.Truncate(value) != value || value < 0 || value > 65535)
         {
-            throw new ArgumentOutOfRangeException(paramName, "Port must be between 0 and 65535.");
+            throw new ArgumentOutOfRangeException(paramName, "Port must be an integer between 0 and 65535.");
         }
 
-        return value;
+        return checked((int)value);
     }
 
     public static int RequireNonNegativeInt(int value, string paramName)

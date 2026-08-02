@@ -92,6 +92,7 @@ test("Node HTTP and timer source operations select exact provider target facts",
     import * as timers from "node:timers";
 
     export function start(): void {
+      const port: number = 8765;
       const server = http.createServer((request: IncomingMessage, response: ServerResponse) => {
         const method = request.method ?? "GET";
         const path = request.url ?? "/";
@@ -100,7 +101,7 @@ test("Node HTTP and timer source operations select exact provider target facts",
         response.writeHead(200, "OK");
         response.end(path);
       });
-      server.listen(8765, () => {});
+      server.listen(port, () => {});
       timers.setInterval(() => {}, 60000);
     }
 
@@ -128,7 +129,7 @@ test("Node HTTP and timer source operations select exact provider target facts",
     "Tsonic.CSharp.Node.Http.ServerResponse.setHeader(System.String,System.String)",
     "Tsonic.CSharp.Node.Http.ServerResponse.writeHead(System.Int32,System.String)",
     "Tsonic.CSharp.Node.Http.ServerResponse.end(System.String)",
-    "Tsonic.CSharp.Node.Http.Server.listen(System.Int32,System.Action)",
+    "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.Action)",
     "Tsonic.CSharp.Node.timers.setInterval(System.Action,System.Int32)",
   ]) {
     assert.ok(selectedIds.includes(expected), `missing selected target signature ${expected}`);

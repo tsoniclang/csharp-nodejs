@@ -101,3 +101,36 @@ test("named, namespace, default, property, and class-static Node operations comp
     /return Tsonic\.CSharp\.Node\.Buffer\.from\(value, "utf8"\);/u,
   );
 });
+
+test("Node numeric API parameters preserve the source number carrier", () => {
+  const compiled = compileCsharpSource({
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import * as http from "node:http";
+
+      export function start(port: number): void {
+        const server = http.createServer((_request, _response) => {});
+        server.listen(port, () => {});
+      }
+    `,
+  });
+
+  assert.equal(compiled.sourceDiagnosticsText, "");
+  assert.deepEqual(compiled.extensionDiagnostics, []);
+  assert.deepEqual(compiled.result.diagnostics, []);
+  assert.match(
+    compiled.artifacts.get("src/Index.cs"),
+    /server\.listen\(port, \(\) =>/u,
+  );
+
+  const relations = nodejsProviderTargetRelations().filter(
+    (relation) => relation.kind === "signature" &&
+      relation.source.signatureId ===
+        "node:http.Server.listen(System.Double,System.Action)",
+  );
+  assert.ok(relations.length > 0);
+  assert.ok(relations.every((relation) =>
+    relation.targetMember.parameters[0]?.type.kind === "source-primitive" &&
+    relation.targetMember.parameters[0].type.name === "float64"
+  ));
+});

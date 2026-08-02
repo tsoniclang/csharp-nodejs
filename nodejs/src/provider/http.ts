@@ -50,6 +50,7 @@ const stringOrNullProviderType = {
 const stringTargetType = csharpStringTargetType();
 const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
+const doubleTargetType = csharpSourcePrimitiveTargetType("float64");
 const incomingMessageTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.IncomingMessage",
   undefined,
@@ -198,14 +199,14 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       exportName: nodeHttpServerExportName,
       memberName: "listen",
       memberId: "node:http.Server.listen",
-      signatureId: "node:http.Server.listen(System.Int32,System.Action)",
-      targetMemberId: "Tsonic.CSharp.Node.Http.Server.listen(System.Int32,System.Action)",
+      signatureId: "node:http.Server.listen(System.Double,System.Action)",
+      targetMemberId: "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.Action)",
       sourceName: "listen",
       targetName: "listen",
       memberKind: "method",
       providerParameters: [numberParameter("port"), { name: "callback", type: voidCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
-      targetParameters: [targetParameter("port", intTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
+      targetParameters: [targetParameter("port", doubleTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,
     }),
