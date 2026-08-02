@@ -58,6 +58,35 @@ public class HttpServerTests
     }
 
     [Fact]
+    public async Task Server_WaitsForResponseEndAfterListenerReturns()
+    {
+        var server = http.createServer(async (req, res) =>
+        {
+            await Task.Delay(100);
+            res.statusCode = 202;
+            res.end("delayed");
+        });
+
+        server.listen(0, "127.0.0.1", (Action?)null);
+
+        try
+        {
+            var address = server.address();
+            Assert.NotNull(address);
+            using var client = new HttpClient();
+            var response = await client.GetAsync($"http://127.0.0.1:{address.port}/");
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);
+            Assert.Equal("delayed", body);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
     public async Task Server_CustomHeaders_ReturnsCorrectHeaders()
     {
         // Arrange

@@ -191,6 +191,7 @@ public partial class Server : EventEmitter
                     // Emit 'request' event - registered listeners will handle the request
                     emit("request", req, res);
 
+                    await res.Completion.WaitAsync(context.RequestAborted);
                     await context.Response.CompleteAsync();
                 });
             })

@@ -15,6 +15,7 @@ namespace Tsonic.CSharp.Node.Http;
 public partial class ServerResponse : EventEmitter
 {
     private readonly HttpResponse _response;
+    private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _headersSent = false;
     private bool _finished = false;
     private Timer? _timeoutTimer;
@@ -54,6 +55,8 @@ public partial class ServerResponse : EventEmitter
     /// Boolean indicating if the response has completed.
     /// </summary>
     public bool finished => _finished;
+
+    internal Task Completion => _completion.Task;
 
     /// <summary>
     /// Sends a response header to the request.
@@ -234,6 +237,7 @@ public partial class ServerResponse : EventEmitter
         _finished = true;
         _timeoutTimer?.Dispose();
         emit("finish");
+        _completion.TrySetResult();
         return this;
     }
 
