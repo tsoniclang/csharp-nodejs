@@ -16,4 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
