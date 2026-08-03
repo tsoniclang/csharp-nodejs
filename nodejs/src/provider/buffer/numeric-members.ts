@@ -1,8 +1,8 @@
 import type {
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
-  TargetTypeRef,
 } from "@tsonic/tsts";
+import type { TargetTypeRef } from "@tsonic/target-csharp";
 import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp";

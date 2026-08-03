@@ -3,22 +3,21 @@ import type {
   ProviderDeclarationModel,
   ProviderExportDeclaration,
   ProviderImportDeclaration,
+  ProviderMemberDeclaration,
+  ProviderParameterDeclaration,
   ProviderRequestedExport,
   ProviderModuleContext,
   ProviderModuleResolution,
   ProviderOwnership,
+  ProviderSignatureDeclaration,
+  ProviderTypeParameterDeclaration,
   ProviderTypeExpression,
-  ProviderSymbolIdentity,
-  TargetBindingProvider,
-  TargetIdentity,
+  SourceDeclarationProvider,
 } from "@tsonic/tsts";
 import {
   csharpNodejsProviderPackageProviderIdentity,
   csharpNodejsVirtualDeclarationFileName,
 } from "./identity.js";
-import {
-  getNodejsTargetIdentity,
-} from "./members.js";
 import {
   nodeAssertExports,
   nodeAssertModuleSpecifier,
@@ -38,6 +37,10 @@ import {
   nodeFsPromisesModuleSpecifier,
 } from "./filesystem/index.js";
 import {
+  nodeHttpExports,
+  nodeHttpModuleSpecifier,
+} from "./http.js";
+import {
   nodeOsExports,
   nodeOsModuleSpecifier,
 } from "./os.js";
@@ -49,6 +52,10 @@ import {
   nodeProcessExports,
   nodeProcessModuleSpecifier,
 } from "./process.js";
+import {
+  nodeTimersExports,
+  nodeTimersModuleSpecifier,
+} from "./timers.js";
 import {
   nodeUtilExports,
   nodeUtilModuleSpecifier,
@@ -68,14 +75,23 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodePathModuleSpecifier, nodePathExports()],
   [nodeFsModuleSpecifier, nodeFsExports()],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
+  [nodeHttpModuleSpecifier, nodeHttpExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],
+  [nodeTimersModuleSpecifier, nodeTimersExports()],
   [nodeUtilModuleSpecifier, nodeUtilExports()],
   [nodeUrlModuleSpecifier, nodeUrlExports()],
 ]);
 
-export function createCsharpNodejsProviderPackageBindingProvider(): TargetBindingProvider {
+export function nodejsCanonicalProviderExports(
+  moduleSpecifier: string,
+): readonly ProviderExportDeclaration[] | undefined {
+  return canonicalModules.get(moduleSpecifier);
+}
+
+export function createCsharpNodejsProviderPackageBindingProvider():
+  SourceDeclarationProvider {
   return {
     identity: csharpNodejsProviderPackageProviderIdentity,
     ownsModule(specifier: string, _context: ProviderModuleContext): ProviderOwnership {
@@ -97,20 +113,152 @@ export function createCsharpNodejsProviderPackageBindingProvider(): TargetBindin
     getDeclarationModel(module: ProviderModuleResolution): ProviderDeclarationModel | ExtensionDiagnostic {
       const canonicalSpecifier = canonicalNodejsModuleSpecifier(module.moduleSpecifier);
       const exports = canonicalSpecifier === undefined ? undefined : canonicalModules.get(canonicalSpecifier);
+      const publicExports = canonicalSpecifier === undefined || exports === undefined
+        ? undefined
+        : exports.map((declaration) => rebaseNodejsProviderExport(
+            declaration,
+            canonicalSpecifier,
+            module.moduleSpecifier,
+          ));
       return canonicalSpecifier === undefined || exports === undefined
         ? nodejsProviderDiagnostic("NODEJS_PROVIDER_PACKAGE_MODULE_MISSING", 9300002, `C# NodeJS provider package has no declaration model for '${module.moduleSpecifier}'.`)
         : {
             moduleSpecifier: module.moduleSpecifier,
             providerModuleId: canonicalSpecifier,
-            imports: nodejsProviderImportsForExports(canonicalSpecifier, exports),
-            exports,
+            imports: nodejsProviderImportsForExports(canonicalSpecifier, publicExports ?? []),
+            exports: publicExports ?? [],
             evidence: [{ message: "C# NodeJS provider package virtual declaration model." }],
           };
     },
-    getTargetIdentity(symbol: ProviderSymbolIdentity): TargetIdentity | undefined {
-      return getNodejsTargetIdentity(symbol);
-    },
   };
+}
+
+function rebaseNodejsProviderExport(
+  declaration: ProviderExportDeclaration,
+  canonicalModuleSpecifier: string,
+  publicModuleSpecifier: string,
+): ProviderExportDeclaration {
+  const mapType = (type: ProviderTypeExpression): ProviderTypeExpression =>
+    rebaseNodejsProviderType(type, canonicalModuleSpecifier, publicModuleSpecifier);
+  return {
+    ...declaration,
+    ...(declaration.type === undefined ? {} : { type: mapType(declaration.type) }),
+    ...(declaration.typeParameters === undefined
+      ? {}
+      : { typeParameters: declaration.typeParameters.map((parameter) => rebaseNodejsProviderTypeParameter(parameter, mapType)) }),
+    ...(declaration.heritage === undefined
+      ? {}
+      : { heritage: declaration.heritage.map((entry) => ({ ...entry, type: mapType(entry.type) })) }),
+    ...(declaration.signatures === undefined
+      ? {}
+      : { signatures: declaration.signatures.map((signature) => rebaseNodejsProviderSignature(signature, mapType)) }),
+    ...(declaration.members === undefined
+      ? {}
+      : { members: declaration.members.map((member) => rebaseNodejsProviderMember(member, mapType)) }),
+  };
+}
+
+function rebaseNodejsProviderMember(
+  member: ProviderMemberDeclaration,
+  mapType: (type: ProviderTypeExpression) => ProviderTypeExpression,
+): ProviderMemberDeclaration {
+  return {
+    ...member,
+    ...(member.type === undefined ? {} : { type: mapType(member.type) }),
+    ...(member.signatures === undefined
+      ? {}
+      : { signatures: member.signatures.map((signature) => rebaseNodejsProviderSignature(signature, mapType)) }),
+  };
+}
+
+function rebaseNodejsProviderSignature(
+  signature: ProviderSignatureDeclaration,
+  mapType: (type: ProviderTypeExpression) => ProviderTypeExpression,
+): ProviderSignatureDeclaration {
+  return {
+    ...signature,
+    parameters: signature.parameters.map((parameter) => rebaseNodejsProviderParameter(parameter, mapType)),
+    ...(signature.returnType === undefined ? {} : { returnType: mapType(signature.returnType) }),
+    ...(signature.typeParameters === undefined
+      ? {}
+      : { typeParameters: signature.typeParameters.map((parameter) => rebaseNodejsProviderTypeParameter(parameter, mapType)) }),
+  };
+}
+
+function rebaseNodejsProviderParameter(
+  parameter: ProviderParameterDeclaration,
+  mapType: (type: ProviderTypeExpression) => ProviderTypeExpression,
+): ProviderParameterDeclaration {
+  return {
+    ...parameter,
+    type: mapType(parameter.type),
+    ...(parameter.defaultType === undefined ? {} : { defaultType: mapType(parameter.defaultType) }),
+  };
+}
+
+function rebaseNodejsProviderTypeParameter(
+  parameter: ProviderTypeParameterDeclaration,
+  mapType: (type: ProviderTypeExpression) => ProviderTypeExpression,
+): ProviderTypeParameterDeclaration {
+  return {
+    ...parameter,
+    ...(parameter.constraints === undefined ? {} : { constraints: parameter.constraints.map(mapType) }),
+    ...(parameter.defaultType === undefined ? {} : { defaultType: mapType(parameter.defaultType) }),
+  };
+}
+
+function rebaseNodejsProviderType(
+  type: ProviderTypeExpression,
+  canonicalModuleSpecifier: string,
+  publicModuleSpecifier: string,
+): ProviderTypeExpression {
+  const mapType = (nested: ProviderTypeExpression): ProviderTypeExpression =>
+    rebaseNodejsProviderType(nested, canonicalModuleSpecifier, publicModuleSpecifier);
+  switch (type.kind) {
+    case "provider-ref":
+      return {
+        ...type,
+        moduleSpecifier: type.moduleSpecifier === canonicalModuleSpecifier
+          ? publicModuleSpecifier
+          : type.moduleSpecifier,
+        ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
+      };
+    case "source-global":
+      return {
+        ...type,
+        ...(type.typeArguments === undefined ? {} : { typeArguments: type.typeArguments.map(mapType) }),
+      };
+    case "array":
+      return { ...type, elementType: mapType(type.elementType) };
+    case "tuple":
+      return { ...type, elementTypes: type.elementTypes.map(mapType) };
+    case "union":
+    case "intersection":
+      return { ...type, types: type.types.map(mapType) };
+    case "function":
+      return {
+        ...type,
+        parameters: type.parameters.map((parameter) => rebaseNodejsProviderParameter(parameter, mapType)),
+        returnType: mapType(type.returnType),
+        ...(type.typeParameters === undefined
+          ? {}
+          : { typeParameters: type.typeParameters.map((parameter) => rebaseNodejsProviderTypeParameter(parameter, mapType)) }),
+      };
+    case "any":
+    case "unknown":
+    case "void":
+    case "never":
+    case "undefined":
+    case "boolean":
+    case "string":
+    case "number":
+    case "bigint":
+    case "object":
+    case "literal":
+    case "source-primitive":
+    case "type-parameter":
+      return type;
+  }
 }
 
 function nodejsProviderImportsForExports(
@@ -238,13 +386,24 @@ function visitProviderType(
         visitProviderType(typeArgument, visit);
       }
       return;
-    case "target-named":
+    case "source-global":
       for (const typeArgument of type.typeArguments ?? []) {
         visitProviderType(typeArgument, visit);
       }
-      visitOptionalProviderType(type.sourceShape, visit);
       return;
-    default:
+    case "any":
+    case "unknown":
+    case "void":
+    case "never":
+    case "undefined":
+    case "boolean":
+    case "string":
+    case "number":
+    case "bigint":
+    case "object":
+    case "literal":
+    case "source-primitive":
+    case "type-parameter":
       return;
   }
 }

@@ -5,15 +5,14 @@ import type {
 } from "@tsonic/target-api";
 import {
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
+  createCsharpNodejsTargetContributions,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
 
 export {
   createCsharpNodejsProviderPackageBindingProvider,
   createCsharpNodejsProviderPackageExtension,
-  createCsharpNodejsProviderPackageOperationsMappers,
-  createCsharpNodejsProviderPackageOperationsProvider,
+  createCsharpNodejsTargetContributions,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
 
@@ -23,12 +22,13 @@ export function createTsonicPlugin(): TsonicTargetCapabilityPlugin {
     id: "@tsonic/csharp-nodejs",
     targetId: "csharp",
     displayName: "C# NodeJS capability package",
-    requiredSurfaces: ["js"],
     moduleOwnership: nodejsProviderPackageModuleOwnership,
-    createExtensions(context: TargetCapabilityContext) {
-      return [createCsharpNodejsProviderPackageExtension(context)];
+    sourceCompilerContributions(context: TargetCapabilityContext) {
+      return {
+        extensions: [createCsharpNodejsProviderPackageExtension(context)],
+      };
     },
-    createOperationMappers: createCsharpNodejsProviderPackageOperationsMappers,
+    createTargetContributions: createCsharpNodejsTargetContributions,
     runtimeContributions(): TargetRuntimeContributions {
       return {
         references: [

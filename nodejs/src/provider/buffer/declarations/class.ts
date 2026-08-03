@@ -3,7 +3,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   nodeBufferExportName,
-  nodeBufferTargetType,
+  nodeBufferModuleSpecifier,
 } from "../identities.js";
 import {
   nodeBufferInstanceMemberDeclarations,
@@ -20,11 +20,6 @@ export function nodeBufferClassExport(): ProviderExportDeclaration {
     id: "node:buffer.Buffer",
     name: nodeBufferExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: nodeBufferTargetType.id,
-      displayName: "Tsonic.CSharp.Node.Buffer",
-    },
     members: [
       ...nodeBufferStaticMemberDeclarations(),
       ...nodeBufferInstanceMemberDeclarations(),

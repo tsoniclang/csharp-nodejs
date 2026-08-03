@@ -1,7 +1,7 @@
 import type {
   ProviderTypeExpression,
-  TargetMember,
 } from "@tsonic/tsts";
+import type { TargetMember } from "@tsonic/target-csharp";
 import {
   targetParameter,
 } from "@tsonic/target-csharp";

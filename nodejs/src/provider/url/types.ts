@@ -1,8 +1,8 @@
 import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
-  TargetMember,
 } from "@tsonic/tsts";
+import type { TargetMember } from "@tsonic/target-csharp";
 
 export interface NodeUrlCallTargetMember {
   readonly exportName: string;
@@ -42,6 +42,7 @@ export interface NodeUrlClassPropertyTargetMember {
 export interface NodeUrlUnsupportedTargetIdentity {
   readonly exportName: string;
   readonly memberName?: string;
+  readonly memberId?: string;
   readonly signatureId?: string;
   readonly targetIdentityId: string;
   readonly displayName: string;

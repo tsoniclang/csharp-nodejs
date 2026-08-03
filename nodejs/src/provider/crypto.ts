@@ -3,9 +3,11 @@ import type {
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
   ProviderTypeExpression,
+} from "@tsonic/tsts";
+import type {
   TargetMember,
   TargetTypeRef,
-} from "@tsonic/tsts";
+} from "@tsonic/target-csharp";
 import {
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
@@ -210,7 +212,6 @@ function nodeCryptoHmacClassCallTargetMembers(): readonly NodeCryptoClassCallTar
 function nodeCryptoHashExportDeclaration(): ProviderExportDeclaration {
   return cryptoClassExportDeclaration(
     nodeCryptoHashExportName,
-    "Tsonic.CSharp.Node.Hash",
     nodeCryptoHashClassCallTargetMembers(),
   );
 }
@@ -218,25 +219,18 @@ function nodeCryptoHashExportDeclaration(): ProviderExportDeclaration {
 function nodeCryptoHmacExportDeclaration(): ProviderExportDeclaration {
   return cryptoClassExportDeclaration(
     nodeCryptoHmacExportName,
-    "Tsonic.CSharp.Node.Hmac",
     nodeCryptoHmacClassCallTargetMembers(),
   );
 }
 
 function cryptoClassExportDeclaration(
   exportName: string,
-  targetIdentityId: string,
   members: readonly NodeCryptoClassCallTargetMember[],
 ): ProviderExportDeclaration {
   return {
     id: `node:crypto.${exportName}`,
     name: exportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: targetIdentityId,
-      displayName: targetIdentityId,
-    },
     members: providerMembersForCryptoClassCalls(members),
   };
 }

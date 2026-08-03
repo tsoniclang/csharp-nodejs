@@ -2,8 +2,8 @@ import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
   ProviderTypeExpression,
-  TargetMember,
 } from "@tsonic/tsts";
+import type { TargetMember } from "@tsonic/target-csharp";
 import {
   csharpNullableTargetType,
   csharpNullableValueTargetType,
@@ -43,7 +43,9 @@ const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
-const undefinedProviderType = { kind: "void" } satisfies ProviderTypeExpression;
+const undefinedProviderType = {
+  kind: "undefined",
+} satisfies ProviderTypeExpression;
 const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" });
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
@@ -219,6 +221,7 @@ function nodeProcessEnvClassPropertyTargetMembers(): readonly NodejsClassPropert
       exportName: nodeProcessProcessEnvExportName,
       memberName: "Item",
       memberId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
+      signatureId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       targetMemberId: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       sourceName: "Item",
       targetName: "Item",
@@ -309,11 +312,6 @@ function nodeProcessEnvExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessEnvExportName}`,
     name: nodeProcessProcessEnvExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processEnvTargetType.id,
-      displayName: "Tsonic.CSharp.Node.ProcessEnv",
-    },
     members: [{
       id: "Tsonic.CSharp.Node.ProcessEnv.Item(System.String)",
       name: "Item",
@@ -332,11 +330,6 @@ function nodeProcessMemoryUsageExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessMemoryUsageExportName}`,
     name: nodeProcessProcessMemoryUsageExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processMemoryUsageTargetType.id,
-      displayName: "Tsonic.CSharp.Node.MemoryUsage",
-    },
     members: nodeProcessMemoryUsageClassPropertyTargetMembers()
       .map((member) => ({
         id: member.memberId,
@@ -353,11 +346,6 @@ function nodeProcessVersionsExportDeclaration(): ProviderExportDeclaration {
     id: `node:process.${nodeProcessProcessVersionsExportName}`,
     name: nodeProcessProcessVersionsExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: processVersionsTargetType.id,
-      displayName: "Tsonic.CSharp.Node.ProcessVersions",
-    },
     members: nodeProcessVersionsClassPropertyTargetMembers()
       .map((member) => ({
         id: member.memberId,
@@ -442,7 +430,7 @@ const nodeProcessUnsupportedExports = [
     targetIdentityId: "unsupported:Tsonic.CSharp.Node.process.nextTick(Function,System.Object[])",
     displayName: "unsupported NodeJS process.nextTick",
     providerParameters: [
-      { name: "callback", type: { kind: "function", parameters: [], returnType: voidProviderType } },
+      { name: "callback", type: { kind: "function", id: "node:process.nextTick.callback", parameters: [], returnType: voidProviderType } },
       unknownRestParameter("args"),
     ],
     providerType: voidProviderType,

@@ -40,11 +40,20 @@ public class WorkerThreadsTests
     public async System.Threading.Tasks.Task Worker_RunsBodyAndEmitsExit()
     {
         var ran = false;
-        var exitCode = -1;
-        var worker = new Worker(() => ran = true);
-        worker.on("exit", (object? value) => exitCode = (int)value!);
+        using var start = new System.Threading.ManualResetEventSlim(false);
+        var exited = new System.Threading.Tasks.TaskCompletionSource<int>(
+            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        var worker = new Worker(() =>
+        {
+            if (!start.Wait(System.TimeSpan.FromSeconds(5)))
+                throw new System.TimeoutException("Worker test did not release its start gate.");
+            ran = true;
+        });
+        worker.on("exit", (object? value) => exited.TrySetResult((int)value!));
+        worker.on("error", (object? value) => exited.TrySetException((System.Exception)value!));
 
-        await System.Threading.Tasks.Task.Delay(100);
+        start.Set();
+        var exitCode = await exited.Task.WaitAsync(System.TimeSpan.FromSeconds(5));
 
         Assert.True(ran);
         Assert.Equal(0, exitCode);

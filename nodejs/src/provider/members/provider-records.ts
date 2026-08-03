@@ -1,7 +1,4 @@
 import type {
-  ProviderSymbolIdentity,
-} from "@tsonic/tsts";
-import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp";
 import {
@@ -38,6 +35,12 @@ import {
   nodeOsUnsupportedTargetIdentities,
 } from "../os.js";
 import {
+  nodeHttpCallTargetMembers,
+  nodeHttpClassCallTargetMembers,
+  nodeHttpClassPropertyTargetMembers,
+  nodeHttpModuleSpecifier,
+} from "../http.js";
+import {
   nodePathCallTargetMembers,
   nodePathClassPropertyTargetMembers,
   nodePathModuleSpecifier,
@@ -52,6 +55,10 @@ import {
   nodeProcessPropertyTargetMembers,
   nodeProcessUnsupportedTargetIdentities,
 } from "../process.js";
+import {
+  nodeTimersCallTargetMembers,
+  nodeTimersModuleSpecifier,
+} from "../timers.js";
 import {
   nodeUtilCallTargetMembers,
   nodeUtilModuleSpecifier,
@@ -72,7 +79,6 @@ import {
 } from "../identity.js";
 import {
   nodejsDefaultModuleMemberDeclarationIdentities,
-  nodejsDefaultModuleMemberSymbolIdentities,
 } from "../module-defaults.js";
 import type {
   NodejsProviderDeclarationIdentity,
@@ -87,12 +93,11 @@ import type {
 
 export interface NodejsTargetMemberMetadataRecord {
   readonly declarationIdentities: readonly NodejsProviderDeclarationIdentity[];
-  readonly symbolIdentities: readonly ProviderSymbolIdentity[];
   readonly member: CsharpTargetMember;
 }
 
 export interface NodejsUnsupportedTargetMetadataRecord {
-  readonly symbolIdentities: readonly ProviderSymbolIdentity[];
+  readonly declarationIdentities: readonly NodejsProviderDeclarationIdentity[];
   readonly identity: NodejsUnsupportedTargetIdentity;
 }
 
@@ -111,6 +116,9 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classCallRecords(nodeFsModuleSpecifier, nodeFsClassCallTargetMembers()),
     ...classPropertyRecords(nodeFsModuleSpecifier, nodeFsClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeFsPromisesModuleSpecifier, nodeFsPromisesCallTargetMembers()),
+    ...moduleCallRecords(nodeHttpModuleSpecifier, nodeHttpCallTargetMembers()),
+    ...classCallRecords(nodeHttpModuleSpecifier, nodeHttpClassCallTargetMembers()),
+    ...classPropertyRecords(nodeHttpModuleSpecifier, nodeHttpClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeCryptoModuleSpecifier, nodeCryptoCallTargetMembers()),
     ...classCallRecords(nodeCryptoModuleSpecifier, nodeCryptoClassCallTargetMembers()),
     ...moduleCallRecords(nodeOsModuleSpecifier, nodeOsCallTargetMembers()),
@@ -118,6 +126,7 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...moduleCallRecords(nodeProcessModuleSpecifier, nodeProcessCallTargetMembers()),
     ...modulePropertyRecords(nodeProcessModuleSpecifier, nodeProcessPropertyTargetMembers()),
     ...classPropertyRecords(nodeProcessModuleSpecifier, nodeProcessClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeTimersModuleSpecifier, nodeTimersCallTargetMembers()),
     ...moduleCallRecords(nodeUtilModuleSpecifier, nodeUtilCallTargetMembers()),
     ...moduleCallRecords(nodeUrlModuleSpecifier, nodeUrlCallTargetMembers()),
     ...classCallRecords(nodeUrlModuleSpecifier, nodeUrlClassCallTargetMembers()),
@@ -145,11 +154,11 @@ function moduleCallRecords(
   return entries.map((entry) => ({
     declarationIdentities: [
       nodejsExportSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.signatureId),
-      ...nodejsDefaultModuleMemberDeclarationIdentities(moduleSpecifier, entry.exportName, entry.signatureId),
-    ],
-    symbolIdentities: [
-      { moduleSpecifier, exportName: entry.exportName, signatureId: entry.signatureId },
-      ...nodejsDefaultModuleMemberSymbolIdentities(moduleSpecifier, entry.exportName, entry.signatureId),
+      ...nodejsDefaultModuleMemberDeclarationIdentities(
+        moduleSpecifier,
+        entry.exportName,
+        entry.signatureId,
+      ).filter((identity) => identity.signatureId !== undefined),
     ],
     member: entry.member,
   }));
@@ -164,10 +173,6 @@ function modulePropertyRecords(
       nodejsExportDeclarationIdentity(moduleSpecifier, entry.exportName),
       ...nodejsDefaultModuleMemberDeclarationIdentities(moduleSpecifier, entry.exportName, undefined),
     ],
-    symbolIdentities: [
-      { moduleSpecifier, exportName: entry.exportName },
-      ...nodejsDefaultModuleMemberSymbolIdentities(moduleSpecifier, entry.exportName, undefined),
-    ],
     member: entry.member,
   }));
 }
@@ -178,11 +183,14 @@ function classCallRecords(
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
     declarationIdentities: [
-      nodejsExportMemberDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId),
-      nodejsExportMemberSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId, entry.signatureId),
-    ],
-    symbolIdentities: [
-      { moduleSpecifier, exportName: entry.exportName, memberName: entry.memberName, signatureId: entry.signatureId },
+      nodejsExportMemberSignatureDeclarationIdentity(
+        moduleSpecifier,
+        entry.exportName,
+        entry.memberName,
+        entry.memberId,
+        entry.signatureId,
+        entry.static === true,
+      ),
     ],
     member: entry.member,
   }));
@@ -194,10 +202,22 @@ function classPropertyRecords(
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
     declarationIdentities: [
-      nodejsExportMemberDeclarationIdentity(moduleSpecifier, entry.exportName, entry.memberName, entry.memberId),
-    ],
-    symbolIdentities: [
-      { moduleSpecifier, exportName: entry.exportName, memberName: entry.memberName },
+      ...(entry.signatureId === undefined
+        ? [nodejsExportMemberDeclarationIdentity(
+            moduleSpecifier,
+            entry.exportName,
+            entry.memberName,
+            entry.memberId,
+            entry.member.static === true,
+          )]
+        : [nodejsExportMemberSignatureDeclarationIdentity(
+            moduleSpecifier,
+            entry.exportName,
+            entry.memberName,
+            entry.memberId,
+            entry.signatureId,
+            entry.member.static === true,
+          )]),
     ],
     member: entry.member,
   }));
@@ -208,27 +228,48 @@ function unsupportedRecords(
   entries: readonly NodejsUnsupportedTargetIdentity[],
 ): readonly NodejsUnsupportedTargetMetadataRecord[] {
   return entries.map((identity) => ({
-    symbolIdentities: [
-      {
-        moduleSpecifier,
-        exportName: identity.exportName,
-        ...(identity.memberName !== undefined ? { memberName: identity.memberName } : {}),
-      },
-      ...(identity.memberName === undefined
-        ? nodejsDefaultModuleMemberSymbolIdentities(moduleSpecifier, identity.exportName, undefined)
-        : []),
-      ...(identity.signatureId === undefined
-        ? []
-        : [{
-            moduleSpecifier,
-            exportName: identity.exportName,
-            ...(identity.memberName !== undefined ? { memberName: identity.memberName } : {}),
-            signatureId: identity.signatureId,
-          },
-          ...(identity.memberName === undefined
-            ? nodejsDefaultModuleMemberSymbolIdentities(moduleSpecifier, identity.exportName, identity.signatureId)
-            : [])]),
-    ],
+    declarationIdentities: unsupportedDeclarationIdentities(moduleSpecifier, identity),
     identity,
   }));
+}
+
+function unsupportedDeclarationIdentities(
+  moduleSpecifier: string,
+  identity: NodejsUnsupportedTargetIdentity,
+): readonly NodejsProviderDeclarationIdentity[] {
+  if (identity.memberName === undefined) {
+    return [
+      identity.signatureId === undefined
+        ? nodejsExportDeclarationIdentity(moduleSpecifier, identity.exportName)
+        : nodejsExportSignatureDeclarationIdentity(moduleSpecifier, identity.exportName, identity.signatureId),
+      ...nodejsDefaultModuleMemberDeclarationIdentities(
+        moduleSpecifier,
+        identity.exportName,
+        identity.signatureId,
+      ).filter((declaration) =>
+        identity.signatureId === undefined || declaration.signatureId !== undefined
+      ),
+    ];
+  }
+  if (identity.memberId === undefined) {
+    throw new Error(
+      `Unsupported NodeJS provider member '${moduleSpecifier}.${identity.exportName}.${identity.memberName}' requires an exact member id.`,
+    );
+  }
+  return [
+    identity.signatureId === undefined
+      ? nodejsExportMemberDeclarationIdentity(
+          moduleSpecifier,
+          identity.exportName,
+          identity.memberName,
+          identity.memberId,
+        )
+      : nodejsExportMemberSignatureDeclarationIdentity(
+          moduleSpecifier,
+          identity.exportName,
+          identity.memberName,
+          identity.memberId,
+          identity.signatureId,
+        ),
+  ];
 }

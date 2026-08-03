@@ -46,6 +46,21 @@ public class TimersTests
     }
 
     [Fact]
+    public void setTimeout_WithZeroDelay_ArmsOnlyAfterHandleInitialization()
+    {
+        const int timeoutCount = 256;
+        using var completed = new CountdownEvent(timeoutCount);
+        var timeouts = new Timeout[timeoutCount];
+
+        for (var index = 0; index < timeouts.Length; index++)
+        {
+            timeouts[index] = timers.setTimeout(() => completed.Signal(), 0);
+        }
+
+        Assert.True(completed.Wait(5000), "Every zero-delay timeout should execute after its handle is fully initialized");
+    }
+
+    [Fact]
     public void clearTimeout_ShouldCancelTimeout()
     {
         var resetEvent = new ManualResetEventSlim(false);

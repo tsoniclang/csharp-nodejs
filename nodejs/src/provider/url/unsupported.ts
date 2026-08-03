@@ -44,9 +44,10 @@ export function nodeUrlUnsupportedTargetIdentities(): readonly NodeUrlUnsupporte
       targetIdentityId,
       displayName,
     })),
-    ...nodeUrlUnsupportedClassMemberDeclarations().map(({ exportName, memberName, signatureId, targetIdentityId, displayName }) => ({
+    ...nodeUrlUnsupportedClassMemberDeclarations().map(({ exportName, memberName, memberId, signatureId, targetIdentityId, displayName }) => ({
       exportName,
       memberName,
+      memberId,
       ...(signatureId !== undefined ? { signatureId } : {}),
       targetIdentityId,
       displayName,

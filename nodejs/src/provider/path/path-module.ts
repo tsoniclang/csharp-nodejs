@@ -40,11 +40,6 @@ export function nodePathPathModuleExportDeclaration(): ProviderExportDeclaration
     id: `node:path.${nodePathPathModuleExportName}`,
     name: nodePathPathModuleExportName,
     kind: "interface",
-    targetIdentity: {
-      target: "csharp",
-      id: pathModuleTargetType.id,
-      displayName: "Tsonic.CSharp.Node.PathModule",
-    },
     members: [
       ...nodePathPathModulePropertyTargetMembers().map(providerMemberForPathModuleProperty),
       ...nodePathPathModuleClassCallTargetMembers().map(providerMemberForPathModuleCall),

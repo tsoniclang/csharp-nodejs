@@ -1,5 +1,5 @@
 import {
-  TstsProviderContractVersion,
+  TstsSourceProviderContractVersion,
 } from "@tsonic/tsts";
 import type {
   ProviderIdentity,
@@ -7,15 +7,12 @@ import type {
 } from "@tsonic/tsts";
 import {
   csharpProviderVersion,
-  csharpTargetId,
 } from "@tsonic/target-csharp";
 
 export const csharpNodejsProviderPackageProviderIdentity = {
   id: "tsonic.csharp.provider-package.nodejs",
   version: csharpProviderVersion,
-  target: csharpTargetId,
-  extensionContractVersion: TstsProviderContractVersion,
-  providerKind: "binding",
+  extensionContractVersion: TstsSourceProviderContractVersion,
   displayName: "Tsonic C# NodeJS provider package",
 } satisfies ProviderIdentity;
 
@@ -24,10 +21,13 @@ export interface NodejsProviderDeclarationIdentity {
   readonly providerVersion: string;
   readonly providerModuleId: string;
   readonly moduleSpecifier: string;
-  readonly virtualFileName: string;
+  readonly artifactFileName: string;
   readonly exportName?: string;
+  readonly exportId?: string;
   readonly memberName?: string;
+  readonly memberKey?: ProviderVirtualDeclarationFact["memberKey"];
   readonly memberId?: string;
+  readonly memberStatic?: boolean;
   readonly signatureId?: string;
 }
 
@@ -44,8 +44,9 @@ export function nodejsExportDeclarationIdentity(
     providerVersion: csharpNodejsProviderPackageProviderIdentity.version,
     providerModuleId: moduleSpecifier,
     moduleSpecifier,
-    virtualFileName: csharpNodejsVirtualDeclarationFileName(moduleSpecifier),
+    artifactFileName: csharpNodejsVirtualDeclarationFileName(moduleSpecifier),
     exportName,
+    exportId: `${moduleSpecifier}.${exportName}`,
   };
 }
 
@@ -65,11 +66,14 @@ export function nodejsExportMemberDeclarationIdentity(
   exportName: string,
   memberName: string,
   memberId: string,
+  memberStatic = false,
 ): NodejsProviderDeclarationIdentity {
   return {
     ...nodejsExportDeclarationIdentity(moduleSpecifier, exportName),
     memberName,
+    memberKey: { kind: "property-key", name: memberName },
     memberId,
+    memberStatic,
   };
 }
 
@@ -79,9 +83,16 @@ export function nodejsExportMemberSignatureDeclarationIdentity(
   memberName: string,
   memberId: string,
   signatureId: string,
+  memberStatic = false,
 ): NodejsProviderDeclarationIdentity {
   return {
-    ...nodejsExportMemberDeclarationIdentity(moduleSpecifier, exportName, memberName, memberId),
+    ...nodejsExportMemberDeclarationIdentity(
+      moduleSpecifier,
+      exportName,
+      memberName,
+      memberId,
+      memberStatic,
+    ),
     signatureId,
   };
 }
@@ -92,10 +103,18 @@ export function nodejsProviderDeclarationIdentityKey(declaration: NodejsProvider
     declaration.providerVersion,
     declaration.providerModuleId,
     declaration.moduleSpecifier,
-    declaration.virtualFileName,
     declaration.exportName ?? "",
+    declaration.exportId ?? "",
     declaration.memberName ?? "",
+    declaration.memberKey === undefined
+      ? ""
+      : `${declaration.memberKey.kind}:${declaration.memberKey.name}`,
     declaration.memberId ?? "",
+    declaration.memberStatic === undefined
+      ? ""
+      : declaration.memberStatic
+        ? "static"
+        : "instance",
     declaration.signatureId ?? "",
   ].join("\u0000");
 }

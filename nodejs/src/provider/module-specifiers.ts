@@ -15,11 +15,17 @@ import {
   nodeOsModuleSpecifier,
 } from "./os.js";
 import {
+  nodeHttpModuleSpecifier,
+} from "./http.js";
+import {
   nodePathModuleSpecifier,
 } from "./path.js";
 import {
   nodeProcessModuleSpecifier,
 } from "./process.js";
+import {
+  nodeTimersModuleSpecifier,
+} from "./timers.js";
 import {
   nodeUtilModuleSpecifier,
 } from "./util.js";
@@ -40,12 +46,16 @@ const canonicalBySpecifier = new Map<string, string>([
   [nodeFsModuleSpecifier, nodeFsModuleSpecifier],
   ["fs/promises", nodeFsPromisesModuleSpecifier],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesModuleSpecifier],
+  ["http", nodeHttpModuleSpecifier],
+  [nodeHttpModuleSpecifier, nodeHttpModuleSpecifier],
   ["os", nodeOsModuleSpecifier],
   [nodeOsModuleSpecifier, nodeOsModuleSpecifier],
   ["path", nodePathModuleSpecifier],
   [nodePathModuleSpecifier, nodePathModuleSpecifier],
   ["process", nodeProcessModuleSpecifier],
   [nodeProcessModuleSpecifier, nodeProcessModuleSpecifier],
+  ["timers", nodeTimersModuleSpecifier],
+  [nodeTimersModuleSpecifier, nodeTimersModuleSpecifier],
   ["util", nodeUtilModuleSpecifier],
   [nodeUtilModuleSpecifier, nodeUtilModuleSpecifier],
   ["url", nodeUrlModuleSpecifier],
@@ -54,6 +64,17 @@ const canonicalBySpecifier = new Map<string, string>([
 
 export function nodejsProviderPackageOwnedModuleSpecifiers(): readonly string[] {
   return Array.from(canonicalBySpecifier.keys());
+}
+
+export function nodejsPublicModuleSpecifiers(
+  canonicalModuleSpecifier: string,
+): readonly string[] {
+  return Object.freeze(
+    [...canonicalBySpecifier.entries()]
+      .filter(([, canonical]) => canonical === canonicalModuleSpecifier)
+      .map(([specifier]) => specifier)
+      .sort(),
+  );
 }
 
 export function canonicalNodejsModuleSpecifier(specifier: string | undefined): string | undefined {

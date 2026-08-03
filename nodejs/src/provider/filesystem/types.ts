@@ -1,7 +1,7 @@
 import type {
   ProviderTypeExpression,
-  TargetTypeRef,
 } from "@tsonic/tsts";
+import type { TargetTypeRef } from "@tsonic/target-csharp";
 import type {
   NodejsModuleCallTargetMetadata,
 } from "../members/target-member-metadata.js";
@@ -29,11 +29,8 @@ export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpres
 export const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 export const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 export const dateProviderType = {
-  kind: "target-named",
-  target: "csharp",
-  id: "Tsonic.CSharp.Js.Date",
-  displayName: "Date",
-  sourceShape: { kind: "provider-ref", moduleSpecifier: "global:js", exportName: "Date" },
+  kind: "source-global",
+  name: "Date",
 } satisfies ProviderTypeExpression;
 export const bufferProviderType = {
   kind: "provider-ref",
@@ -55,16 +52,9 @@ export const statsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Stats",
 
 export function promiseProviderType(resultType: ProviderTypeExpression): ProviderTypeExpression {
   return {
-    kind: "target-named",
-    target: "csharp",
-    id: resultType.kind === "void" ? "System.Threading.Tasks.Task" : "System.Threading.Tasks.Task`1",
-    ...(resultType.kind === "void" ? {} : { typeArguments: [resultType] }),
-    sourceShape: {
-      kind: "provider-ref",
-      moduleSpecifier: "global:js",
-      exportName: "Promise",
-      typeArguments: [resultType],
-    },
+    kind: "source-global",
+    name: "Promise",
+    typeArguments: [resultType],
   };
 }
 

@@ -1,7 +1,7 @@
 import type {
   ProviderParameterDeclaration,
-  TargetParameter,
 } from "@tsonic/tsts";
+import type { TargetParameter } from "@tsonic/target-csharp";
 import {
   targetParameter,
 } from "@tsonic/target-csharp";

@@ -7,10 +7,6 @@ import {
   nodeUrlUrlSearchParamsExportName,
 } from "./identities.js";
 import {
-  urlTargetType,
-  urlSearchParamsTargetType,
-} from "./helpers.js";
-import {
   nodeUrlCallTargetMembers,
   nodeUrlUrlClassCallTargetMembers,
   nodeUrlUrlClassPropertyTargetMembers,
@@ -79,11 +75,6 @@ function nodeUrlUrlExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlExportName}`,
     name: nodeUrlUrlExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: urlTargetType.id,
-      displayName: "Tsonic.CSharp.Node.URL",
-    },
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlClassCallTargetMembers()),
       ...nodeUrlUrlClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),
@@ -98,11 +89,6 @@ function nodeUrlUrlSearchParamsExportDeclaration(): ProviderExportDeclaration {
     id: `node:url.${nodeUrlUrlSearchParamsExportName}`,
     name: nodeUrlUrlSearchParamsExportName,
     kind: "class",
-    targetIdentity: {
-      target: "csharp",
-      id: urlSearchParamsTargetType.id,
-      displayName: "Tsonic.CSharp.Node.URLSearchParams",
-    },
     members: [
       ...providerMembersForUrlClassCalls(nodeUrlUrlSearchParamsClassCallTargetMembers()),
       ...nodeUrlUrlSearchParamsClassPropertyTargetMembers().map(providerMemberForUrlClassProperty),

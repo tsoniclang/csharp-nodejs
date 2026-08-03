@@ -28,9 +28,20 @@ public class Timeout : IDisposable
         _callback = callback;
         _delay = delay;
         _period = period;
-        ProcessKeepAlive.Acquire();
-        ActiveHandles[_handleId] = this;
-        _timer = new Timer(_ => Execute(), null, _delay, _period);
+        _timer = new Timer(static state => ((Timeout)state!).Execute(), this, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        try
+        {
+            ProcessKeepAlive.Acquire();
+            ActiveHandles[_handleId] = this;
+            _timer.Change(_delay, _period);
+        }
+        catch
+        {
+            ActiveHandles.TryRemove(_handleId, out _);
+            ProcessKeepAlive.Release();
+            _timer.Dispose();
+            throw;
+        }
     }
 
     private void Execute()
