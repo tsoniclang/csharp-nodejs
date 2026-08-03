@@ -1,6 +1,4 @@
 using Xunit;
-using System;
-using System.Text;
 using System.Threading;
 using System.Runtime.InteropServices;
 
@@ -57,14 +55,12 @@ public class ChildProcessSpawnTests
     [Fact]
     public void spawn_EmitsCloseEvent()
     {
-        // Use a longer-running process to ensure we can attach listener before it exits
-        var command = IsWindows ? "cmd" : "sleep";
-        var args = IsWindows ? new[] { "/c", "timeout", "/t", "1", "/nobreak" } : new[] { "0.1" };
         var closeEmitted = false;
         int? exitCode = null;
         var resetEvent = new ManualResetEventSlim(false);
 
-        var child = child_process.spawn(command, args);
+        using var exitGate = ChildProcessExitGate.Spawn(0);
+        var child = exitGate.Child;
         child.on("close", (int? code, string? signal) =>
         {
             closeEmitted = true;
@@ -72,10 +68,9 @@ public class ChildProcessSpawnTests
             resetEvent.Set();
         });
 
-        // Wait for process to complete (up to 3 seconds)
-        var signaled = resetEvent.Wait(3000);
+        exitGate.Release();
+        var signaled = resetEvent.Wait(5000);
 
-        // close event should have been emitted
         Assert.True(signaled, "Close event was not emitted within timeout");
         Assert.True(closeEmitted);
         Assert.NotNull(exitCode);
