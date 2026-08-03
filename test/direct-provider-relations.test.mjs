@@ -64,8 +64,37 @@ test("Node default imports are provider-owned static containers", () => {
   assert.equal(declaration.kind, "class");
   assert.equal(declaration.id, "node:path.default");
   assert.equal(declaration.name, "NodePathModule");
-  assert.ok(declaration.members.length > 0);
-  assert.ok(declaration.members.every((member) => member.static === true));
+  assert.deepEqual(
+    declaration.members.map((member) => ({
+      id: member.id,
+      kind: member.kind,
+      name: member.name,
+      static: member.static,
+    })),
+    [
+      ["basename", "method"],
+      ["dirname", "method"],
+      ["extname", "method"],
+      ["isAbsolute", "method"],
+      ["join", "method"],
+      ["matchesGlob", "method"],
+      ["normalize", "method"],
+      ["parse", "method"],
+      ["relative", "method"],
+      ["resolve", "method"],
+      ["toNamespacedPath", "method"],
+      ["format", "method"],
+      ["sep", "property"],
+      ["delimiter", "property"],
+      ["posix", "property"],
+      ["win32", "property"],
+    ].map(([name, kind]) => ({
+      id: `node:path.default.${name}`,
+      kind,
+      name,
+      static: true,
+    })),
+  );
   assert.equal(
     declarations.some((candidate) => candidate.kind === "interface" &&
       candidate.name === "NodePathModule"),
@@ -157,11 +186,18 @@ test("Node numeric API parameters preserve the source number carrier", () => {
       relation.source.signatureId ===
         "node:http.Server.listen(System.Double,System.Action)",
   );
-  assert.ok(relations.length > 0);
-  assert.ok(relations.every((relation) =>
-    relation.targetMember.parameters[0]?.type.kind === "source-primitive" &&
-    relation.targetMember.parameters[0].type.name === "float64"
-  ));
+  assert.deepEqual(
+    relations.map((relation) => ({
+      moduleSpecifier: relation.source.moduleSpecifier,
+      targetId: relation.targetMember.id,
+      parameterType: relation.targetMember.parameters[0]?.type,
+    })),
+    ["http", "node:http"].map((moduleSpecifier) => ({
+      moduleSpecifier,
+      targetId: "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.Action)",
+      parameterType: { kind: "source-primitive", name: "float64" },
+    })),
+  );
 });
 
 test("Node provider relations declare every source-number target adapter exactly", () => {
