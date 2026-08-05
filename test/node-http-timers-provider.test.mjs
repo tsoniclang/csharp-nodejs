@@ -153,7 +153,10 @@ test("Node HTTP modules remain unavailable without the installed capability", ()
 function declarationModel(provider, moduleSpecifier) {
   const resolution = provider.resolveModule(moduleSpecifier, {});
   assert.equal(resolution.kind, "virtual");
-  const model = provider.getDeclarationModel(resolution);
+  const model = provider.getDeclarationModel(resolution, {
+    context: {},
+    materialization: { kind: "complete" },
+  });
   assert.equal(model.moduleSpecifier, moduleSpecifier);
   return model;
 }

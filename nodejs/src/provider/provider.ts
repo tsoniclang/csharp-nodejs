@@ -1,6 +1,7 @@
 import type {
   ExtensionDiagnostic,
   ProviderDeclarationModel,
+  ProviderDeclarationRequest,
   ProviderExportDeclaration,
   ProviderImportDeclaration,
   ProviderMemberDeclaration,
@@ -94,6 +95,7 @@ export function createCsharpNodejsProviderPackageBindingProvider():
   SourceDeclarationProvider {
   return {
     identity: csharpNodejsProviderPackageProviderIdentity,
+    declarationMaterialization: "complete",
     ownsModule(specifier: string, _context: ProviderModuleContext): ProviderOwnership {
       return isSupportedNodejsModuleSpecifier(specifier) ? { kind: "owned" } : { kind: "unowned" };
     },
@@ -110,7 +112,10 @@ export function createCsharpNodejsProviderPackageBindingProvider():
         evidence: [{ message: "C# NodeJS provider package supplied virtual module." }],
       };
     },
-    getDeclarationModel(module: ProviderModuleResolution): ProviderDeclarationModel | ExtensionDiagnostic {
+    getDeclarationModel(
+      module: ProviderModuleResolution,
+      _request: ProviderDeclarationRequest,
+    ): ProviderDeclarationModel | ExtensionDiagnostic {
       const canonicalSpecifier = canonicalNodejsModuleSpecifier(module.moduleSpecifier);
       const exports = canonicalSpecifier === undefined ? undefined : canonicalModules.get(canonicalSpecifier);
       const publicExports = canonicalSpecifier === undefined || exports === undefined

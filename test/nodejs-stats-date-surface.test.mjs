@@ -18,7 +18,10 @@ test("Node fs Stats Date declarations use the selected source global", () => {
   const provider = createCsharpNodejsProviderPackageBindingProvider();
   const resolution = provider.resolveModule("node:fs", {});
   assert.equal(resolution.kind, "virtual");
-  const model = provider.getDeclarationModel(resolution);
+  const model = provider.getDeclarationModel(resolution, {
+    context: {},
+    materialization: { kind: "complete" },
+  });
   const stats = model.exports.find((declaration) =>
     declaration.name === "Stats"
   );
