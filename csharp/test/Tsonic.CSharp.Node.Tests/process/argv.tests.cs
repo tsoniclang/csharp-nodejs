@@ -13,6 +13,22 @@ public class argvTests
     }
 
     [Fact]
+    public void argv_ShouldExposeNodeCompatibleExecutableEntryAndUserArgumentSlots()
+    {
+        var commandLineArguments = Environment.GetCommandLineArgs();
+        var argv = process.argv;
+
+        Assert.True(argv.Length >= 2);
+        Assert.Equal(process.execPath, argv[0]);
+        Assert.Equal(
+            commandLineArguments.Length > 0
+                ? Path.GetFullPath(commandLineArguments[0])
+                : process.execPath,
+            argv[1]);
+        Assert.Equal(commandLineArguments.Skip(1), argv.Skip(2));
+    }
+
+    [Fact]
     public void argv0_ShouldReturnString()
     {
         var argv0 = process.argv0;

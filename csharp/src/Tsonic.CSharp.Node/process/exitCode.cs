@@ -13,6 +13,10 @@ public static partial class process
     public static int? exitCode
     {
         get => _exitCode;
-        set => _exitCode = value;
+        set
+        {
+            _exitCode = value;
+            Environment.ExitCode = value ?? 0;
+        }
     }
 }
