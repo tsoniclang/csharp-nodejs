@@ -139,6 +139,9 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
         server.listen(port, host, callback);
         process.exitCode = 2;
       }
+      export function commandArguments(): string[] {
+        return process.argv.slice(2);
+      }
     `,
   });
 
@@ -152,6 +155,10 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
   );
   assert.match(source, /server\.listen\(port, host/u);
   assert.match(source, /Tsonic\.CSharp\.Node\.process\.exitCode = 2/u);
+  assert.match(
+    source,
+    /Tsonic\.CSharp\.Js\.Array\.slice\(Tsonic\.CSharp\.Node\.process\.argv, 2\)/u,
+  );
 });
 
 test("named process imports and writes to readonly default members stay rejected", () => {
