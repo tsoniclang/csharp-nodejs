@@ -16,6 +16,10 @@ export interface NodejsDefaultModuleObjectMetadata {
   readonly className: string;
 }
 
+const writableDefaultModuleObjectProperties: ReadonlySet<string> = new Set([
+  "node:process.exitCode",
+]);
+
 export const nodejsDefaultModuleObjects = [
   { moduleSpecifier: "node:assert", className: "NodeAssertModule" },
   { moduleSpecifier: "node:buffer", className: "NodeBufferModule" },
@@ -104,7 +108,9 @@ function nodejsDefaultModuleObjectMembersForDeclaration(
             name: exportName,
             kind: "property",
             static: true,
-            readonly: true,
+            ...(writableDefaultModuleObjectProperties.has(`${moduleSpecifier}.${exportName}`)
+              ? {}
+              : { readonly: true }),
             type: declaration.type,
           }];
     default:

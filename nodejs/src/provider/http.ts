@@ -30,6 +30,8 @@ import {
   nodejsDefaultModuleObjectExports,
 } from "./module-defaults.js";
 import {
+  bufferProviderType,
+  bufferTargetType,
   promiseProviderType,
   taskTargetType,
 } from "./filesystem/types.js";
@@ -75,6 +77,7 @@ const incomingMessageProviderType = providerRef(nodeHttpIncomingMessageExportNam
 const serverResponseProviderType = providerRef(nodeHttpServerResponseExportName);
 const serverProviderType = providerRef(nodeHttpServerExportName);
 const voidCallbackProviderType = callbackProviderType("node:http.listen.callback", [], voidProviderType);
+const voidListenHostnameCallbackProviderType = callbackProviderType("node:http.listen-hostname.callback", [], voidProviderType);
 const voidCallbackTargetType = csharpDelegateTargetType("System.Action", []);
 const requestListenerProviderType = callbackProviderType("node:http.request-listener", [
   { name: "request", type: incomingMessageProviderType },
@@ -196,6 +199,21 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       declaringType: serverResponseTargetType,
     }),
     nodeHttpClassCall({
+      exportName: nodeHttpServerResponseExportName,
+      memberName: "end",
+      memberId: "node:http.ServerResponse.end",
+      signatureId: "node:http.ServerResponse.end(Tsonic.CSharp.Node.Buffer)",
+      targetMemberId: "Tsonic.CSharp.Node.Http.ServerResponse.end(Tsonic.CSharp.Node.Buffer)",
+      sourceName: "end",
+      targetName: "end",
+      memberKind: "method",
+      providerParameters: [{ name: "chunk", type: bufferProviderType }],
+      providerReturnType: serverResponseProviderType,
+      targetParameters: [targetParameter("chunk", bufferTargetType)],
+      targetReturnType: serverResponseTargetType,
+      declaringType: serverResponseTargetType,
+    }),
+    nodeHttpClassCall({
       exportName: nodeHttpServerExportName,
       memberName: "listen",
       memberId: "node:http.Server.listen",
@@ -207,6 +225,21 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       providerParameters: [numberParameter("port"), { name: "callback", type: voidCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
       targetParameters: [targetParameter("port", doubleTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
+      targetReturnType: serverTargetType,
+      declaringType: serverTargetType,
+    }),
+    nodeHttpClassCall({
+      exportName: nodeHttpServerExportName,
+      memberName: "listen",
+      memberId: "node:http.Server.listen",
+      signatureId: "node:http.Server.listen(System.Double,System.String,System.Action)",
+      targetMemberId: "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.String,System.Action)",
+      sourceName: "listen",
+      targetName: "listen",
+      memberKind: "method",
+      providerParameters: [numberParameter("port"), stringParameter("hostname"), { name: "callback", type: voidListenHostnameCallbackProviderType, optional: true }],
+      providerReturnType: serverProviderType,
+      targetParameters: [targetParameter("port", doubleTargetType), targetParameter("hostname", stringTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,
     }),
