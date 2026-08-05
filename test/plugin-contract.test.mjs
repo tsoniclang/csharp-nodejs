@@ -23,6 +23,6 @@ test("C# Node contributes through the standard target capability hook", () => {
     contributions[0].kind,
     csharpProviderPolicyContributionKind,
   );
-  assert.equal(contributions[0].relations.length, 894);
+  assert.equal(contributions[0].relations.length, 898);
   assert.equal(contributions[0].rejections.length, 182);
 });

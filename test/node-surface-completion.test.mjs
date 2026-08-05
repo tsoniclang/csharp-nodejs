@@ -64,7 +64,7 @@ test("every canonical Node source operation has exact target policy", () => {
     }
   }
 
-  assert.equal(sourceSignatures.size, 258);
+  assert.equal(sourceSignatures.size, 260);
   assert.equal(sourceProperties.size, 87);
   assert.deepEqual([...policySignatures].sort(), [...sourceSignatures].sort());
   assert.deepEqual([...policyProperties].sort(), [...sourceProperties].sort());

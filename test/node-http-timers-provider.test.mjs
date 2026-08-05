@@ -81,6 +81,7 @@ test("Node HTTP and timer modules expose exact provider-owned declarations", () 
     [
       "node:http.ServerResponse.end()",
       "node:http.ServerResponse.end(System.String)",
+      "node:http.ServerResponse.end(Tsonic.CSharp.Node.Buffer)",
     ],
   );
   assert.equal(

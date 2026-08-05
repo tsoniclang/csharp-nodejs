@@ -28,7 +28,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 894);
+  assert.equal(relations.length, 898);
   assert.equal(rejections.length, 182);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
