@@ -153,7 +153,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
     source,
     /response\.end\(Tsonic\.CSharp\.Node\.fs\.readFileSync\(filePath\)\)/u,
   );
-  assert.match(source, /server\.listen\(port, host/u);
+  assert.match(source, /server\.listen\(port, host, callback\);/u);
   assert.match(source, /Tsonic\.CSharp\.Node\.process\.exitCode = 2/u);
   assert.match(
     source,
@@ -172,7 +172,7 @@ test("named process imports and writes to readonly default members stay rejected
   });
   assert.match(
     namedImport.sourceDiagnosticsText,
-    /has no exported member named 'process'|'"node:process"' has no exported member/u,
+    /TS2614: Module '"node:process"' has no exported member 'process'\. Did you mean to use 'import process from "node:process"' instead\?/u,
   );
 
   const readonlyWrite = compileCsharpSource({
