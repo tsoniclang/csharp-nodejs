@@ -30,11 +30,15 @@ import {
   nodejsDefaultModuleObjectExports,
 } from "./module-defaults.js";
 import {
-  bufferProviderType,
-  bufferTargetType,
   promiseProviderType,
   taskTargetType,
 } from "./filesystem/types.js";
+import {
+  nodeBufferProviderType,
+} from "./buffer/provider-types.js";
+import {
+  nodeBufferTargetType,
+} from "./buffer/identities.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
 export const nodeHttpIncomingMessageExportName = "IncomingMessage";
@@ -207,9 +211,9 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       sourceName: "end",
       targetName: "end",
       memberKind: "method",
-      providerParameters: [{ name: "chunk", type: bufferProviderType }],
+      providerParameters: [{ name: "chunk", type: nodeBufferProviderType }],
       providerReturnType: serverResponseProviderType,
-      targetParameters: [targetParameter("chunk", bufferTargetType)],
+      targetParameters: [targetParameter("chunk", nodeBufferTargetType)],
       targetReturnType: serverResponseTargetType,
       declaringType: serverResponseTargetType,
     }),

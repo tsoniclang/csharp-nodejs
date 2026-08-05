@@ -14,11 +14,8 @@ import type {
 export interface NodejsDefaultModuleObjectMetadata {
   readonly moduleSpecifier: string;
   readonly className: string;
+  readonly writableProperties?: readonly string[];
 }
-
-const writableDefaultModuleObjectProperties: ReadonlySet<string> = new Set([
-  "node:process.exitCode",
-]);
 
 export const nodejsDefaultModuleObjects = [
   { moduleSpecifier: "node:assert", className: "NodeAssertModule" },
@@ -29,7 +26,11 @@ export const nodejsDefaultModuleObjects = [
   { moduleSpecifier: "node:http", className: "NodeHttpModule" },
   { moduleSpecifier: "node:os", className: "NodeOsModule" },
   { moduleSpecifier: "node:path", className: "NodePathModule" },
-  { moduleSpecifier: "node:process", className: "NodeProcessModule" },
+  {
+    moduleSpecifier: "node:process",
+    className: "NodeProcessModule",
+    writableProperties: ["exitCode"],
+  },
   { moduleSpecifier: "node:timers", className: "NodeTimersModule" },
   { moduleSpecifier: "node:url", className: "NodeUrlModule" },
   { moduleSpecifier: "node:util", className: "NodeUtilModule" },
@@ -44,7 +45,7 @@ export function nodejsDefaultModuleObjectExports(
     return [];
   }
   const members = exports.flatMap((declaration) =>
-    nodejsDefaultModuleObjectMembersForDeclaration(moduleSpecifier, declaration)
+    nodejsDefaultModuleObjectMembersForDeclaration(metadata, declaration)
   );
   return members.length === 0
     ? []
@@ -84,7 +85,7 @@ export function nodejsDefaultModuleMemberDeclarationIdentities(
 }
 
 function nodejsDefaultModuleObjectMembersForDeclaration(
-  moduleSpecifier: string,
+  metadata: NodejsDefaultModuleObjectMetadata,
   declaration: ProviderExportDeclaration,
 ): readonly ProviderMemberDeclaration[] {
   const exportName = providerExportName(declaration);
@@ -94,7 +95,7 @@ function nodejsDefaultModuleObjectMembersForDeclaration(
   switch (declaration.kind) {
     case "function":
       return [{
-        id: nodejsDefaultModuleMemberIdForDeclaration(moduleSpecifier, declaration),
+        id: nodejsDefaultModuleMemberIdForDeclaration(metadata.moduleSpecifier, declaration),
         name: exportName,
         kind: "method",
         static: true,
@@ -104,11 +105,11 @@ function nodejsDefaultModuleObjectMembersForDeclaration(
       return declaration.type === undefined
         ? []
         : [{
-            id: nodejsDefaultModuleMemberIdForDeclaration(moduleSpecifier, declaration),
+            id: nodejsDefaultModuleMemberIdForDeclaration(metadata.moduleSpecifier, declaration),
             name: exportName,
             kind: "property",
             static: true,
-            ...(writableDefaultModuleObjectProperties.has(`${moduleSpecifier}.${exportName}`)
+            ...(metadata.writableProperties?.includes(exportName) === true
               ? {}
               : { readonly: true }),
             type: declaration.type,
