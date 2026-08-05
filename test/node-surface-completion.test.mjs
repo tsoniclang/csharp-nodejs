@@ -64,7 +64,7 @@ test("every canonical Node source operation has exact target policy", () => {
     }
   }
 
-  assert.equal(sourceSignatures.size, 260);
+  assert.equal(sourceSignatures.size, 261);
   assert.equal(sourceProperties.size, 87);
   assert.deepEqual([...policySignatures].sort(), [...sourceSignatures].sort());
   assert.deepEqual([...policyProperties].sort(), [...sourceProperties].sort());
@@ -123,6 +123,7 @@ test("Node provider families compile together through selected source evidence",
     capabilities: [createTsonicPlugin()],
     sourceText: `
       import fsPromises from "node:fs/promises";
+      import { mkdtempSync } from "node:fs";
       import { Buffer } from "node:buffer";
       import process from "node:process";
       import { URLSearchParams } from "node:url";
@@ -132,12 +133,13 @@ test("Node provider families compile together through selected source evidence",
         key: string,
       ): Promise<string> {
         const bytes = Buffer.from("x", "utf8");
+        const tempDir = mkdtempSync(path + "-");
         await fsPromises.writeFile(path, bytes);
         const text = await fsPromises.readFile(path, "utf8");
         const params = new URLSearchParams("a=1");
         params.append("b", "2");
         return (process.env[key] ?? text)
-          + ":" + params.size + ":" + bytes.length;
+          + ":" + params.size + ":" + bytes.length + ":" + tempDir;
       }
     `,
   });
@@ -155,6 +157,7 @@ test("Node provider families compile together through selected source evidence",
     source,
     /Tsonic\.CSharp\.Node\.process\.env\[key\] \?\? text/u,
   );
+  assert.match(source, /Tsonic\.CSharp\.Node\.fs\.mkdtempSync/u);
   assert.match(source, /new Tsonic\.CSharp\.Node\.URLSearchParams/u);
 });
 

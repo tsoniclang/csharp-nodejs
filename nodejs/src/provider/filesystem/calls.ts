@@ -149,6 +149,9 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("path", stringTargetType),
       targetParameter("recursive", boolTargetType, { optional: true }),
     ], targetReturnType: voidTargetType }),
+    fsCall({ exportName: "mkdtempSync", signatureId: "node:fs.mkdtempSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.mkdtempSync(System.String)", sourceName: "mkdtempSync", targetName: "mkdtempSync", providerParameters: [stringParameter("prefix")], providerReturnType: stringProviderType, targetParameters: [
+      targetParameter("prefix", stringTargetType),
+    ], targetReturnType: stringTargetType }),
     fsCall({ exportName: "openSync", signatureId: "node:fs.openSync(System.String,System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs.openSync(System.String,System.String,System.Int32)", sourceName: "openSync", targetName: "openSync", providerParameters: [stringParameter("path"), stringParameter("flags"), optionalNumberParameter("mode")], providerReturnType: numberProviderType, targetParameters: [
       targetParameter("path", stringTargetType),
       targetParameter("flags", stringTargetType),
