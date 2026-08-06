@@ -14,6 +14,7 @@ public class exitCodeTests
         process.exitCode = null;
 
         Assert.Null(process.exitCode);
+        Assert.Equal(0, Environment.ExitCode);
 
         // Restore
         process.exitCode = original;
@@ -27,6 +28,7 @@ public class exitCodeTests
         process.exitCode = 42;
 
         Assert.Equal(42, process.exitCode);
+        Assert.Equal(42, Environment.ExitCode);
 
         // Restore
         process.exitCode = original;
@@ -40,6 +42,7 @@ public class exitCodeTests
         process.exitCode = 0;
 
         Assert.Equal(0, process.exitCode);
+        Assert.Equal(0, Environment.ExitCode);
 
         // Restore
         process.exitCode = original;
@@ -53,6 +56,7 @@ public class exitCodeTests
         process.exitCode = -1;
 
         Assert.Equal(-1, process.exitCode);
+        Assert.Equal(-1, Environment.ExitCode);
 
         // Restore
         process.exitCode = original;

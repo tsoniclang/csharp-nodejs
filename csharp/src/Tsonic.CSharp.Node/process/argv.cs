@@ -2,9 +2,10 @@ namespace Tsonic.CSharp.Node;
 
 public static partial class process
 {
-    private static string[] _argv = Environment.GetCommandLineArgs();
-    private static string _argv0 = Environment.GetCommandLineArgs().Length > 0
-        ? Environment.GetCommandLineArgs()[0]
+    private static readonly string[] InitialCommandLineArguments = Environment.GetCommandLineArgs();
+    private static string[] _argv = CreateArgv(InitialCommandLineArguments);
+    private static string _argv0 = InitialCommandLineArguments.Length > 0
+        ? InitialCommandLineArguments[0]
         : string.Empty;
 
     /// <summary>
@@ -26,5 +27,24 @@ public static partial class process
     {
         get => _argv0;
         set => _argv0 = value ?? string.Empty;
+    }
+
+    private static string[] CreateArgv(string[] commandLineArguments)
+    {
+        var result = new string[Math.Max(2, commandLineArguments.Length + 1)];
+        result[0] = execPath;
+        result[1] = commandLineArguments.Length > 0
+            ? Path.GetFullPath(commandLineArguments[0])
+            : execPath;
+        if (commandLineArguments.Length > 1)
+        {
+            Array.Copy(
+                commandLineArguments,
+                1,
+                result,
+                2,
+                commandLineArguments.Length - 1);
+        }
+        return result;
     }
 }
