@@ -28,7 +28,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 898);
+  assert.equal(relations.length, 902);
   assert.equal(rejections.length, 182);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -51,6 +51,59 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
     readFile[0].diagnostic.extensionCode,
     "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED",
   );
+});
+
+test("mkdtempSync has exact named and default relations for both public fs specifiers", () => {
+  const targetMemberId =
+    "Tsonic.CSharp.Node.fs.mkdtempSync(System.String)";
+  const relations = nodejsProviderTargetRelations()
+    .filter((relation) =>
+      relation.kind === "signature" &&
+      relation.source.signatureId === "node:fs.mkdtempSync(System.String)"
+    )
+    .map((relation) => ({
+      moduleSpecifier: relation.source.moduleSpecifier,
+      exportName: relation.source.exportName,
+      memberId: relation.source.memberId ?? null,
+      memberStatic: relation.source.memberStatic ?? null,
+      targetMemberId: relation.targetMember.id,
+    }))
+    .sort((left, right) =>
+      `${left.moduleSpecifier}|${left.exportName}`.localeCompare(
+        `${right.moduleSpecifier}|${right.exportName}`,
+      )
+    );
+
+  assert.deepEqual(relations, [
+    {
+      moduleSpecifier: "fs",
+      exportName: "default",
+      memberId: "node:fs.default.mkdtempSync",
+      memberStatic: true,
+      targetMemberId,
+    },
+    {
+      moduleSpecifier: "fs",
+      exportName: "mkdtempSync",
+      memberId: null,
+      memberStatic: null,
+      targetMemberId,
+    },
+    {
+      moduleSpecifier: "node:fs",
+      exportName: "default",
+      memberId: "node:fs.default.mkdtempSync",
+      memberStatic: true,
+      targetMemberId,
+    },
+    {
+      moduleSpecifier: "node:fs",
+      exportName: "mkdtempSync",
+      memberId: null,
+      memberStatic: null,
+      targetMemberId,
+    },
+  ]);
 });
 
 test("Node default imports are provider-owned static containers", () => {
