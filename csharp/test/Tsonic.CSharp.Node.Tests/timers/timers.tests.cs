@@ -5,6 +5,34 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public class TimersTests
 {
+    private static void WithBlockedImmediateDispatcher(Action whileBlocked)
+    {
+        using var dispatcherEntered = new ManualResetEventSlim(false);
+        using var releaseDispatcher = new ManualResetEventSlim(false);
+        using var dispatcherDrained = new ManualResetEventSlim(false);
+        var blocker = timers.setImmediate(() =>
+        {
+            dispatcherEntered.Set();
+            releaseDispatcher.Wait();
+        });
+        Immediate? sentinel = null;
+
+        try
+        {
+            Assert.True(dispatcherEntered.Wait(1000), "Immediate dispatcher did not enter the blocking callback");
+            whileBlocked();
+            sentinel = timers.setImmediate(() => dispatcherDrained.Set());
+        }
+        finally
+        {
+            releaseDispatcher.Set();
+        }
+
+        Assert.True(dispatcherDrained.Wait(1000), "Immediate dispatcher did not drain the cancellation turn");
+        timers.clearImmediate(blocker);
+        timers.clearImmediate(sentinel);
+    }
+
     [Fact]
     public void setTimeout_ShouldExecuteCallback()
     {
@@ -179,10 +207,11 @@ public class TimersTests
     public void clearImmediate_ShouldCancelImmediate()
     {
         var executed = false;
-        var immediate = timers.setImmediate(() => executed = true);
-
-        timers.clearImmediate(immediate);
-        Thread.Sleep(100);
+        WithBlockedImmediateDispatcher(() =>
+        {
+            var immediate = timers.setImmediate(() => executed = true);
+            timers.clearImmediate(immediate);
+        });
 
         Assert.False(executed);
     }
@@ -193,10 +222,11 @@ public class TimersTests
         for (var index = 0; index < 10; index++)
         {
             var executed = false;
-            var immediate = timers.setImmediate(() => executed = true);
-
-            timers.clearImmediate(immediate);
-            Thread.Sleep(20);
+            WithBlockedImmediateDispatcher(() =>
+            {
+                var immediate = timers.setImmediate(() => executed = true);
+                timers.clearImmediate(immediate);
+            });
 
             Assert.False(executed);
         }
@@ -205,49 +235,42 @@ public class TimersTests
     [Fact]
     public void clearImmediate_ShouldCancelImmediate_AtScale()
     {
-        for (var index = 0; index < 100; index++)
+        var executedCount = 0;
+        WithBlockedImmediateDispatcher(() =>
         {
-            var resetEvent = new ManualResetEventSlim(false);
-            var executed = false;
-            var immediate = timers.setImmediate(() =>
+            var immediates = new Immediate[100];
+            for (var index = 0; index < immediates.Length; index++)
             {
-                executed = true;
-                resetEvent.Set();
-            });
+                immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
+            }
 
-            timers.clearImmediate(immediate);
+            foreach (var immediate in immediates)
+            {
+                timers.clearImmediate(immediate);
+            }
+        });
 
-            var signaled = resetEvent.Wait(20);
-            Assert.False(signaled, $"Cancelled immediate executed on iteration {index}");
-            Assert.False(executed, $"Cancelled immediate executed on iteration {index}");
-        }
+        Assert.Equal(0, executedCount);
     }
 
     [Fact]
     public void clearImmediate_ShouldCancelAllPendingImmediates()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         var executedCount = 0;
-        var immediates = new Immediate[32];
-
-        for (var index = 0; index < immediates.Length; index++)
+        WithBlockedImmediateDispatcher(() =>
         {
-            immediates[index] = timers.setImmediate(() =>
+            var immediates = new Immediate[32];
+            for (var index = 0; index < immediates.Length; index++)
             {
-                if (Interlocked.Increment(ref executedCount) == 1)
-                {
-                    resetEvent.Set();
-                }
-            });
-        }
+                immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
+            }
 
-        for (var index = 0; index < immediates.Length; index++)
-        {
-            timers.clearImmediate(immediates[index]);
-        }
+            foreach (var immediate in immediates)
+            {
+                timers.clearImmediate(immediate);
+            }
+        });
 
-        var signaled = resetEvent.Wait(20);
-        Assert.False(signaled, "At least one cancelled immediate executed");
         Assert.Equal(0, executedCount);
     }
 

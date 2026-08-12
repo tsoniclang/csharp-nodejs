@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Tsonic.CSharp.Js;
@@ -11,7 +12,6 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Immediate : IDisposable
 {
-    private const int SchedulerQuietPeriodMilliseconds = 5;
     private const int StateScheduled = 0;
     private const int StateRunning = 1;
     private const int StateCompleted = 2;
@@ -19,15 +19,12 @@ public class Immediate : IDisposable
 
     private static int _nextHandleId = 0;
     private static readonly ConcurrentDictionary<int, Immediate> ActiveHandles = new();
-    private static readonly ConcurrentQueue<Immediate> PendingHandles = new();
-    private static readonly ConcurrentQueue<Immediate> ReadyHandles = new();
-    private static int _dispatchScheduled = 0;
-    private static long _apiEpoch = 0;
-    private static long _lastApiOperationTick = Environment.TickCount64;
+    private static readonly object SchedulerSync = new();
+    private static Queue<Immediate> _pendingHandles = new();
+    private static bool _dispatchScheduled;
 
     private readonly int _handleId;
     private readonly Action _callback;
-    private readonly CancellationTokenSource _cancellation = new();
     private int _state = StateScheduled;
     private int _cleanupState = 0;
     private bool _isRef = true;
@@ -38,97 +35,54 @@ public class Immediate : IDisposable
         _callback = callback;
         ProcessKeepAlive.Acquire();
         ActiveHandles[_handleId] = this;
-        PendingHandles.Enqueue(this);
-        RecordApiOperation();
-        ScheduleDispatch();
+        EnqueueForDispatch(this);
     }
 
-    private static void RecordApiOperation()
+    private static void EnqueueForDispatch(Immediate handle)
     {
-        Interlocked.Exchange(ref _lastApiOperationTick, Environment.TickCount64);
-        Interlocked.Increment(ref _apiEpoch);
-    }
-
-    private static void ScheduleDispatch()
-    {
-        if (Interlocked.CompareExchange(ref _dispatchScheduled, 1, 0) != 0)
+        var startDispatcher = false;
+        lock (SchedulerSync)
         {
-            return;
+            _pendingHandles.Enqueue(handle);
+            if (!_dispatchScheduled)
+            {
+                _dispatchScheduled = true;
+                startDispatcher = true;
+            }
         }
 
-        _ = BackgroundDispatch.RunAsync(DispatchPendingAsync, "Tsonic.CSharp.Node.Immediate.dispatch");
+        if (startDispatcher)
+        {
+            _ = BackgroundDispatch.RunAsync(DispatchPendingAsync, "Tsonic.CSharp.Node.Immediate.dispatch");
+        }
     }
 
     private static async Task DispatchPendingAsync()
     {
-        await WaitForQuietApiTurnsAsync();
+        await Task.Yield();
 
         while (true)
         {
-            var pendingCount = PendingHandles.Count;
-            for (var index = 0; index < pendingCount; index++)
+            Queue<Immediate> currentTurn;
+            lock (SchedulerSync)
             {
-                if (!PendingHandles.TryDequeue(out var handle))
+                if (_pendingHandles.Count == 0)
                 {
-                    break;
+                    _dispatchScheduled = false;
+                    return;
                 }
 
-                ReadyHandles.Enqueue(handle);
+                currentTurn = _pendingHandles;
+                _pendingHandles = new Queue<Immediate>();
             }
 
-            await WaitForQuietApiTurnsAsync();
-
-            var readyCount = ReadyHandles.Count;
-            for (var index = 0; index < readyCount; index++)
+            while (currentTurn.TryDequeue(out var handle))
             {
-                if (!ReadyHandles.TryDequeue(out var handle))
-                {
-                    break;
-                }
-
                 handle.TryExecute();
             }
 
-            if (PendingHandles.IsEmpty && ReadyHandles.IsEmpty)
-            {
-                Interlocked.Exchange(ref _dispatchScheduled, 0);
-                if (PendingHandles.IsEmpty && ReadyHandles.IsEmpty)
-                {
-                    return;
-                }
-
-                if (Interlocked.CompareExchange(ref _dispatchScheduled, 1, 0) != 0)
-                {
-                    return;
-                }
-            }
-
-            await YieldToNextTurnAsync();
+            await Task.Yield();
         }
-    }
-
-    private static async Task WaitForQuietApiTurnsAsync()
-    {
-        var observedEpoch = Volatile.Read(ref _apiEpoch);
-        var stableTurns = 0;
-        while (stableTurns < 2 || Environment.TickCount64 - Volatile.Read(ref _lastApiOperationTick) < SchedulerQuietPeriodMilliseconds)
-        {
-            await YieldToNextTurnAsync();
-            var currentEpoch = Volatile.Read(ref _apiEpoch);
-            if (currentEpoch == observedEpoch)
-            {
-                stableTurns++;
-                continue;
-            }
-
-            observedEpoch = currentEpoch;
-            stableTurns = 0;
-        }
-    }
-
-    private static async Task YieldToNextTurnAsync()
-    {
-        await Task.Yield();
     }
 
     private void TryExecute()
@@ -142,12 +96,6 @@ public class Immediate : IDisposable
 
             if (Interlocked.CompareExchange(ref _state, StateRunning, StateScheduled) != StateScheduled)
             {
-                return;
-            }
-
-            if (_cancellation.IsCancellationRequested)
-            {
-                Interlocked.Exchange(ref _state, StateCancelled);
                 return;
             }
 
@@ -204,10 +152,8 @@ public class Immediate : IDisposable
     /// </summary>
     public void Dispose()
     {
-        RecordApiOperation();
         if (Interlocked.CompareExchange(ref _state, StateCancelled, StateScheduled) == StateScheduled)
         {
-            _cancellation.Cancel();
             Cleanup();
         }
         else if (Volatile.Read(ref _state) is StateCompleted or StateCancelled)
@@ -228,7 +174,6 @@ public class Immediate : IDisposable
         {
             ProcessKeepAlive.Release();
         }
-        _cancellation.Dispose();
         GC.SuppressFinalize(this);
     }
 }
