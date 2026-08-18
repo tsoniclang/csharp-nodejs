@@ -1,6 +1,6 @@
 import type {
   CsharpTargetMember,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodeAssertCallTargetMembers,
   nodeAssertModuleSpecifier,

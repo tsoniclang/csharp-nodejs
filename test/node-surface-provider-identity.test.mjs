@@ -3,7 +3,7 @@ import test from "node:test";
 
 import {
   createCsharpProviderRelationCatalog,
-} from "../../tsonic-csharp/dist/provider/target-relations/index.js";
+} from "../../tsonic-csharp/dist/public/provider.js";
 import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";

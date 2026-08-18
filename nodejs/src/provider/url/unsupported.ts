@@ -8,7 +8,7 @@ import {
   objectProviderType,
   stringProviderType,
   urlProviderType,
-} from "./helpers.js";
+} from "./model.js";
 import type {
   NodeUrlUnsupportedTargetIdentity,
 } from "./types.js";

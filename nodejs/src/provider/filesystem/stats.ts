@@ -4,7 +4,7 @@ import type {
 } from "@tsonic/tsts";
 import type {
   CsharpTargetMember,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import type {
   NodejsClassCallTargetMember,
   NodejsClassPropertyTargetMember,

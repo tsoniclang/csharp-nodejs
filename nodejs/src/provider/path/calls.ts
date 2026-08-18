@@ -1,10 +1,10 @@
 import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp";
+import type { TargetMember } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodejsModuleCallTargetMetadata,
 } from "../members/target-member-metadata.js";

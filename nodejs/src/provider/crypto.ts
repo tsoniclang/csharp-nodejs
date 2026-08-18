@@ -7,14 +7,14 @@ import type {
 import type {
   TargetMember,
   TargetTypeRef,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpTargetNamedType,
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodeBufferExportName,
   nodeBufferModuleSpecifier,

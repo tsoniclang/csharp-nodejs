@@ -7,7 +7,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   csharpProviderVersion,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 
 export const csharpNodejsProviderPackageProviderIdentity = {
   id: "tsonic.csharp.provider-package.nodejs",

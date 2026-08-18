@@ -1,8 +1,8 @@
 import type {
   TargetCapabilityContext,
-  TargetRuntimeContributions,
   TsonicTargetCapabilityPlugin,
-} from "@tsonic/target-api";
+} from "@tsonic/target-api/provider";
+import type { TargetRuntimeContributions } from "@tsonic/target-api/artifacts";
 import {
   createCsharpNodejsProviderPackageExtension,
   createCsharpNodejsTargetContributions,

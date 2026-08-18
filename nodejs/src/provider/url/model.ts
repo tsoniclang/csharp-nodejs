@@ -4,14 +4,14 @@ import type {
 } from "@tsonic/tsts";
 import {
   csharpNullableTargetType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   csharpVoidTargetType,
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 
 export const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;

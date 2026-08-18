@@ -2,7 +2,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp";
+import type { TargetMember } from "@tsonic/target-csharp/provider";
 
 export interface NodeUrlCallTargetMember {
   readonly exportName: string;
