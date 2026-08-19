@@ -1,51 +1,14 @@
-import type {
-  ProviderExportDeclaration,
-} from "@tsonic/tsts";
-import {
-  nodeFsCallExportDeclarations,
-} from "./calls.js";
-import {
-  nodeFsStatsExportDeclaration,
-} from "./stats.js";
-import {
-  nodeFsPromisesExportDeclarations,
-} from "./promises.js";
-import {
-  nodeFsModuleSpecifier,
-  nodeFsPromisesModuleSpecifier,
-} from "./identities.js";
-import {
-  nodejsDefaultModuleObjectExports,
-} from "../module-defaults.js";
-
-export {
-  nodeFsModuleSpecifier,
-  nodeFsPromisesModuleSpecifier,
-  nodeFsStatsExportName,
-  nodeFsExistsSyncExportName,
-  nodeFsExistsSyncSignatureId,
-  nodeFsStatSyncExportName,
-  nodeFsStatSyncSignatureId,
-  nodeFsStatsSizeMemberId,
-  nodeFsStatsAtimeMemberId,
-  nodeFsStatsAtimeMsMemberId,
-  nodeFsStatsMtimeMemberId,
-  nodeFsStatsMtimeMsMemberId,
-  nodeFsStatsCtimeMemberId,
-  nodeFsStatsCtimeMsMemberId,
-  nodeFsStatsBirthtimeMemberId,
-  nodeFsStatsBirthtimeMsMemberId,
-  nodeFsStatsIsFileMemberId,
-  nodeFsStatsIsFileSignatureId,
-  nodeFsStatsIsDirectoryMemberId,
-  nodeFsStatsIsDirectorySignatureId,
-} from "./identities.js";
 export {
   getNodeFsCallTargetMember,
   getNodeFsExistsSyncTargetMember,
   nodeFsCallTargetMembers,
   nodeFsUnsupportedTargetIdentities,
 } from "./calls.js";
+export * from "./identities.js";
+export {
+  nodeFsExports,
+  nodeFsPromisesExports,
+} from "./package.js";
 export {
   getNodeFsPromisesCallTargetMember,
   nodeFsPromisesCallTargetMembers,
@@ -54,22 +17,3 @@ export {
   nodeFsClassCallTargetMembers,
   nodeFsClassPropertyTargetMembers,
 } from "./stats.js";
-
-export function nodeFsExports(): readonly ProviderExportDeclaration[] {
-  const exports = [
-    nodeFsStatsExportDeclaration(),
-    ...nodeFsCallExportDeclarations(),
-  ];
-  return [
-    ...exports,
-    ...nodejsDefaultModuleObjectExports(nodeFsModuleSpecifier, exports),
-  ];
-}
-
-export function nodeFsPromisesExports(): readonly ProviderExportDeclaration[] {
-  const exports = nodeFsPromisesExportDeclarations();
-  return [
-    ...exports,
-    ...nodejsDefaultModuleObjectExports(nodeFsPromisesModuleSpecifier, exports),
-  ];
-}

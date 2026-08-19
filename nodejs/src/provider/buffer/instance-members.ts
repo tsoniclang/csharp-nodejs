@@ -1,9 +1,9 @@
 import type {
   CsharpTargetMember,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodeBufferCompareInstanceExportName,
   nodeBufferCompareInstanceTargetMemberId,
@@ -40,7 +40,7 @@ import {
   nodeBufferObjectTargetType,
   nodeBufferStringTargetType,
   nodeBufferToStringEndTargetType,
-} from "./helpers.js";
+} from "./target-types.js";
 
 export function getNodeBufferLengthTargetMember(): CsharpTargetMember {
   return {

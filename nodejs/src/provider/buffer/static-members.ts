@@ -1,9 +1,9 @@
 import type {
   CsharpTargetMember,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodeBufferAllocExportName,
   nodeBufferAllocTargetMemberId,
@@ -48,7 +48,7 @@ import {
   nodeBufferNullableIntTargetType,
   nodeBufferObjectTargetType,
   nodeBufferStringTargetType,
-} from "./helpers.js";
+} from "./target-types.js";
 
 export function getNodeBufferFromStringTargetMember(): CsharpTargetMember {
   return {

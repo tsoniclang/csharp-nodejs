@@ -9,7 +9,7 @@ import {
   csharpQualifiedTypeRenderShape,
   csharpTargetNamedType,
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   getNodejsProviderExportSignatureDeclarationMetadata,
   nodejsProviderExportSignatureDeclarationMetadataIndex,

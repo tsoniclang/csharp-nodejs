@@ -9,7 +9,7 @@ import {
   csharpSourcePrimitiveTargetType,
   csharpTargetNamedType,
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodejsModuleCallTargetMetadata,
 } from "./members/target-member-metadata.js";

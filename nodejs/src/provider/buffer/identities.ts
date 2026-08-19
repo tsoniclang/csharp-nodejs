@@ -1,7 +1,7 @@
 import {
   csharpQualifiedTypeRenderShape,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 
 export const nodeBufferModuleSpecifier = "node:buffer";
 export const nodeBufferExportName = "Buffer";

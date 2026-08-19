@@ -1,7 +1,7 @@
 import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetTypeRef } from "@tsonic/target-csharp";
+import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
 import type {
   NodejsModuleCallTargetMetadata,
 } from "../members/target-member-metadata.js";
@@ -11,13 +11,13 @@ import {
   csharpStringTargetType,
   csharpQualifiedTypeRenderShape,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   csharpTaskTargetType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   csharpJsDateTargetType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodeBufferExportName,
   nodeBufferModuleSpecifier,

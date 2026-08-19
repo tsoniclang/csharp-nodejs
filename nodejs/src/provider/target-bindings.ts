@@ -1,10 +1,10 @@
 import {
   csharpQualifiedTypeRenderShape,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import type {
   CsharpTargetBindingFact,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 
 export interface NodejsProviderTargetTypeRow {
   readonly moduleSpecifier: string;

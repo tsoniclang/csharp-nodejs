@@ -3,7 +3,7 @@ import test from "node:test";
 import { createTsonicPlugin } from "../dist/index.js";
 import {
   csharpProviderPolicyContributionKind,
-} from "../../tsonic-csharp/dist/index.js";
+} from "../../tsonic-csharp/dist/public/provider.js";
 
 test("C# Node contributes through the standard target capability hook", () => {
   const plugin = createTsonicPlugin();

@@ -10,7 +10,7 @@ import {
   csharpTargetNamedType,
   csharpVoidTargetType,
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   getNodejsProviderExportSignatureDeclarationMetadata,
   nodejsProviderExportSignatureDeclarationMetadataIndex,

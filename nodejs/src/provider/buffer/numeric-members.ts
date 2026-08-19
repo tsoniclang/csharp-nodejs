@@ -2,13 +2,13 @@ import type {
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
 } from "@tsonic/tsts";
-import type { TargetTypeRef } from "@tsonic/target-csharp";
+import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
 import type {
   CsharpTargetMember,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import type {
   NodejsClassCallTargetMember,
 } from "../members/types.js";
@@ -23,7 +23,7 @@ import {
   nodeBufferShortTargetType,
   nodeBufferUintTargetType,
   nodeBufferUshortTargetType,
-} from "./helpers.js";
+} from "./target-types.js";
 import {
   nodeBufferNumberProviderType,
 } from "./provider-types.js";

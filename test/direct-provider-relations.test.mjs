@@ -4,10 +4,10 @@ import {
   assertCsharpProviderPolicyIsNonContradictory,
   createCsharpProviderRejectionCatalog,
   createCsharpProviderRelationCatalog,
-} from "../../tsonic-csharp/dist/provider/target-relations/index.js";
+} from "../../tsonic-csharp/dist/public/provider.js";
 import {
   getCsharpNullableElementTargetType,
-} from "../../tsonic-csharp/dist/index.js";
+} from "../../tsonic-csharp/dist/public/provider.js";
 import {
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";

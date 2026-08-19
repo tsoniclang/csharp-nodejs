@@ -6,7 +6,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodejsClassCallTargetMetadata,
   nodejsClassPropertyTargetMetadata,

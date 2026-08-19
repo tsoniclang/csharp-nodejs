@@ -25,8 +25,9 @@ cat > "$CANONICAL_TSCONFIG" <<JSON
   "compilerOptions": {
     "paths": {
       "@tsonic/tsts": ["$TSONIC_ROOT/packages/tsts/dist/src/index.d.ts"],
-      "@tsonic/target-api": ["$TSONIC_ROOT/packages/target-api/dist/index.d.ts"],
-      "@tsonic/target-csharp": ["$CSHARP_TARGET_ROOT/dist/index.d.ts"]
+      "@tsonic/target-api": ["$TSONIC_ROOT/packages/target-api/dist/public/index.d.ts"],
+      "@tsonic/target-api/*": ["$TSONIC_ROOT/packages/target-api/dist/public/*.d.ts"],
+      "@tsonic/target-csharp/provider": ["$CSHARP_TARGET_ROOT/dist/public/provider.d.ts"]
     }
   },
   "references": []

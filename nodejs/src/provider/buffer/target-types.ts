@@ -3,7 +3,7 @@ import {
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 
 export const nodeBufferStringTargetType = csharpStringTargetType();
 export const nodeBufferIntTargetType = csharpSourcePrimitiveTargetType("int32");

@@ -1,10 +1,10 @@
 import type {
   ProviderParameterDeclaration,
 } from "@tsonic/tsts";
-import type { TargetParameter } from "@tsonic/target-csharp";
+import type { TargetParameter } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   nodejsClassCallTargetMetadata,
   nodejsClassPropertyTargetMetadata,
@@ -75,7 +75,7 @@ import {
   urlTargetType,
   voidProviderType,
   voidTargetType,
-} from "./helpers.js";
+} from "./model.js";
 import type {
   NodeUrlCallTargetMember,
   NodeUrlClassCallTargetMember,

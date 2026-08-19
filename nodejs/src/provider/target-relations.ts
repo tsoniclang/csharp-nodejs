@@ -7,7 +7,7 @@ import {
   csharpSourcePrimitiveTargetType,
   csharpTargetNamedType,
   getCsharpNullableElementTargetType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import type {
   CsharpProviderArgumentAdapter,
   CsharpProviderParameterRelation,
@@ -19,7 +19,7 @@ import type {
   CsharpTargetBindingFact,
   CsharpTargetMember,
   TargetTypeRef,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   csharpNodejsProviderPackageProviderIdentity,
 } from "./identity.js";

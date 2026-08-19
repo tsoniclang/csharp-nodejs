@@ -3,13 +3,13 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp";
+import type { TargetMember } from "@tsonic/target-csharp/provider";
 import {
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpQualifiedTypeRenderShape,
   csharpTargetNamedType,
-} from "@tsonic/target-csharp";
+} from "@tsonic/target-csharp/provider";
 import {
   getNodejsProviderExportDeclarationTargetMember,
   getNodejsProviderExportSignatureDeclarationTargetMember,
