@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   compileCsharpSource,
+  checkCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
@@ -136,7 +137,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
 });
 
 test("Node HTTP modules remain unavailable without the installed capability", () => {
-  const compiled = compileCsharpSource({
+  const checked = checkCsharpSource({
     surface: "js",
     sourceText: `
       import { createServer } from "node:http";
@@ -145,10 +146,10 @@ test("Node HTTP modules remain unavailable without the installed capability", ()
   });
 
   assert.match(
-    compiled.sourceDiagnosticsText,
+    checked.sourceDiagnosticsText,
     /Cannot find (?:module|name) 'node:http'/u,
   );
-  assert.equal(compiled.artifacts.size, 0);
+  assert.deepEqual(checked.extensionDiagnostics, []);
 });
 
 function declarationModel(provider, moduleSpecifier) {
