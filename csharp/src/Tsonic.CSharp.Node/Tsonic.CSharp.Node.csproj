@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../../csharp-runtime/src/Tsonic.CSharp.Runtime/Tsonic.CSharp.Runtime.csproj" />
     <ProjectReference Include="../../../../csharp-js/src/Tsonic.CSharp.Js/Tsonic.CSharp.Js.csproj" />
   </ItemGroup>
 

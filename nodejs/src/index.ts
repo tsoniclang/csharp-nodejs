@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
 import type {
   TargetCapabilityContext,
   TsonicTargetCapabilityPlugin,
@@ -8,6 +10,9 @@ import {
   createCsharpNodejsTargetContributions,
   nodejsProviderPackageModuleOwnership,
 } from "./provider/index.js";
+
+const require = createRequire(import.meta.url);
+const csharpJsPackageRoot = dirname(require.resolve("@tsonic/csharp-js/package.json"));
 
 export {
   createCsharpNodejsProviderPackageBindingProvider,
@@ -37,6 +42,13 @@ export function createTsonicPlugin(): TsonicTargetCapabilityPlugin {
             include: "Tsonic.CSharp.Node",
             attributes: {
               HintPath: new URL("../runtimes/net10.0/Tsonic.CSharp.Node.dll", import.meta.url).pathname,
+            },
+          },
+          {
+            kind: "assembly",
+            include: "Tsonic.CSharp.Js",
+            attributes: {
+              HintPath: resolve(csharpJsPackageRoot, "runtimes/net10.0/Tsonic.CSharp.Js.dll"),
             },
           },
           {

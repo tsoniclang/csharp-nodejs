@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Tsonic.CSharp.Js;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -24,7 +25,7 @@ public static partial class util
         return obj switch
         {
             null => "null",
-            JSUndefined => "undefined",
+            Undefined => "undefined",
             string text => $"'{text}'",
             bool value => value ? "true" : "false",
             char value => $"'{value}'",
@@ -42,7 +43,7 @@ public static partial class util
             JSObject value => inspectObject(value.entries()),
             TsObject value => inspectObject(value.entries()),
             TsArray value => inspectArray(value.entries(), value.length),
-            IJSArray value => inspectJsArray(value),
+            IDynamicArray value => inspectDynamicArray(value),
             _ => throw UnsupportedOpenCarrierOperation("node:util.inspect")
         };
     }
@@ -104,12 +105,12 @@ public static partial class util
         return $"[ {string.Join(", ", slots)} ]";
     }
 
-    private static string inspectJsArray(IJSArray array)
+    private static string inspectDynamicArray(IDynamicArray array)
     {
-        var slots = new string[array.length];
+        var slots = new string[array.Length];
         for (var index = 0; index < slots.Length; index++)
         {
-            slots[index] = array.tryGetAtObject(index, out var value) ? inspectClosedCarrier(value) : "<empty>";
+            slots[index] = array.TryGetAt(index, out var value) ? inspectClosedCarrier(value) : "<empty>";
         }
         return $"[ {string.Join(", ", slots)} ]";
     }

@@ -29,10 +29,13 @@
     "@tsonic/tsts": "0.0.0"
   },
   "dependencies": {
-    "@tsonic/csharp-js": "0.0.1"
+    "@tsonic/csharp-js": "0.0.1",
+    "@tsonic/csharp-runtime": "0.0.1"
   },
   "devDependencies": {
+    "@types/node": "25.9.1",
     "@tsonic/csharp-js": "file:../csharp-js",
+    "@tsonic/csharp-runtime": "file:../csharp-runtime",
     "@tsonic/target-api": "file:../tsonic/packages/target-api",
     "@tsonic/target-csharp": "file:../tsonic-csharp",
     "@tsonic/tsts": "file:../tsonic/packages/tsts"
