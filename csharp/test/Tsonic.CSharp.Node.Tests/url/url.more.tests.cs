@@ -17,6 +17,59 @@ public class UrlMoreTests
     }
 
     [Fact]
+    public void LegacyParse_PreservesRelativeUrlShape()
+    {
+        var parsed = url.parse("images/cover.png?width=320#preview");
+
+        Assert.Null(parsed.protocol);
+        Assert.Null(parsed.hostname);
+        Assert.Equal("images/cover.png", parsed.pathname);
+        Assert.Equal("?width=320", parsed.search);
+        Assert.Equal("width=320", parsed.queryText);
+        Assert.Equal("#preview", parsed.hash);
+        Assert.Equal("images/cover.png?width=320", parsed.path);
+        Assert.Equal("images/cover.png?width=320#preview", url.format(parsed));
+        parsed.queryText = "height=240";
+        Assert.Equal("height=240", parsed.query);
+    }
+
+    [Fact]
+    public void LegacyParse_HonorsSlashesDenoteHost()
+    {
+        var path = url.parse("//cdn.example.test/image.png", false, false);
+        Assert.Null(path.slashes);
+        Assert.Null(path.host);
+        Assert.Equal("//cdn.example.test/image.png", path.pathname);
+
+        var authority = url.parse("//cdn.example.test/image.png", false, true);
+        Assert.True(authority.slashes == true);
+        Assert.Equal("cdn.example.test", authority.host);
+        Assert.Equal("cdn.example.test", authority.hostname);
+        Assert.Equal("/image.png", authority.pathname);
+    }
+
+    [Fact]
+    public void LegacyFormat_ComposesSupportedObjectFieldsLikeNode()
+    {
+        var formatted = url.format(new LegacyUrlObject
+        {
+            protocol = "https",
+            hostname = "example.test",
+            port = "8443",
+            pathname = "docs",
+            search = "page=1",
+            hash = "top"
+        });
+
+        Assert.Equal("https://example.test:8443/docs?page=1#top", formatted);
+        Assert.Equal("file:///tmp/a", url.format(new LegacyUrlObject
+        {
+            protocol = "file:",
+            pathname = "/tmp/a"
+        }));
+    }
+
+    [Fact]
     public void FormatOptions_ShouldRemoveSearchAndFragment()
     {
         var formatted = url.format(new URL("https://example.com/a?x=1#h"), new URLFormatOptions

@@ -23,8 +23,23 @@ export const nodeUrlModuleSpecifier = "node:url";
 export const urlProviderType = { kind: "provider-ref", moduleSpecifier: nodeUrlModuleSpecifier, exportName: "URL" } satisfies ProviderTypeExpression;
 export const nullableUrlProviderType = { kind: "union", types: [urlProviderType, { kind: "literal", value: null }] } satisfies ProviderTypeExpression;
 export const urlSearchParamsProviderType = { kind: "provider-ref", moduleSpecifier: nodeUrlModuleSpecifier, exportName: "URLSearchParams" } satisfies ProviderTypeExpression;
+export const urlObjectProviderType = { kind: "provider-ref", moduleSpecifier: nodeUrlModuleSpecifier, exportName: "UrlObject" } satisfies ProviderTypeExpression;
+export const urlLegacyProviderType = { kind: "provider-ref", moduleSpecifier: nodeUrlModuleSpecifier, exportName: "Url" } satisfies ProviderTypeExpression;
+export const urlWithStringQueryProviderType = { kind: "provider-ref", moduleSpecifier: nodeUrlModuleSpecifier, exportName: "UrlWithStringQuery" } satisfies ProviderTypeExpression;
 export const bufferProviderType = { kind: "provider-ref", moduleSpecifier: "node:buffer", exportName: "Buffer" } satisfies ProviderTypeExpression;
 export const nullableStringProviderType = { kind: "union", types: [stringProviderType, { kind: "literal", value: null }] } satisfies ProviderTypeExpression;
+export const optionalNullableStringProviderType = {
+  kind: "union",
+  types: [stringProviderType, { kind: "literal", value: null }, { kind: "undefined" }],
+} satisfies ProviderTypeExpression;
+export const nullableBoolProviderType = {
+  kind: "union",
+  types: [boolProviderType, { kind: "literal", value: null }],
+} satisfies ProviderTypeExpression;
+export const optionalNullableBoolProviderType = {
+  kind: "union",
+  types: [boolProviderType, { kind: "literal", value: null }, { kind: "undefined" }],
+} satisfies ProviderTypeExpression;
 
 export const stringTargetType = csharpStringTargetType();
 export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
@@ -34,7 +49,9 @@ export const objectTargetType = csharpTargetNamedType("System.Object", undefined
 export const urlTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URL", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URL"));
 export const nullableUrlTargetType = csharpNullableTargetType(urlTargetType);
 export const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
+export const nullableBoolTargetType = csharpNullableTargetType(boolTargetType);
 export const urlSearchParamsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URLSearchParams", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URLSearchParams"));
+export const urlObjectTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.LegacyUrlObject", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "LegacyUrlObject"));
 export const bufferTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Buffer"));
 export const urlModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.url", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "url"));
 

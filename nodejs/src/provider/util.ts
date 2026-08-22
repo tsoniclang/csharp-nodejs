@@ -18,6 +18,9 @@ import {
   nodejsModuleCallTargetMetadata,
 } from "./members/target-member-metadata.js";
 import {
+  nodeUtilTextDecoderExportDeclaration,
+} from "./text-decoder.js";
+import {
   nodejsDefaultModuleObjectExports,
 } from "./module-defaults.js";
 import type {
@@ -64,6 +67,7 @@ export const nodeUtilToUsvStringSignatureId = "node:util.toUSVString(System.Stri
 
 export function nodeUtilExports(): readonly ProviderExportDeclaration[] {
   const exports = [
+    nodeUtilTextDecoderExportDeclaration(),
     ...nodeUtilUnsupportedTargetIdentities().map((identity) =>
       unsupportedUtilFunction(identity.exportName, identity.signatureId, unsupportedUtilParameters(identity.exportName, identity.signatureId))
     ),

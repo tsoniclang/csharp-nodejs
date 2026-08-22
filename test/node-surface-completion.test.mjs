@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertCsharpCheckingSucceeded,
+  assertCsharpCompilationSucceeded,
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
@@ -64,8 +66,8 @@ test("every canonical Node source operation has exact target policy", () => {
     }
   }
 
-  assert.equal(sourceSignatures.size, 261);
-  assert.equal(sourceProperties.size, 87);
+  assert.equal(sourceSignatures.size, 267);
+  assert.equal(sourceProperties.size, 117);
   assert.deepEqual([...policySignatures].sort(), [...sourceSignatures].sort());
   assert.deepEqual([...policyProperties].sort(), [...sourceProperties].sort());
 });
@@ -144,9 +146,7 @@ test("Node provider families compile together through selected source evidence",
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(source, /Tsonic\.CSharp\.Node\.Buffer\.from/u);
   assert.match(
@@ -173,8 +173,7 @@ test("unsupported selected Node operations fail closed without artifacts", () =>
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
+  assertCsharpCheckingSucceeded(compiled);
   assert.deepEqual(
     compiled.result.diagnostics.map((diagnostic) => diagnostic.code),
     ["TS9100203"],

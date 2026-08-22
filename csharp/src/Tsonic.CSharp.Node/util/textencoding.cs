@@ -57,7 +57,17 @@ public sealed class TextDecoder
 {
     private readonly Encoding _encoding;
 
-    public TextDecoder(string label = "utf-8", TextDecoderOptions? options = null)
+    public TextDecoder()
+        : this("utf-8", null)
+    {
+    }
+
+    public TextDecoder(string label)
+        : this(label, null)
+    {
+    }
+
+    public TextDecoder(string label, TextDecoderOptions? options)
     {
         _encoding = ResolveEncoding(label, options?.fatal ?? false);
         encoding = NormalizeEncodingName(_encoding);
@@ -84,7 +94,12 @@ public sealed class TextDecoder
         return _encoding.GetString(bytes);
     }
 
-    public string decode(Buffer input, TextDecodeOptions? options = null)
+    public string decode(Buffer input)
+    {
+        return decode(input, null);
+    }
+
+    public string decode(Buffer input, TextDecodeOptions? options)
     {
         if (input == null)
             throw new ArgumentNullException(nameof(input));

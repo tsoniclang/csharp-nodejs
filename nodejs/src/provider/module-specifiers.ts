@@ -8,6 +8,9 @@ import {
   nodeCryptoModuleSpecifier,
 } from "./crypto.js";
 import {
+  nodeChildProcessModuleSpecifier,
+} from "./child-process.js";
+import {
   nodeFsModuleSpecifier,
   nodeFsPromisesModuleSpecifier,
 } from "./filesystem/index.js";
@@ -42,6 +45,8 @@ const canonicalBySpecifier = new Map<string, string>([
   [nodeBufferModuleSpecifier, nodeBufferModuleSpecifier],
   ["crypto", nodeCryptoModuleSpecifier],
   [nodeCryptoModuleSpecifier, nodeCryptoModuleSpecifier],
+  ["child_process", nodeChildProcessModuleSpecifier],
+  [nodeChildProcessModuleSpecifier, nodeChildProcessModuleSpecifier],
   ["fs", nodeFsModuleSpecifier],
   [nodeFsModuleSpecifier, nodeFsModuleSpecifier],
   ["fs/promises", nodeFsPromisesModuleSpecifier],

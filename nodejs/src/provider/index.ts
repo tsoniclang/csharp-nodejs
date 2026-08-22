@@ -1,4 +1,10 @@
 export {
+  nodeChildProcessCallTargetMembers,
+  nodeChildProcessClassPropertyTargetMembers,
+  nodeChildProcessExports,
+  nodeChildProcessModuleSpecifier,
+} from "./child-process.js";
+export {
   createCsharpNodejsProviderPackageExtension,
   createCsharpNodejsTargetContributions,
   nodejsProviderPackageModuleOwnership,

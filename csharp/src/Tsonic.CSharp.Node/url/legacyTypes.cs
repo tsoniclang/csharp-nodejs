@@ -25,6 +25,12 @@ public sealed class LegacyUrlObject
 
     public object? query { get; set; }
 
+    public string? queryText
+    {
+        get => query as string;
+        set => query = value;
+    }
+
     public string? hash { get; set; }
 
     public string? path { get; set; }

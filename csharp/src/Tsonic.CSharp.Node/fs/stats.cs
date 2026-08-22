@@ -55,14 +55,17 @@ public class Stats
     /// <summary>True if this is a directory.</summary>
     public bool isDirectory { get; set; }
 
+    /// <summary>True if this is a symbolic link.</summary>
+    public bool isSymbolicLink { get; set; }
+
     /// <summary>Returns true if this is a file.</summary>
     public bool IsFile() => isFile;
 
     /// <summary>Returns true if this is a directory.</summary>
     public bool IsDirectory() => isDirectory;
 
-    /// <summary>Returns true if this is a symbolic link (not supported).</summary>
-    public bool IsSymbolicLink() => false;
+    /// <summary>Returns true if this is a symbolic link.</summary>
+    public bool IsSymbolicLink() => isSymbolicLink;
 
     /// <summary>Returns true if this is a block device (not supported on Windows).</summary>
     public bool IsBlockDevice() => false;

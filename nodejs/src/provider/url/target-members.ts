@@ -29,6 +29,8 @@ import {
   nodeUrlUrlConstructorUrlSignatureId,
   nodeUrlUrlExportName,
   nodeUrlUrlHrefMemberId,
+  nodeUrlLegacyUrlExportName,
+  nodeUrlUrlObjectExportName,
   nodeUrlUrlSearchParamsAppendMemberId,
   nodeUrlUrlSearchParamsAppendSignatureId,
   nodeUrlUrlSearchParamsConstructorMemberId,
@@ -50,12 +52,15 @@ import {
   nodeUrlUrlSearchParamsSortSignatureId,
   nodeUrlUrlSearchParamsToStringMemberId,
   nodeUrlUrlSearchParamsToStringSignatureId,
+  nodeUrlUrlWithStringQueryExportName,
 } from "./identities.js";
 import {
   boolProviderType,
   boolTargetType,
   bufferProviderType,
   bufferTargetType,
+  nullableBoolProviderType,
+  nullableBoolTargetType,
   nullableStringProviderType,
   nullableStringTargetType,
   nullableUrlProviderType,
@@ -65,14 +70,18 @@ import {
   nodeUrlUrlParameter,
   numberProviderType,
   numberTargetType,
-  objectTargetType,
+  optionalNullableBoolProviderType,
+  optionalNullableStringProviderType,
   stringProviderType,
   stringTargetType,
   urlModuleTargetType,
+  urlObjectProviderType,
+  urlObjectTargetType,
   urlProviderType,
   urlSearchParamsProviderType,
   urlSearchParamsTargetType,
   urlTargetType,
+  urlWithStringQueryProviderType,
   voidProviderType,
   voidTargetType,
 } from "./model.js";
@@ -96,12 +105,15 @@ export function nodeUrlCallTargetMembers(): readonly NodeUrlCallTargetMember[] {
     urlModuleCall({ exportName: "domainToUnicode", signatureId: "node:url.domainToUnicode(System.String)", targetMemberId: "Tsonic.CSharp.Node.url.domainToUnicode(System.String)", sourceName: "domainToUnicode", targetName: "domainToUnicode", providerParameters: [nodeUrlStringParameter("domain")], providerReturnType: stringProviderType, targetParameters: [
       targetParameter("domain", stringTargetType),
     ], targetReturnType: stringTargetType }),
-    urlModuleCall({ exportName: "format", signatureId: "node:url.format(Tsonic.CSharp.Node.URL)", targetMemberId: "Tsonic.CSharp.Node.url.format(System.Object)", sourceName: "format", targetName: "format", providerParameters: [nodeUrlUrlParameter("urlObject")], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("urlObject", objectTargetType, { csharpAcceptsClosedSourceArgument: true }),
+    urlModuleCall({ exportName: "format", signatureId: "node:url.format(Tsonic.CSharp.Node.LegacyUrlObject)", targetMemberId: "Tsonic.CSharp.Node.url.format(Tsonic.CSharp.Node.LegacyUrlObject)", sourceName: "format", targetName: "format", providerParameters: [{ name: "urlObject", type: urlObjectProviderType }], providerReturnType: stringProviderType, targetParameters: [
+      targetParameter("urlObject", urlObjectTargetType),
     ], targetReturnType: stringTargetType }),
-    urlModuleCall({ exportName: "parse", signatureId: "node:url.parse(System.String)", targetMemberId: "Tsonic.CSharp.Node.url.parse(System.String)", sourceName: "parse", targetName: "parse", providerParameters: [nodeUrlStringParameter("input")], providerReturnType: nullableUrlProviderType, targetParameters: [
+    urlModuleCall({ exportName: "format", signatureId: "node:url.format(Tsonic.CSharp.Node.URL)", targetMemberId: "Tsonic.CSharp.Node.url.format(Tsonic.CSharp.Node.URL)", sourceName: "format", targetName: "format", providerParameters: [nodeUrlUrlParameter("urlObject")], providerReturnType: stringProviderType, targetParameters: [
+      targetParameter("urlObject", urlTargetType),
+    ], targetReturnType: stringTargetType }),
+    urlModuleCall({ exportName: "parse", signatureId: "node:url.parse(System.String)", targetMemberId: "Tsonic.CSharp.Node.url.parse(System.String)", sourceName: "parse", targetName: "parse", providerParameters: [nodeUrlStringParameter("input")], providerReturnType: urlWithStringQueryProviderType, targetParameters: [
       targetParameter("input", stringTargetType),
-    ], targetReturnType: nullableUrlTargetType }),
+    ], targetReturnType: urlObjectTargetType }),
     urlModuleCall({ exportName: "resolve", signatureId: "node:url.resolve(System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.url.resolve(System.String,System.String)", sourceName: "resolve", targetName: "resolve", providerParameters: [nodeUrlStringParameter("from"), nodeUrlStringParameter("to")], providerReturnType: stringProviderType, targetParameters: [
       targetParameter("from", stringTargetType),
       targetParameter("to", stringTargetType),
@@ -196,6 +208,66 @@ export function nodeUrlClassPropertyTargetMembers(): readonly NodeUrlClassProper
   return [
     ...nodeUrlUrlClassPropertyTargetMembers(),
     ...nodeUrlUrlSearchParamsClassPropertyTargetMembers(),
+    ...nodeUrlUrlObjectClassPropertyTargetMembers(),
+  ];
+}
+
+export function nodeUrlUrlObjectClassPropertyTargetMembers(): readonly NodeUrlClassPropertyTargetMember[] {
+  const property = (
+    exportName: string,
+    memberName: string,
+    providerType: Parameters<typeof urlClassProperty>[0]["providerType"],
+    targetReturnType: Parameters<typeof urlClassProperty>[0]["targetReturnType"],
+    targetName = memberName,
+  ): NodeUrlClassPropertyTargetMember => urlClassProperty({
+    exportName,
+    memberName,
+    memberId: `node:url.${exportName}.${memberName}`,
+    targetMemberId: `Tsonic.CSharp.Node.LegacyUrlObject.${targetName}`,
+    sourceName: memberName,
+    targetName,
+    memberKind: "property",
+    providerType,
+    targetParameters: [],
+    targetReturnType,
+  });
+  return [
+    ...["href", "protocol", "auth", "host", "hostname", "port", "pathname", "search", "query", "hash"]
+      .map((memberName) => property(
+        nodeUrlUrlObjectExportName,
+        memberName,
+        optionalNullableStringProviderType,
+        nullableStringTargetType,
+        memberName === "query" ? "queryText" : memberName,
+      )),
+    property(
+      nodeUrlUrlObjectExportName,
+      "slashes",
+      optionalNullableBoolProviderType,
+      nullableBoolTargetType,
+    ),
+    property(nodeUrlLegacyUrlExportName, "href", stringProviderType, stringTargetType),
+    ...["protocol", "auth", "host", "hostname", "port", "pathname", "search", "query", "hash", "path"]
+      .map((memberName) => property(
+        nodeUrlLegacyUrlExportName,
+        memberName,
+        nullableStringProviderType,
+        nullableStringTargetType,
+        memberName === "query" ? "queryText" : memberName,
+      )),
+    property(
+      nodeUrlLegacyUrlExportName,
+      "slashes",
+      nullableBoolProviderType,
+      nullableBoolTargetType,
+    ),
+    property(
+      nodeUrlUrlWithStringQueryExportName,
+      "query",
+      nullableStringProviderType,
+      nullableStringTargetType,
+      "queryText",
+    ),
   ];
 }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertCsharpCompilationSucceeded,
   compileCsharpSource,
   checkCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
@@ -21,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 15);
+  assert.equal(relations.length, 19);
   assert.equal(
     new Set(relations.map((relation) =>
       `${relation.source.providerModuleId}:${relation.source.exportName}`
@@ -39,6 +40,13 @@ test("every canonical Node provider target type has one exact C# render binding"
       "named",
     );
   }
+  const legacyUrlBindings = relations
+    .filter((relation) =>
+      relation.targetBinding.id === "Tsonic.CSharp.Node.LegacyUrlObject"
+    )
+    .map((relation) => JSON.stringify(relation.targetBinding));
+  assert.equal(legacyUrlBindings.length, 3);
+  assert.equal(new Set(legacyUrlBindings).size, 1);
 });
 
 test("Node HTTP and timer modules expose exact provider-owned declarations", () => {
@@ -120,9 +128,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(
     source,

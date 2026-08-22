@@ -4,10 +4,17 @@ import type {
 } from "@tsonic/tsts";
 import {
   nodeUrlUrlExportName,
+  nodeUrlLegacyUrlExportName,
+  nodeUrlUrlObjectExportName,
   nodeUrlUrlSearchParamsExportName,
+  nodeUrlUrlWithStringQueryExportName,
 } from "./identities.js";
 import {
+  urlLegacyProviderType,
+} from "./model.js";
+import {
   nodeUrlCallTargetMembers,
+  nodeUrlClassPropertyTargetMembers,
   nodeUrlUrlClassCallTargetMembers,
   nodeUrlUrlClassPropertyTargetMembers,
   nodeUrlUrlSearchParamsClassCallTargetMembers,
@@ -37,6 +44,9 @@ export function nodeUrlExports(): readonly ProviderExportDeclaration[] {
   const exports = [
     nodeUrlUrlExportDeclaration(),
     nodeUrlUrlSearchParamsExportDeclaration(),
+    nodeUrlUrlObjectExportDeclaration(),
+    nodeUrlLegacyUrlExportDeclaration(),
+    nodeUrlUrlWithStringQueryExportDeclaration(),
     nodeUrlUrlPatternExportDeclaration(),
     ...nodeUrlFunctionExportDeclarations(),
   ];
@@ -44,6 +54,43 @@ export function nodeUrlExports(): readonly ProviderExportDeclaration[] {
     ...exports,
     ...nodejsDefaultModuleObjectExports(nodeUrlModuleSpecifier, exports),
   ];
+}
+
+function nodeUrlUrlObjectExportDeclaration(): ProviderExportDeclaration {
+  return {
+    id: `node:url.${nodeUrlUrlObjectExportName}`,
+    name: nodeUrlUrlObjectExportName,
+    kind: "interface",
+    members: nodeUrlClassPropertyTargetMembers()
+      .filter((member) => member.exportName === nodeUrlUrlObjectExportName)
+      .map((member) => ({
+        ...providerMemberForUrlClassProperty(member),
+        optional: true,
+      })),
+  };
+}
+
+function nodeUrlLegacyUrlExportDeclaration(): ProviderExportDeclaration {
+  return {
+    id: `node:url.${nodeUrlLegacyUrlExportName}`,
+    name: nodeUrlLegacyUrlExportName,
+    kind: "interface",
+    members: nodeUrlClassPropertyTargetMembers()
+      .filter((member) => member.exportName === nodeUrlLegacyUrlExportName)
+      .map(providerMemberForUrlClassProperty),
+  };
+}
+
+function nodeUrlUrlWithStringQueryExportDeclaration(): ProviderExportDeclaration {
+  return {
+    id: `node:url.${nodeUrlUrlWithStringQueryExportName}`,
+    name: nodeUrlUrlWithStringQueryExportName,
+    kind: "interface",
+    heritage: [{ kind: "extends", type: urlLegacyProviderType }],
+    members: nodeUrlClassPropertyTargetMembers()
+      .filter((member) => member.exportName === nodeUrlUrlWithStringQueryExportName)
+      .map(providerMemberForUrlClassProperty),
+  };
 }
 
 function nodeUrlFunctionExportDeclarations(): readonly ProviderExportDeclaration[] {

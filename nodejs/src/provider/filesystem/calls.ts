@@ -21,6 +21,8 @@ import {
 import {
   nodeFsExistsSyncExportName,
   nodeFsExistsSyncSignatureId,
+  nodeFsLstatSyncExportName,
+  nodeFsLstatSyncSignatureId,
   nodeFsModuleSpecifier,
   nodeFsStatSyncExportName,
   nodeFsStatSyncSignatureId,
@@ -140,6 +142,9 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("path", stringTargetType),
     ], targetReturnType: boolTargetType }),
     fsCall({ exportName: nodeFsStatSyncExportName, signatureId: nodeFsStatSyncSignatureId, targetMemberId: "Tsonic.CSharp.Node.fs.statSync(System.String)", sourceName: "statSync", targetName: "statSync", providerParameters: [stringParameter("path")], providerReturnType: statsProviderType, targetParameters: [
+      targetParameter("path", stringTargetType),
+    ], targetReturnType: statsTargetType }),
+    fsCall({ exportName: nodeFsLstatSyncExportName, signatureId: nodeFsLstatSyncSignatureId, targetMemberId: "Tsonic.CSharp.Node.fs.lstatSync(System.String)", sourceName: "lstatSync", targetName: "lstatSync", providerParameters: [stringParameter("path")], providerReturnType: statsProviderType, targetParameters: [
       targetParameter("path", stringTargetType),
     ], targetReturnType: statsTargetType }),
     fsCall({ exportName: "fstatSync", signatureId: "node:fs.fstatSync(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs.fstatSync(System.Int32)", sourceName: "fstatSync", targetName: "fstatSync", providerParameters: [numberParameter("fd")], providerReturnType: statsProviderType, targetParameters: [

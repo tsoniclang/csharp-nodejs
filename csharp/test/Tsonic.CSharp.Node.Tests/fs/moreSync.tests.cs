@@ -32,6 +32,21 @@ public class FsMoreSyncTests : FsTestBase
     }
 
     [Fact]
+    public void Lstat_DoesNotFollowSymbolicLinks()
+    {
+        var target = GetTestPath("target.txt");
+        var link = GetTestPath("link.txt");
+        File.WriteAllText(target, "target");
+        File.CreateSymbolicLink(link, target);
+
+        var stat = fs.lstatSync(link);
+
+        Assert.True(stat.IsSymbolicLink());
+        Assert.False(stat.IsFile());
+        Assert.False(stat.IsDirectory());
+    }
+
+    [Fact]
     public void ReaddirDirentsAndOpendir_ReturnDirectoryEntries()
     {
         var child = GetTestPath("child.txt");

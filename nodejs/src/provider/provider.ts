@@ -32,6 +32,10 @@ import {
   nodeCryptoModuleSpecifier,
 } from "./crypto.js";
 import {
+  nodeChildProcessExports,
+  nodeChildProcessModuleSpecifier,
+} from "./child-process.js";
+import {
   nodeFsExports,
   nodeFsModuleSpecifier,
   nodeFsPromisesExports,
@@ -73,6 +77,7 @@ import {
 const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeAssertModuleSpecifier, nodeAssertExports()],
   [nodeBufferModuleSpecifier, nodeBufferExports()],
+  [nodeChildProcessModuleSpecifier, nodeChildProcessExports()],
   [nodePathModuleSpecifier, nodePathExports()],
   [nodeFsModuleSpecifier, nodeFsExports()],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
