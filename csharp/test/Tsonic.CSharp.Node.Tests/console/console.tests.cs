@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using Xunit;
 using Tsonic.CSharp.Js;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node.Tests;
 
