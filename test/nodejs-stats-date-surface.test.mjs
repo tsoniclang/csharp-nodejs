@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertCsharpCompilationSucceeded,
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
@@ -61,9 +62,7 @@ test("Node Stats Date facts compose with JS Date and nullish operations", () => 
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(
     source,

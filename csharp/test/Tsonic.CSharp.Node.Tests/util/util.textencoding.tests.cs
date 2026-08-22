@@ -37,4 +37,13 @@ public class UtilTextEncodingTests
         Assert.Equal("windows-1252", decoder.encoding);
         Assert.Equal("é", decoder.decode([0xE9]));
     }
+
+    [Fact]
+    public void TextDecoder_ShouldDecodeClosedBufferCarrier()
+    {
+        var decoder = new TextDecoder();
+        var input = Buffer.from("portable", "utf8");
+
+        Assert.Equal("portable", decoder.decode(input));
+    }
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertCsharpCompilationSucceeded,
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
@@ -145,9 +146,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(
     source,

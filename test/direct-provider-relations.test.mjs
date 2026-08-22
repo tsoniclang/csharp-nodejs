@@ -9,6 +9,8 @@ import {
   getCsharpNullableElementTargetType,
 } from "../../tsonic-csharp/dist/public/provider.js";
 import {
+  assertCsharpCompilationSucceeded,
+  checkCsharpSource,
   compileCsharpSource,
 } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
@@ -28,7 +30,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 902);
+  assert.equal(relations.length, 988);
   assert.equal(rejections.length, 182);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -196,9 +198,7 @@ test("named, namespace, default, property, and class-static Node operations comp
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
     /return Tsonic\.CSharp\.Node\.path\.join\(left, right\);/u,
@@ -211,6 +211,130 @@ test("named, namespace, default, property, and class-static Node operations comp
     compiled.artifacts.get("src/Index.cs"),
     /return Tsonic\.CSharp\.Node\.Buffer\.from\(value, "utf8"\);/u,
   );
+});
+
+test("filesystem links, child processes, legacy URLs, and text decoding use exact provider relations", () => {
+  const compiled = compileCsharpSource({
+    surface: "js",
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { Buffer } from "node:buffer";
+      import { spawnSync } from "node:child_process";
+      import { lstatSync } from "node:fs";
+      import { TextDecoder } from "node:util";
+      import { format, parse } from "node:url";
+
+      export function isLink(path: string): boolean {
+        return lstatSync(path).isSymbolicLink();
+      }
+
+      export function run(command: string, args: string[]): number | null {
+        return spawnSync(command, args).status;
+      }
+
+      export function clearStatus(command: string, args: string[]): number | null {
+        const result = spawnSync(command, args);
+        result.status = null;
+        return result.status;
+      }
+
+      export function pathname(value: string): string | null {
+        return parse(value).pathname;
+      }
+
+      export function pathnameOrEmpty(value: string): string {
+        return parse(value).pathname ?? "";
+      }
+
+      export function roundTrip(value: string): string {
+        return format(parse(value));
+      }
+
+      export function rewrite(value: string): string {
+        const parsed = parse(value);
+        parsed.href = value;
+        parsed.pathname = "/checked";
+        parsed.query = null;
+        return format(parsed);
+      }
+
+      export function hasAuthority(value: string): boolean | null {
+        return parse(value).slashes;
+      }
+
+      export function query(value: string): string | null {
+        return parse(value).query;
+      }
+
+      export function decode(value: string): string {
+        return new TextDecoder().decode(Buffer.from(value, "utf8"));
+      }
+    `,
+  });
+
+  assertCsharpCompilationSucceeded(compiled);
+  const source = compiled.artifacts.get("src/Index.cs");
+  assert.match(source, /Tsonic\.CSharp\.Node\.fs\.lstatSync\(path\)\.IsSymbolicLink\(\)/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.child_process\.spawnSyncResult\(command, args\)\.status/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.url\.parse\(value\)\.pathname/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.url\.parse\(value\)\.pathname \?\? ""/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.url\.format\(Tsonic\.CSharp\.Node\.url\.parse\(value\)\)/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.url\.parse\(value\)\.slashes/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.url\.parse\(value\)\.queryText/u);
+  assert.match(source, /new Tsonic\.CSharp\.Node\.TextDecoder\(\)\.decode/u);
+});
+
+test("legacy URL declarations preserve nullable selected source results", () => {
+  const checked = checkCsharpSource({
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { parse } from "node:url";
+
+      export function invalid(value: string): string {
+        return parse(value).pathname;
+      }
+    `,
+  });
+
+  assert.match(checked.sourceDiagnosticsText, /TS2322/u);
+  assert.match(checked.sourceDiagnosticsText, /string \| null/u);
+  assert.deepEqual(checked.extensionDiagnostics, []);
+});
+
+test("combined portability provider selection is independent of source ordering", () => {
+  const compiled = compileCsharpSource({
+    surface: "js",
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { format, parse } from "node:url";
+      import { TextDecoder } from "node:util";
+      import { lstatSync } from "node:fs";
+      import { spawnSync } from "node:child_process";
+      import { Buffer } from "node:buffer";
+
+      export function decode(value: string): string {
+        return new TextDecoder().decode(Buffer.from(value, "utf8"));
+      }
+
+      export function roundTrip(value: string): string {
+        return format(parse(value));
+      }
+
+      export function run(command: string, args: string[]): number | null {
+        return spawnSync(command, args).status;
+      }
+
+      export function isLink(path: string): boolean {
+        return lstatSync(path).isSymbolicLink();
+      }
+    `,
+  });
+
+  assertCsharpCompilationSucceeded(compiled);
+  assert.deepEqual([...compiled.artifacts.keys()].sort(), [
+    "TsonicGenerated.csproj",
+    "src/Index.cs",
+  ]);
 });
 
 test("Node numeric API parameters preserve the source number carrier", () => {
@@ -226,9 +350,7 @@ test("Node numeric API parameters preserve the source number carrier", () => {
     `,
   });
 
-  assert.equal(compiled.sourceDiagnosticsText, "");
-  assert.deepEqual(compiled.extensionDiagnostics, []);
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
     /server\.listen\(port, \(\) =>/u,

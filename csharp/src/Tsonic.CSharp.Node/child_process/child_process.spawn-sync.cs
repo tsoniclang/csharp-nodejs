@@ -18,6 +18,73 @@ namespace Tsonic.CSharp.Node;
 public static partial class child_process
 {
     /// <summary>
+    /// Synchronously executes a process and returns the closed Buffer-based result exposed by the provider.
+    /// </summary>
+    /// <param name="command">The executable name or path.</param>
+    /// <param name="args">The exact argument vector passed to the executable.</param>
+    /// <returns>The captured standard output, standard error, and nullable process status.</returns>
+    public static SpawnSyncResult spawnSyncResult(string command, string[] args)
+    {
+        ValidateSpawnSyncArguments(args);
+        var result = spawnSync(command, args);
+        var stderr = result.error is null
+            ? result.stderr ?? Array.Empty<byte>()
+            : Encoding.UTF8.GetBytes(result.error.Message);
+        return new SpawnSyncResult
+        {
+            stdout = Buffer.from(result.stdout ?? Array.Empty<byte>()),
+            stderr = Buffer.from(stderr),
+            status = result.status
+        };
+    }
+
+    /// <summary>
+    /// Synchronously executes a process with the JavaScript-surface array carrier.
+    /// </summary>
+    /// <param name="command">The executable name or path.</param>
+    /// <param name="args">The exact argument vector passed to the executable.</param>
+    /// <returns>The captured standard output, standard error, and nullable process status.</returns>
+    public static SpawnSyncResult spawnSyncResult(
+        string command,
+        Tsonic.CSharp.Js.JSArray<string> args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        var dense = new string[args.length];
+        for (var index = 0; index < args.length; index++)
+        {
+            if (!args.hasIndex(index))
+            {
+                throw new ArgumentException(
+                    $"spawnSync argument array contains an empty element at index {index}.",
+                    nameof(args));
+            }
+            var value = args[index];
+            if (value is null)
+            {
+                throw new ArgumentException(
+                    $"spawnSync argument array contains null at index {index}.",
+                    nameof(args));
+            }
+            dense[index] = value;
+        }
+        return spawnSyncResult(command, dense);
+    }
+
+    private static void ValidateSpawnSyncArguments(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        for (var index = 0; index < args.Length; index++)
+        {
+            if (args[index] is null)
+            {
+                throw new ArgumentException(
+                    $"spawnSync argument array contains null at index {index}.",
+                    nameof(args));
+            }
+        }
+    }
+
+    /// <summary>
     /// Synchronous version of spawn() that will block until the child process exits.
     /// </summary>
     /// <param name="command">The command to run</param>

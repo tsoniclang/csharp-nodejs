@@ -123,7 +123,44 @@ public static partial class fs
         return Task.FromResult(value);
     }
 
-    public static Stats lstatSync(string path) => statSync(path);
+    public static Stats lstatSync(string path)
+    {
+        var attributes = File.GetAttributes(path);
+        var symbolicLink = (attributes & FileAttributes.ReparsePoint) != 0;
+        FileSystemInfo info = (attributes & FileAttributes.Directory) != 0
+            ? new DirectoryInfo(path)
+            : new FileInfo(path);
+        info.Refresh();
+
+        var size = 0L;
+        if (symbolicLink)
+        {
+            var linkTarget = info.LinkTarget;
+            if (linkTarget != null)
+                size = System.Text.Encoding.UTF8.GetByteCount(linkTarget);
+        }
+        else if (info is FileInfo fileInfo)
+        {
+            size = fileInfo.Length;
+        }
+
+        return new Stats
+        {
+            size = size,
+            mode = 0,
+            atime = StatTime.ToJsDate(info.LastAccessTime),
+            atimeMs = StatTime.ToUnixMilliseconds(info.LastAccessTime),
+            mtime = StatTime.ToJsDate(info.LastWriteTime),
+            mtimeMs = StatTime.ToUnixMilliseconds(info.LastWriteTime),
+            ctime = StatTime.ToJsDate(info.CreationTime),
+            ctimeMs = StatTime.ToUnixMilliseconds(info.CreationTime),
+            birthtime = StatTime.ToJsDate(info.CreationTime),
+            birthtimeMs = StatTime.ToUnixMilliseconds(info.CreationTime),
+            isFile = !symbolicLink && info is FileInfo,
+            isDirectory = !symbolicLink && info is DirectoryInfo,
+            isSymbolicLink = symbolicLink
+        };
+    }
     public static Task<Stats> lstat(string path, Action<Exception?, Stats>? callback = null)
     {
         try

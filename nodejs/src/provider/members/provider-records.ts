@@ -20,6 +20,11 @@ import {
   nodeCryptoUnsupportedTargetIdentities,
 } from "../crypto.js";
 import {
+  nodeChildProcessCallTargetMembers,
+  nodeChildProcessClassPropertyTargetMembers,
+  nodeChildProcessModuleSpecifier,
+} from "../child-process.js";
+import {
   nodeFsCallTargetMembers,
   nodeFsClassCallTargetMembers,
   nodeFsClassPropertyTargetMembers,
@@ -65,6 +70,10 @@ import {
   nodeUtilUnsupportedTargetIdentities,
 } from "../util.js";
 import {
+  nodeUtilTextDecoderClassCallTargetMembers,
+  nodeUtilTextDecoderClassPropertyTargetMembers,
+} from "../text-decoder.js";
+import {
   nodeUrlCallTargetMembers,
   nodeUrlClassCallTargetMembers,
   nodeUrlClassPropertyTargetMembers,
@@ -104,6 +113,8 @@ export interface NodejsUnsupportedTargetMetadataRecord {
 export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMemberMetadataRecord[] {
   return [
     ...moduleCallRecords(nodeBufferModuleSpecifier, nodeBufferModuleCallTargetMembers()),
+    ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers()),
+    ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers()),
     ...classCallRecords(nodeBufferModuleSpecifier, nodeBufferClassCallTargetMembers()),
     ...classPropertyRecords(nodeBufferModuleSpecifier, nodeBufferClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeAssertModuleSpecifier, nodeAssertCallTargetMembers()),
@@ -128,6 +139,8 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classPropertyRecords(nodeProcessModuleSpecifier, nodeProcessClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeTimersModuleSpecifier, nodeTimersCallTargetMembers()),
     ...moduleCallRecords(nodeUtilModuleSpecifier, nodeUtilCallTargetMembers()),
+    ...classCallRecords(nodeUtilModuleSpecifier, nodeUtilTextDecoderClassCallTargetMembers()),
+    ...classPropertyRecords(nodeUtilModuleSpecifier, nodeUtilTextDecoderClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeUrlModuleSpecifier, nodeUrlCallTargetMembers()),
     ...classCallRecords(nodeUrlModuleSpecifier, nodeUrlClassCallTargetMembers()),
     ...classPropertyRecords(nodeUrlModuleSpecifier, nodeUrlClassPropertyTargetMembers()),
