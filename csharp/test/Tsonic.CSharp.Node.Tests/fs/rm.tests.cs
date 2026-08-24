@@ -16,45 +16,45 @@ public class rmTests : FsTestBase
     }
 
     [Fact]
-    public async Task rm_ShouldRemoveEmptyDirectory()
+    public async Task rm_NonRecursiveOptions_EmptyDirectory_ShouldThrow()
     {
         var dirPath = GetTestPath("rm-dir-async");
         Directory.CreateDirectory(dirPath);
 
-        await fs.rm(dirPath);
-
-        Assert.False(Directory.Exists(dirPath));
+        await Assert.ThrowsAsync<IOException>(async () => await fs.rm(dirPath));
+        Assert.True(Directory.Exists(dirPath));
     }
 
     [Fact]
-    public async Task rm_Recursive_ShouldRemoveDirectoryWithContents()
+    public async Task rm_RecursiveOptions_ShouldRemoveDirectoryWithContents()
     {
         var dirPath = GetTestPath("rm-tree-async");
         Directory.CreateDirectory(dirPath);
         File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
         Directory.CreateDirectory(Path.Combine(dirPath, "subdir"));
 
-        await fs.rm(dirPath, recursive: true);
+        await fs.rm(dirPath, new RmOptions { recursive = true });
 
         Assert.False(Directory.Exists(dirPath));
     }
 
     [Fact]
-    public async Task rm_NonRecursive_DirectoryWithContents_ShouldThrow()
+    public async Task rm_NonRecursiveOptions_DirectoryWithContents_ShouldThrow()
     {
         var dirPath = GetTestPath("rm-non-recursive-async");
         Directory.CreateDirectory(dirPath);
         File.WriteAllText(Path.Combine(dirPath, "file.txt"), "content");
 
-        await Assert.ThrowsAsync<IOException>(async () => await fs.rm(dirPath, recursive: false));
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await fs.rm(dirPath, new RmOptions { recursive = false }));
     }
 
     [Fact]
-    public async Task rm_NonExistent_ShouldNotThrow()
+    public async Task rm_MissingPath_RequiresExplicitForce()
     {
-        var filePath = GetTestPath("nonexistent-rm-async.txt");
+        var path = GetTestPath("nonexistent-rm-async.txt");
 
-        // rm doesn't throw if path doesn't exist (like Node.js with force: true)
-        await fs.rm(filePath);
+        await Assert.ThrowsAsync<FileNotFoundException>(async () => await fs.rm(path));
+        await fs.rm(path, new RmOptions { force = true });
     }
 }

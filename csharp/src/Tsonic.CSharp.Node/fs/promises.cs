@@ -27,9 +27,8 @@ public class FsPromises
     public Task copyFile(string src, string dest, int mode = 0) => fs.copyFile(src, dest, mode);
     public Task cp(string src, string dest, bool recursive = false) => fs.cp(src, dest, recursive);
     public Task<Stats> fstat(int fd) => fs.fstat(fd);
-    public Task mkdir(string path, bool recursive = false) => fs.mkdir(path, recursive);
-    public Task mkdir(string path, MkdirOptions? options) => fs.mkdir(path, options);
-    public Task mkdir(string path, object? options) => fs.mkdir(path, options);
+    public Task mkdir(string path) => fs.mkdir(path);
+    public Task mkdir(string path, MakeDirectoryOptions options) => fs.mkdir(path, options);
     public Task<int> open(string path, string flags, int? mode = null) => fs.open(path, flags, mode);
     public Task<int> read(int fd, byte[] buffer, int offset, int length, int? position) => fs.read(fd, buffer, offset, length, position);
     public Task<string[]> readdir(string path) => fs.readdir(path);
@@ -41,7 +40,8 @@ public class FsPromises
     public Task<string> readlink(string path) => fs.readlink(path);
     public Task<string> realpath(string path) => fs.realpath(path);
     public Task rename(string oldPath, string newPath) => fs.rename(oldPath, newPath);
-    public Task rm(string path, bool recursive = false) => fs.rm(path, recursive);
+    public Task rm(string path) => fs.rm(path);
+    public Task rm(string path, RmOptions options) => fs.rm(path, options);
     public Task rmdir(string path, bool recursive = false) => fs.rmdir(path, recursive);
     public Task<Stats> stat(string path) => fs.stat(path);
     public Task symlink(string target, string path, string? type = null) => fs.symlink(target, path, type);

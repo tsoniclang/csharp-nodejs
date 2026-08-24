@@ -16,7 +16,8 @@ public static class fs_promises
     public static Task lchown(string path, int uid, int gid) => fs.lchown(path, uid, gid);
     public static Task copyFile(string src, string dest, int mode = 0) => fs.promises.copyFile(src, dest, mode);
     public static Task cp(string src, string dest, bool recursive = false) => fs.promises.cp(src, dest, recursive);
-    public static Task mkdir(string path, bool recursive = false) => fs.promises.mkdir(path, recursive);
+    public static Task mkdir(string path) => fs.promises.mkdir(path);
+    public static Task mkdir(string path, MakeDirectoryOptions options) => fs.promises.mkdir(path, options);
     public static async Task<FileHandle> open(string path, string flags, int? mode = null) => new(await fs.promises.open(path, flags, mode).ConfigureAwait(false));
     public static Task<string[]> readdir(string path) => fs.promises.readdir(path);
     public static Task<object[]> readdir(string path, bool withFileTypes) => fs.promises.readdir(path, withFileTypes);
@@ -28,7 +29,8 @@ public static class fs_promises
     public static Task<string> readlink(string path) => fs.promises.readlink(path);
     public static Task<string> realpath(string path) => fs.promises.realpath(path);
     public static Task rename(string oldPath, string newPath) => fs.promises.rename(oldPath, newPath);
-    public static Task rm(string path, bool recursive = false) => fs.promises.rm(path, recursive);
+    public static Task rm(string path) => fs.promises.rm(path);
+    public static Task rm(string path, RmOptions options) => fs.promises.rm(path, options);
     public static Task rmdir(string path, bool recursive = false) => fs.promises.rmdir(path, recursive);
     public static Task<Stats> stat(string path) => fs.promises.stat(path);
     public static Task<Stats> lstat(string path) => fs.lstat(path);

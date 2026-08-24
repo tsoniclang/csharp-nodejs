@@ -12,6 +12,7 @@ export interface NodejsProviderTargetTypeRow {
   readonly kind: CsharpTargetBindingFact["kind"];
   readonly namespace: string;
   readonly targetName: string;
+  readonly objectLiteralConstruction?: "object-initializer";
 }
 
 export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
@@ -19,6 +20,8 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:crypto", exportName: "Hash", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Hash" },
   { moduleSpecifier: "node:crypto", exportName: "Hmac", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Hmac" },
   { moduleSpecifier: "node:fs", exportName: "Stats", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Stats" },
+  { moduleSpecifier: "node:fs", exportName: "MakeDirectoryOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "MakeDirectoryOptions", objectLiteralConstruction: "object-initializer" },
+  { moduleSpecifier: "node:fs", exportName: "RmOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "RmOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:http", exportName: "IncomingMessage", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "IncomingMessage" },
   { moduleSpecifier: "node:http", exportName: "ServerResponse", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "ServerResponse" },
   { moduleSpecifier: "node:http", exportName: "Server", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "Server" },

@@ -6,6 +6,20 @@ public static partial class fs
 {
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    private static long RequireNonNegativeInteger(
+        double value,
+        string parameterName,
+        long maximum)
+    {
+        if (!double.IsFinite(value) || value < 0 || value > maximum || Math.Truncate(value) != value)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Node filesystem options require a finite non-negative integer in range.");
+        }
+        return checked((long)value);
+    }
+
     // Helper to parse encoding strings
     private static Encoding ParseEncoding(string encoding)
     {

@@ -6,7 +6,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// Options for fs.mkdir()/fs.mkdirSync().
 /// </summary>
-public class MkdirOptions
+public sealed class MakeDirectoryOptions
 {
     /// <summary>
     /// When true, create parent directories recursively.
@@ -16,7 +16,7 @@ public class MkdirOptions
     /// <summary>
     /// Directory mode (POSIX permissions). Applied on Unix when provided.
     /// </summary>
-    public int? mode { get; set; }
+    public double? mode { get; set; }
 }
 
 #pragma warning restore CS8981

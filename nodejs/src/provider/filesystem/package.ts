@@ -8,6 +8,9 @@ import {
   nodeFsStatsExportDeclaration,
 } from "./stats.js";
 import {
+  nodeFsOptionExportDeclarations,
+} from "./options.js";
+import {
   nodeFsPromisesExportDeclarations,
 } from "./promises.js";
 import {
@@ -20,6 +23,7 @@ import {
 
 export function nodeFsExports(): readonly ProviderExportDeclaration[] {
   const exports = [
+    ...nodeFsOptionExportDeclarations(),
     nodeFsStatsExportDeclaration(),
     ...nodeFsCallExportDeclarations(),
   ];
