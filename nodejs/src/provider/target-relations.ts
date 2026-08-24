@@ -108,6 +108,13 @@ function nodejsProviderTypeRelations():
         },
         targetBinding: binding,
         bindingTypeParameters: [],
+        ...(row.objectLiteralConstruction === undefined
+          ? {}
+          : {
+              objectLiteralConstruction: {
+                kind: row.objectLiteralConstruction,
+              },
+            }),
       }),
     );
   });

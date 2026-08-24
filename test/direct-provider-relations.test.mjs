@@ -30,7 +30,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 988);
+  assert.equal(relations.length, 1020);
   assert.equal(rejections.length, 182);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -211,6 +211,58 @@ test("named, namespace, default, property, and class-static Node operations comp
     compiled.artifacts.get("src/Index.cs"),
     /return Tsonic\.CSharp\.Node\.Buffer\.from\(value, "utf8"\);/u,
   );
+});
+
+test("standard filesystem option objects lower through exact provider construction relations", () => {
+  const compiled = compileCsharpSource({
+    surface: "js",
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { mkdirSync, rmSync } from "node:fs";
+
+      export function recreate(
+        path: string,
+        mode: number,
+        maxRetries: number,
+        retryDelay: number,
+      ): void {
+        mkdirSync(path, { recursive: true, mode });
+        rmSync(path, { recursive: true, force: true, maxRetries, retryDelay });
+      }
+    `,
+  });
+
+  assertCsharpCompilationSucceeded(compiled);
+  const source = compiled.artifacts.get("src/Index.cs");
+  assert.match(
+    source,
+    /new Tsonic\.CSharp\.Node\.MakeDirectoryOptions\s*\{[\s\S]*recursive = true[\s\S]*mode = mode[\s\S]*\}/u,
+  );
+  assert.match(
+    source,
+    /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = maxRetries[\s\S]*retryDelay = retryDelay[\s\S]*\}/u,
+  );
+});
+
+test("provider-private boolean filesystem overloads are absent", () => {
+  const checked = checkCsharpSource({
+    surface: "js",
+    capabilities: [createTsonicPlugin()],
+    sourceText: `
+      import { mkdirSync, rmSync } from "node:fs";
+
+      export function invalid(path: string): void {
+        mkdirSync(path, true);
+        rmSync(path, true);
+      }
+    `,
+  });
+
+  assert.equal(
+    [...checked.sourceDiagnosticsText.matchAll(/TS2559/gu)].length,
+    2,
+  );
+  assert.deepEqual(checked.extensionDiagnostics, []);
 });
 
 test("filesystem links, child processes, legacy URLs, and text decoding use exact provider relations", () => {

@@ -35,7 +35,11 @@ import {
   fsTargetType,
   intTargetType,
   longTargetType,
+  makeDirectoryOptionsProviderType,
+  makeDirectoryOptionsTargetType,
   numberProviderType,
+  rmOptionsProviderType,
+  rmOptionsTargetType,
   statsProviderType,
   statsTargetType,
   stringProviderType,
@@ -150,9 +154,12 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
     fsCall({ exportName: "fstatSync", signatureId: "node:fs.fstatSync(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs.fstatSync(System.Int32)", sourceName: "fstatSync", targetName: "fstatSync", providerParameters: [numberParameter("fd")], providerReturnType: statsProviderType, targetParameters: [
       targetParameter("fd", intTargetType),
     ], targetReturnType: statsTargetType }),
-    fsCall({ exportName: "mkdirSync", signatureId: "node:fs.mkdirSync(System.String,System.Boolean)", targetMemberId: "Tsonic.CSharp.Node.fs.mkdirSync(System.String,System.Boolean)", sourceName: "mkdirSync", targetName: "mkdirSync", providerParameters: [stringParameter("path"), optionalBoolParameter("recursive")], providerReturnType: voidProviderType, targetParameters: [
+    fsCall({ exportName: "mkdirSync", signatureId: "node:fs.mkdirSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.mkdirSync(System.String)", sourceName: "mkdirSync", targetName: "mkdirSync", providerParameters: [stringParameter("path")], providerReturnType: voidProviderType, targetParameters: [
       targetParameter("path", stringTargetType),
-      targetParameter("recursive", boolTargetType, { optional: true }),
+    ], targetReturnType: voidTargetType }),
+    fsCall({ exportName: "mkdirSync", signatureId: "node:fs.mkdirSync(System.String,MakeDirectoryOptions)", targetMemberId: "Tsonic.CSharp.Node.fs.mkdirSync(System.String,Tsonic.CSharp.Node.MakeDirectoryOptions)", sourceName: "mkdirSync", targetName: "mkdirSync", providerParameters: [stringParameter("path"), { name: "options", type: makeDirectoryOptionsProviderType }], providerReturnType: voidProviderType, targetParameters: [
+      targetParameter("path", stringTargetType),
+      targetParameter("options", makeDirectoryOptionsTargetType),
     ], targetReturnType: voidTargetType }),
     fsCall({ exportName: "mkdtempSync", signatureId: "node:fs.mkdtempSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.mkdtempSync(System.String)", sourceName: "mkdtempSync", targetName: "mkdtempSync", providerParameters: [stringParameter("prefix")], providerReturnType: stringProviderType, targetParameters: [
       targetParameter("prefix", stringTargetType),
@@ -195,9 +202,12 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("oldPath", stringTargetType),
       targetParameter("newPath", stringTargetType),
     ], targetReturnType: voidTargetType }),
-    fsCall({ exportName: "rmSync", signatureId: "node:fs.rmSync(System.String,System.Boolean)", targetMemberId: "Tsonic.CSharp.Node.fs.rmSync(System.String,System.Boolean)", sourceName: "rmSync", targetName: "rmSync", providerParameters: [stringParameter("path"), optionalBoolParameter("recursive")], providerReturnType: voidProviderType, targetParameters: [
+    fsCall({ exportName: "rmSync", signatureId: "node:fs.rmSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.rmSync(System.String)", sourceName: "rmSync", targetName: "rmSync", providerParameters: [stringParameter("path")], providerReturnType: voidProviderType, targetParameters: [
       targetParameter("path", stringTargetType),
-      targetParameter("recursive", boolTargetType, { optional: true }),
+    ], targetReturnType: voidTargetType }),
+    fsCall({ exportName: "rmSync", signatureId: "node:fs.rmSync(System.String,RmOptions)", targetMemberId: "Tsonic.CSharp.Node.fs.rmSync(System.String,Tsonic.CSharp.Node.RmOptions)", sourceName: "rmSync", targetName: "rmSync", providerParameters: [stringParameter("path"), { name: "options", type: rmOptionsProviderType }], providerReturnType: voidProviderType, targetParameters: [
+      targetParameter("path", stringTargetType),
+      targetParameter("options", rmOptionsTargetType),
     ], targetReturnType: voidTargetType }),
     fsCall({ exportName: "rmdirSync", signatureId: "node:fs.rmdirSync(System.String,System.Boolean)", targetMemberId: "Tsonic.CSharp.Node.fs.rmdirSync(System.String,System.Boolean)", sourceName: "rmdirSync", targetName: "rmdirSync", providerParameters: [stringParameter("path"), optionalBoolParameter("recursive")], providerReturnType: voidProviderType, targetParameters: [
       targetParameter("path", stringTargetType),

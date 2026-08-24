@@ -17,3 +17,6 @@ export {
   nodeFsClassCallTargetMembers,
   nodeFsClassPropertyTargetMembers,
 } from "./stats.js";
+export {
+  nodeFsOptionClassPropertyTargetMembers,
+} from "./options.js";

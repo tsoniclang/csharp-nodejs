@@ -15,49 +15,41 @@ public class mkdirSyncTests : FsTestBase
     }
 
     [Fact]
-    public void mkdirSync_Recursive_ShouldCreateNestedDirectories()
+    public void mkdirSync_RecursiveOptions_ShouldCreateNestedDirectories()
     {
         var dirPath = GetTestPath("parent/child/grandchild");
 
-        fs.mkdirSync(dirPath, recursive: true);
+        fs.mkdirSync(dirPath, new MakeDirectoryOptions { recursive = true });
+        fs.mkdirSync(dirPath, new MakeDirectoryOptions { recursive = true });
 
         Assert.True(Directory.Exists(dirPath));
     }
 
     [Fact]
-    public void mkdirSync_NonRecursive_MissingParent_ShouldThrow()
+    public void mkdirSync_NonRecursiveOptions_MissingParent_ShouldThrow()
     {
         var dirPath = GetTestPath("missing-parent/child");
 
-        Assert.Throws<DirectoryNotFoundException>(() => fs.mkdirSync(dirPath, recursive: false));
-    }
-
-    [Fact]
-    public void mkdirSync_MkdirOptions_Recursive_ShouldCreateNestedDirectories()
-    {
-        var dirPath = GetTestPath("opts-parent/child/grandchild");
-
-        fs.mkdirSync(dirPath, new MkdirOptions { recursive = true });
-
-        Assert.True(Directory.Exists(dirPath));
-    }
-
-    [Fact]
-    public void mkdirSync_MkdirOptions_NonRecursive_MissingParent_ShouldThrow()
-    {
-        var dirPath = GetTestPath("opts-missing-parent/child");
-
         Assert.Throws<DirectoryNotFoundException>(() =>
-            fs.mkdirSync(dirPath, new MkdirOptions { recursive = false }));
+            fs.mkdirSync(dirPath, new MakeDirectoryOptions { recursive = false }));
     }
 
     [Fact]
-    public void mkdirSync_ObjectOptions_Recursive_ShouldCreateNestedDirectories()
+    public void mkdirSync_NonRecursiveOptions_ExistingDirectory_ShouldThrow()
     {
-        var dirPath = GetTestPath("obj-parent/child/grandchild");
+        var dirPath = GetTestPath("existing-directory");
+        Directory.CreateDirectory(dirPath);
 
-        fs.mkdirSync(dirPath, (object)new MkdirOptions { recursive = true });
+        Assert.Throws<IOException>(() => fs.mkdirSync(dirPath));
+        fs.mkdirSync(dirPath, new MakeDirectoryOptions { recursive = true });
+    }
 
-        Assert.True(Directory.Exists(dirPath));
+    [Fact]
+    public void mkdirSync_InvalidMode_ShouldThrow()
+    {
+        var dirPath = GetTestPath("invalid-mode");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            fs.mkdirSync(dirPath, new MakeDirectoryOptions { mode = 1.5 }));
     }
 }
