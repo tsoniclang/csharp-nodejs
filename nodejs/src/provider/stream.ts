@@ -30,6 +30,7 @@ import {
   nodejsClassCallTargetMetadata,
   nodejsClassPropertyTargetMetadata,
 } from "./members/target-member-metadata.js";
+import { nodeBufferProviderType } from "./buffer/provider-types.js";
 import type {
   NodejsClassCallTargetMetadata,
   NodejsClassPropertyTargetMetadata,
@@ -54,6 +55,10 @@ const voidTargetType = csharpVoidTargetType();
 const tsValueTargetType = csharpTsValueTargetType();
 const actionTargetType = csharpDelegateTargetType("System.Action", []);
 const callbackType = callbackProviderType("node:stream.callback", []);
+const streamChunkProviderType = unionProviderType(
+  stringProviderType,
+  nodeBufferProviderType,
+);
 
 export function nodeStreamExports(): readonly ProviderExportDeclaration[] {
   return nodejsCapabilityModuleExports({
@@ -72,12 +77,7 @@ export function nodeStreamExports(): readonly ProviderExportDeclaration[] {
 }
 
 export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTargetMetadata[] {
-  const calls: NodejsClassCallTargetMetadata[] = classNames.map((exportName) =>
-    classCall(exportName, "constructor", "constructor", [], undefined, [], targetTypes[exportName], {
-      targetName: exportName,
-      memberKind: "constructor",
-    })
-  );
+  const calls: NodejsClassCallTargetMetadata[] = [];
 
   calls.push(
     classCall("Readable", "read", "read", [optionalNumber("size")], unknownOrUndefined(), [
@@ -98,7 +98,7 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
   for (const exportName of ["Writable", "Duplex"] as const) {
     calls.push(
       classCall(exportName, "write", "write", [
-        { name: "chunk", type: unknownProviderType },
+        { name: "chunk", type: streamChunkProviderType },
         optionalString("encoding"),
         optionalCallback("callback"),
       ], booleanProviderType, [
@@ -107,14 +107,18 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
         targetParameter("callback", actionTargetType, { optional: true }),
       ], boolTargetType),
       classCall(exportName, "end", "end", [
-        { name: "chunk", type: unknownProviderType, optional: true },
+        {
+          name: "chunk",
+          type: unionProviderType(streamChunkProviderType, undefinedProviderType),
+          optional: true,
+        },
         optionalString("encoding"),
         optionalCallback("callback"),
-      ], voidProviderType, [
+      ], providerClass(exportName), [
         targetParameter("chunk", tsValueTargetType, { optional: true }),
         targetParameter("encoding", nullableStringTargetType, { optional: true }),
         targetParameter("callback", actionTargetType, { optional: true }),
-      ], voidTargetType),
+      ], targetTypes[exportName]),
       classCall(exportName, "cork", "cork", [], voidProviderType, [], voidTargetType),
       classCall(exportName, "uncork", "uncork", [], voidProviderType, [], voidTargetType),
     );

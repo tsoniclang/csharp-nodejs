@@ -16,11 +16,6 @@ namespace Tsonic.CSharp.Node.Https;
 /// </summary>
 public static class https
 {
-    public static Http.Server createServer(Action<IncomingMessage, ServerResponse>? requestListener = null)
-    {
-        throw new ArgumentException("HTTPS server options must supply an exact certificate and private key.");
-    }
-
     public static Http.Server createServer(HttpsServerOptions options, Action<IncomingMessage, ServerResponse>? requestListener = null)
     {
         if (options == null)

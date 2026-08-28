@@ -12,7 +12,7 @@ namespace Tsonic.CSharp.Node.Http;
 /// Wraps ASP.NET Core HttpResponse to provide Node.js-compatible API.
 /// Extends EventEmitter to support events like 'finish', 'close'.
 /// </summary>
-public partial class ServerResponse : EventEmitter
+public partial class ServerResponse : Writable
 {
     private readonly HttpResponse _response;
     private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -186,15 +186,7 @@ public partial class ServerResponse : EventEmitter
     /// <returns>True if entire data was flushed successfully.</returns>
     public bool write(string chunk, string? encoding = null, Action? callback = null)
     {
-        if (!_headersSent)
-        {
-            _headersSent = true;
-        }
-
-        // Write synchronously - use Task.Run to avoid sync-over-async deadlock
-        Task.Run(async () => await _response.WriteAsync(chunk)).GetAwaiter().GetResult();
-        callback?.Invoke();
-        return true;
+        return base.write(chunk, encoding, callback);
     }
 
     /// <summary>
@@ -202,14 +194,7 @@ public partial class ServerResponse : EventEmitter
     /// </summary>
     public bool write(Buffer chunk, Action? callback = null)
     {
-        if (!_headersSent)
-        {
-            _headersSent = true;
-        }
-
-        Task.Run(async () => await _response.Body.WriteAsync(chunk.InternalData)).GetAwaiter().GetResult();
-        callback?.Invoke();
-        return true;
+        return base.write(chunk, callback: callback);
     }
 
     /// <summary>
@@ -217,14 +202,7 @@ public partial class ServerResponse : EventEmitter
     /// </summary>
     public bool write(byte[] chunk, Action? callback = null)
     {
-        if (!_headersSent)
-        {
-            _headersSent = true;
-        }
-
-        Task.Run(async () => await _response.Body.WriteAsync(chunk)).GetAwaiter().GetResult();
-        callback?.Invoke();
-        return true;
+        return base.write(chunk, callback: callback);
     }
 
     /// <summary>
@@ -234,10 +212,7 @@ public partial class ServerResponse : EventEmitter
     /// <returns>This response for chaining.</returns>
     public ServerResponse end()
     {
-        _finished = true;
-        _timeoutTimer?.Dispose();
-        emit("finish");
-        _completion.TrySetResult();
+        base.end();
         return this;
     }
 
@@ -246,9 +221,8 @@ public partial class ServerResponse : EventEmitter
     /// </summary>
     public ServerResponse end(Action? callback)
     {
-        var response = end();
-        callback?.Invoke();
-        return response;
+        base.end(callback: callback);
+        return this;
     }
 
     /// <summary>
@@ -261,12 +235,8 @@ public partial class ServerResponse : EventEmitter
     /// <returns>This response for chaining.</returns>
     public ServerResponse end(string chunk, string? encoding = null, Action? callback = null)
     {
-        // Write synchronously - use Task.Run to avoid sync-over-async deadlock
-        // Server will call CompleteAsync after emit returns
-        Task.Run(async () => await _response.WriteAsync(chunk)).GetAwaiter().GetResult();
-        var response = end();
-        callback?.Invoke();
-        return response;
+        base.end(chunk, encoding, callback);
+        return this;
     }
 
     /// <summary>
@@ -274,10 +244,8 @@ public partial class ServerResponse : EventEmitter
     /// </summary>
     public ServerResponse end(Buffer chunk, Action? callback = null)
     {
-        Task.Run(async () => await _response.Body.WriteAsync(chunk.InternalData)).GetAwaiter().GetResult();
-        var response = end();
-        callback?.Invoke();
-        return response;
+        base.end(chunk, callback: callback);
+        return this;
     }
 
     /// <summary>
@@ -285,10 +253,39 @@ public partial class ServerResponse : EventEmitter
     /// </summary>
     public ServerResponse end(byte[] chunk, Action? callback = null)
     {
-        Task.Run(async () => await _response.Body.WriteAsync(chunk)).GetAwaiter().GetResult();
-        var response = end();
-        callback?.Invoke();
-        return response;
+        base.end(chunk, callback: callback);
+        return this;
+    }
+
+    protected override void _write(object? chunk, string? encoding, Action callback)
+    {
+        if (!_headersSent)
+            _headersSent = true;
+
+        switch (chunk)
+        {
+            case string text:
+                _response.WriteAsync(text).GetAwaiter().GetResult();
+                break;
+            case Buffer buffer:
+                _response.Body.WriteAsync(buffer.InternalData).GetAwaiter().GetResult();
+                break;
+            case byte[] bytes:
+                _response.Body.WriteAsync(bytes).GetAwaiter().GetResult();
+                break;
+            default:
+                throw new ArgumentException("ServerResponse.write requires a string or binary chunk.", nameof(chunk));
+        }
+
+        callback();
+    }
+
+    protected override void _final(Action callback)
+    {
+        _finished = true;
+        _timeoutTimer?.Dispose();
+        _completion.TrySetResult();
+        callback();
     }
 
     /// <summary>

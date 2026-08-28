@@ -199,7 +199,7 @@ public partial class Server : EventEmitter
                     var req = new IncomingMessage(context.Request);
                     var res = new ServerResponse(context.Response);
 
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("request", req, res));
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("request", req, res));
 
                     await res.Completion.WaitAsync(context.RequestAborted);
                     await context.Response.CompleteAsync();

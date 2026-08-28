@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Tsonic.CSharp.Js;
 
@@ -7,11 +8,16 @@ namespace Tsonic.CSharp.Node;
 
 internal static class BackgroundDispatch
 {
-    private static readonly TaskFactory Factory = new(
-        CancellationToken.None,
-        TaskCreationOptions.LongRunning,
-        TaskContinuationOptions.None,
-        TaskScheduler.Default);
+    private const int WorkerCount = 4;
+    private const int MaximumPendingWork = 16 * 1024;
+    private static readonly Channel<WorkItem> Work = Channel.CreateBounded<WorkItem>(
+        new BoundedChannelOptions(MaximumPendingWork)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = false,
+            SingleWriter = false
+        });
+    private static readonly Task[] Workers = CreateWorkers();
 
     public static Task RunReferenced(Action action)
     {
@@ -19,11 +25,12 @@ internal static class BackgroundDispatch
         ProcessKeepAlive.Acquire();
         try
         {
-            return Factory.StartNew(() =>
+            return Enqueue(() =>
             {
                 try
                 {
                     action();
+                    return Task.CompletedTask;
                 }
                 finally
                 {
@@ -44,7 +51,7 @@ internal static class BackgroundDispatch
         ProcessKeepAlive.Acquire();
         try
         {
-            return Factory.StartNew(async () =>
+            return Enqueue(async () =>
             {
                 try
                 {
@@ -54,7 +61,7 @@ internal static class BackgroundDispatch
                 {
                     ProcessKeepAlive.Release();
                 }
-            }).Unwrap();
+            });
         }
         catch
         {
@@ -66,12 +73,51 @@ internal static class BackgroundDispatch
     public static Task RunHandleOwned(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        return Factory.StartNew(action);
+        return Enqueue(() =>
+        {
+            action();
+            return Task.CompletedTask;
+        });
     }
 
     public static Task RunHandleOwnedAsync(Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        return Factory.StartNew(action).Unwrap();
+        return Enqueue(action);
     }
+
+    private static Task Enqueue(Func<Task> action)
+    {
+        _ = Workers;
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!Work.Writer.TryWrite(new WorkItem(action, completion)))
+            throw new InvalidOperationException("Node background work queue exceeds its finite limit.");
+        return completion.Task;
+    }
+
+    private static Task[] CreateWorkers()
+    {
+        var workers = new Task[WorkerCount];
+        for (var index = 0; index < workers.Length; index++)
+            workers[index] = Task.Run(WorkerLoop);
+        return workers;
+    }
+
+    private static async Task WorkerLoop()
+    {
+        await foreach (var item in Work.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            try
+            {
+                await item.Action().ConfigureAwait(false);
+                item.Completion.TrySetResult();
+            }
+            catch (Exception error)
+            {
+                item.Completion.TrySetException(error);
+            }
+        }
+    }
+
+    private sealed record WorkItem(Func<Task> Action, TaskCompletionSource Completion);
 }

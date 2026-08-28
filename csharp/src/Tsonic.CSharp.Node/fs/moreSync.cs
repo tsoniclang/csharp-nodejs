@@ -84,21 +84,28 @@ public sealed class FsWatcher : EventEmitter
 
 public sealed class StatWatcher : EventEmitter
 {
-    private readonly FileSystemWatcher _watcher;
+    private readonly Timer _timer;
     private readonly Action _onClose;
+    private Stats _previous;
+    private int _callbackPending;
     private int _closed;
     private int _referenced = 1;
 
     internal StatWatcher(
         string path,
         Action<Stats, Stats>? listener,
-        FileSystemWatcher watcher,
+        TimeSpan interval,
         Action onClose)
     {
         this.path = path;
         this.listener = listener;
-        _watcher = watcher;
         _onClose = onClose;
+        _previous = CurrentStats(path);
+        _timer = new Timer(
+            static state => ((StatWatcher)state!).SchedulePoll(),
+            this,
+            interval,
+            interval);
         ProcessKeepAlive.Acquire();
     }
 
@@ -110,7 +117,7 @@ public sealed class StatWatcher : EventEmitter
     {
         if (Interlocked.Exchange(ref _closed, 1) != 0)
             return;
-        _watcher.Dispose();
+        _timer.Dispose();
         _onClose();
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
             ProcessKeepAlive.Release();
@@ -125,6 +132,66 @@ public sealed class StatWatcher : EventEmitter
             emit("change", current, previous);
         }
     }
+
+    private void SchedulePoll()
+    {
+        if (closed || Interlocked.Exchange(ref _callbackPending, 1) != 0)
+            return;
+        JsEventLoop.EnqueueHandleOwned(() =>
+        {
+            try
+            {
+                if (closed)
+                    return;
+                var current = CurrentStats(path);
+                var previous = _previous;
+                _previous = current;
+                if (StatsChanged(current, previous))
+                    publish(current, previous);
+            }
+            finally
+            {
+                Volatile.Write(ref _callbackPending, 0);
+            }
+        });
+    }
+
+    private static Stats CurrentStats(string path)
+    {
+        try
+        {
+            return File.Exists(path) || Directory.Exists(path)
+                ? fs.statSync(path)
+                : new Stats();
+        }
+        catch (FileNotFoundException)
+        {
+            return new Stats();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return new Stats();
+        }
+    }
+
+    private static bool StatsChanged(Stats current, Stats previous) =>
+        current.dev != previous.dev ||
+        current.ino != previous.ino ||
+        current.nlink != previous.nlink ||
+        current.uid != previous.uid ||
+        current.gid != previous.gid ||
+        current.rdev != previous.rdev ||
+        current.blksize != previous.blksize ||
+        current.blocks != previous.blocks ||
+        current.size != previous.size ||
+        current.mode != previous.mode ||
+        current.atimeMs != previous.atimeMs ||
+        current.mtimeMs != previous.mtimeMs ||
+        current.ctimeMs != previous.ctimeMs ||
+        current.birthtimeMs != previous.birthtimeMs ||
+        current.isFile != previous.isFile ||
+        current.isDirectory != previous.isDirectory ||
+        current.isSymbolicLink != previous.isSymbolicLink;
 
     public StatWatcher @ref()
     {
@@ -518,7 +585,7 @@ public static partial class fs
         var result = new FsWatcher(watcher);
         void Publish(string eventType, string? filename)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
             {
                 if (result.closed)
                     return;
@@ -530,7 +597,7 @@ public static partial class fs
         watcher.Created += (_, e) => Publish("rename", e.Name);
         watcher.Deleted += (_, e) => Publish("rename", e.Name);
         watcher.Renamed += (_, e) => Publish("rename", e.Name);
-        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
         {
             if (!result.closed)
                 result.emit("error", e.GetException());
@@ -541,39 +608,12 @@ public static partial class fs
     public static StatWatcher watchFile(string path, Action<Stats, Stats>? listener = null)
     {
         var fullPath = Path.GetFullPath(path);
-        var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
-        var fileName = Path.GetFileName(fullPath);
-        var watcher = new FileSystemWatcher(directory, fileName);
-        var previous = File.Exists(fullPath) || Directory.Exists(fullPath)
-            ? statSync(fullPath)
-            : new Stats();
         StatWatcher? result = null;
-        result = new StatWatcher(fullPath, listener, watcher, () => RemoveStatWatcher(result!));
-
-        void Publish()
-        {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
-            {
-                if (result.closed)
-                    return;
-                var current = File.Exists(fullPath) || Directory.Exists(fullPath)
-                    ? statSync(fullPath)
-                    : new Stats();
-                var prior = previous;
-                previous = current;
-                result.publish(current, prior);
-            });
-        }
-
-        watcher.Changed += (_, _) => Publish();
-        watcher.Created += (_, _) => Publish();
-        watcher.Deleted += (_, _) => Publish();
-        watcher.Renamed += (_, _) => Publish();
-        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
-        {
-            if (!result.closed)
-                result.emit("error", e.GetException());
-        });
+        result = new StatWatcher(
+            fullPath,
+            listener,
+            TimeSpan.FromMilliseconds(5007),
+            () => RemoveStatWatcher(result!));
         lock (StatWatchersLock)
         {
             if (!StatWatchers.TryGetValue(fullPath, out var entries))
@@ -583,7 +623,6 @@ public static partial class fs
             }
             entries.Add(result);
         }
-        watcher.EnableRaisingEvents = true;
         return result;
     }
     public static void unwatchFile(string path, Action<Stats, Stats>? listener = null)

@@ -73,19 +73,19 @@ public partial class Socket : Stream
                         await _stream.WriteAsync(request.Data, 0, request.Data.Length);
                         bytesWritten += request.Data.Length;
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => request.Callback(null));
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(null));
                     }
                     catch (Exception ex)
                     {
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => request.Callback(ex));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(ex));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
                     }
                     finally
                     {
                         var remaining = Interlocked.Add(ref _queuedWriteBytes, -request.Data.Length);
                         if (remaining < WriteHighWaterMark && Interlocked.Exchange(ref _needsDrain, 0) == 1)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("drain"));
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drain"));
                     }
 
                     // Signal if queue is empty
@@ -145,7 +145,7 @@ public partial class Socket : Stream
                 {
                 }
                 if (callback != null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(callback);
             });
         }
         return this;

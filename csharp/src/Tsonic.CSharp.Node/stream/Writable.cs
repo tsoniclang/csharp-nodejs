@@ -71,12 +71,13 @@ public partial class Writable : Stream
     /// <param name="chunk">Optional data to write before ending.</param>
     /// <param name="encoding">The encoding if chunk is a string.</param>
     /// <param name="callback">Optional callback for when the stream has finished.</param>
-    public void end(object? chunk = null, string? encoding = null, Action? callback = null)
+    public Writable end(object? chunk = null, string? encoding = null, Action? callback = null)
     {
         _state.End(chunk, encoding, callback);
+        return this;
     }
 
-    public void end(TsValue chunk, string? encoding = null, Action? callback = null) =>
+    public Writable end(TsValue chunk, string? encoding = null, Action? callback = null) =>
         end(chunk.unwrap(), encoding, callback);
 
     /// <summary>

@@ -377,10 +377,20 @@ function nodeHttpIncomingMessageDeclaration(): ProviderExportDeclaration {
 }
 
 function nodeHttpServerResponseDeclaration(): ProviderExportDeclaration {
-  return providerClassDeclaration(nodeHttpServerResponseExportName, [
-    ...providerClassCallMembers(nodeHttpClassCallTargetMembers().filter((member) => member.exportName === nodeHttpServerResponseExportName)),
-    ...providerClassPropertyMembers(nodeHttpClassPropertyTargetMembers().filter((member) => member.exportName === nodeHttpServerResponseExportName)),
-  ]);
+  return {
+    ...providerClassDeclaration(nodeHttpServerResponseExportName, [
+      ...providerClassCallMembers(nodeHttpClassCallTargetMembers().filter((member) => member.exportName === nodeHttpServerResponseExportName)),
+      ...providerClassPropertyMembers(nodeHttpClassPropertyTargetMembers().filter((member) => member.exportName === nodeHttpServerResponseExportName)),
+    ]),
+    heritage: [{
+      kind: "extends",
+      type: {
+        kind: "provider-ref",
+        moduleSpecifier: "node:stream",
+        exportName: "Writable",
+      },
+    }],
+  };
 }
 
 function nodeHttpServerDeclaration(): ProviderExportDeclaration {

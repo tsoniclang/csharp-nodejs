@@ -217,14 +217,14 @@ public sealed class Worker : EventEmitter, IDisposable
                     case WorkerFrameKind.Message:
                     {
                         var value = StructuredClone.Decode(frame.Payload);
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("message", value));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("message", value));
                         break;
                     }
                     case WorkerFrameKind.Error:
                     {
                         var error = new InvalidOperationException(
                             Encoding.UTF8.GetString(frame.Payload));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", error));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
                         break;
                     }
                     case WorkerFrameKind.Close:
@@ -239,7 +239,7 @@ public sealed class Worker : EventEmitter, IDisposable
             error is IOException or ObjectDisposedException or SocketException or InvalidDataException)
         {
             if (!IsComplete())
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", error));
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
         }
     }
 
@@ -256,6 +256,7 @@ public sealed class Worker : EventEmitter, IDisposable
 
     private void Complete(int exitCode)
     {
+        var retainedExit = false;
         lock (_stateLock)
         {
             if (_exitCode.HasValue) return;
@@ -265,9 +266,23 @@ public sealed class Worker : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
+                retainedExit = true;
+            }
+        }
+        if (retainedExit)
+        {
+            try
+            {
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("exit", exitCode));
+            }
+            finally
+            {
                 ProcessKeepAlive.Release();
             }
         }
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("exit", exitCode));
+        else
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("exit", exitCode));
+        }
     }
 }

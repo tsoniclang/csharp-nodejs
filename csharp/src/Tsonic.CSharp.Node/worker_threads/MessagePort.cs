@@ -137,7 +137,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             Interlocked.Decrement(ref _queuedMessages);
             throw;
         }
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        EnqueuePortCallback(() =>
         {
             if (_queue.TryDequeue(out var selected))
             {
@@ -160,7 +160,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
                         ReceiveLocal(frame.Payload);
                         break;
                     case WorkerFrameKind.Error:
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit(
+                        EnqueuePortCallback(() => emit(
                             "error",
                             new InvalidOperationException(
                                 System.Text.Encoding.UTF8.GetString(frame.Payload))));
@@ -177,9 +177,22 @@ public sealed class MessagePort : EventEmitter, IDisposable
         catch (Exception error) when (
             error is IOException or ObjectDisposedException or InvalidDataException)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", error));
+            EnqueuePortCallback(() => emit("error", error));
             close();
         }
+    }
+
+    private void EnqueuePortCallback(Action callback)
+    {
+        lock (_stateLock)
+        {
+            if (_transport is not null)
+            {
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(callback);
+                return;
+            }
+        }
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
     }
 }
 

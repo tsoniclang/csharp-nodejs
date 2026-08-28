@@ -158,12 +158,12 @@ public class Server : EventEmitter
                     {
                         socket.destroy();
                         _connections--;
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("drop", TsValue.CreateDynamicObject()));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drop", TsValue.CreateDynamicObject()));
                     }
                     else
                     {
                         socket.once("close", () => Interlocked.Decrement(ref _connections));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
                         {
                             emit("connection", socket);
                             socket.StartReading();
@@ -178,7 +178,7 @@ public class Server : EventEmitter
         }
         catch (Exception ex)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
         }
     }
 

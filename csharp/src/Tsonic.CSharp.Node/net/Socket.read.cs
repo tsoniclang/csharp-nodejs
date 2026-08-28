@@ -60,7 +60,7 @@ public partial class Socket : Stream
 
                     if (bytesReadCount == 0)
                     {
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("end"));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("end"));
                         if (!_allowHalfOpen)
                             end(() => destroy());
                         break;
@@ -73,7 +73,7 @@ public partial class Socket : Stream
                     System.Array.Copy(buffer, 0, data, 0, bytesReadCount);
                     var nodeBuffer = Buffer.from(data);
 
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("data", nodeBuffer));
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("data", nodeBuffer));
                 }
             }
             catch (Exception ex)

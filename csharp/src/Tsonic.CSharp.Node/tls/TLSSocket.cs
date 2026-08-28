@@ -128,14 +128,14 @@ public partial class TLSSocket : Socket
                         // Start reading data from the stream
                         StartReading();
 
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("secureConnect"));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("secureConnect"));
                     }
                     catch (Exception ex)
                     {
                         _authorizationError = ex;
                         _tlsHandshakeError = ex;
                         _tlsReady.Set();
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
                     }
                 });
             }
