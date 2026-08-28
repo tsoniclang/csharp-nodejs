@@ -37,36 +37,21 @@ public class WorkerThreadsTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Worker_RunsBodyAndEmitsExit()
+    public void WorkerBootstrap_RejectsMalformedCompilerOwnedArguments()
     {
-        var ran = false;
-        using var start = new System.Threading.ManualResetEventSlim(false);
-        var exited = new System.Threading.Tasks.TaskCompletionSource<int>(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-        var worker = new Worker(() =>
-        {
-            if (!start.Wait(System.TimeSpan.FromSeconds(5)))
-                throw new System.TimeoutException("Worker test did not release its start gate.");
-            ran = true;
-        });
-        worker.on("exit", (object? value) => exited.TrySetResult((int)value!));
-        worker.on("error", (object? value) => exited.TrySetException((System.Exception)value!));
-
-        start.Set();
-        var exitCode = await exited.Task.WaitAsync(System.TimeSpan.FromSeconds(5));
-
-        Assert.True(ran);
-        Assert.Equal(0, exitCode);
-        Assert.True(worker.threadId > 0);
+        Assert.Null(worker_threads.InitializeWorkerProcess([]));
+        Assert.Throws<System.InvalidOperationException>(() =>
+            worker_threads.InitializeWorkerProcess(["--tsonic-node-worker-v1"]));
     }
 
     [Fact]
-    public void TransferMarkers_AreClosedNoOps()
+    public void TransferMarkers_PreserveExactReferenceIdentity()
     {
         var value = new object();
 
         worker_threads.markAsUntransferable(value);
 
-        Assert.False(worker_threads.isMarkedAsUntransferable(value));
+        Assert.True(worker_threads.isMarkedAsUntransferable(value));
+        Assert.False(worker_threads.isMarkedAsUntransferable(new object()));
     }
 }
