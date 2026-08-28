@@ -33,6 +33,9 @@ import {
   nodeFsPromisesCallTargetMembers,
   nodeFsPromisesModuleSpecifier,
   nodeFsUnsupportedTargetIdentities,
+  nodeFsStreamCallTargetMembers,
+  nodeFsStreamClassCallTargetMembers,
+  nodeFsStreamClassPropertyTargetMembers,
 } from "../filesystem/index.js";
 import {
   nodeOsCallTargetMembers,
@@ -46,6 +49,11 @@ import {
   nodeHttpClassPropertyTargetMembers,
   nodeHttpModuleSpecifier,
 } from "../http.js";
+import {
+  nodeHttpsCallTargetMembers,
+  nodeHttpsClassPropertyTargetMembers,
+  nodeHttpsModuleSpecifier,
+} from "../https.js";
 import {
   nodePathCallTargetMembers,
   nodePathClassPropertyTargetMembers,
@@ -82,6 +90,53 @@ import {
   nodeUrlUnsupportedTargetIdentities,
 } from "../url.js";
 import {
+  nodeEventsClassCallTargetMembers,
+  nodeEventsModuleSpecifier,
+} from "../events.js";
+import {
+  nodeStreamClassCallTargetMembers,
+  nodeStreamClassPropertyTargetMembers,
+  nodeStreamModuleSpecifier,
+} from "../stream.js";
+import {
+  nodeZlibCallTargetMembers,
+  nodeZlibClassCallTargetMembers,
+  nodeZlibClassPropertyTargetMembers,
+  nodeZlibModuleSpecifier,
+} from "../zlib.js";
+import {
+  nodeDnsCallTargetMembers,
+  nodeDnsClassPropertyTargetMembers,
+  nodeDnsModuleSpecifier,
+  nodeDnsPromisesCallTargetMembers,
+  nodeDnsPromisesModuleSpecifier,
+  nodeDnsPropertyTargetMembers,
+} from "../dns.js";
+import {
+  nodeNetCallTargetMembers,
+  nodeNetClassCallTargetMembers,
+  nodeNetClassPropertyTargetMembers,
+  nodeNetModuleSpecifier,
+} from "../net.js";
+import {
+  nodeTlsCallTargetMembers,
+  nodeTlsClassPropertyTargetMembers,
+  nodeTlsModuleSpecifier,
+} from "../tls.js";
+import {
+  nodeReadlineCallTargetMembers,
+  nodeReadlineClassCallTargetMembers,
+  nodeReadlineClassPropertyTargetMembers,
+  nodeReadlineModuleSpecifier,
+} from "../readline.js";
+import {
+  nodeWorkerThreadsClassCallTargetMembers,
+  nodeWorkerThreadsClassPropertyTargetMembers,
+  nodeWorkerThreadsModuleCallTargetMembers,
+  nodeWorkerThreadsModulePropertyTargetMembers,
+  nodeWorkerThreadsModuleSpecifier,
+} from "../worker-threads.js";
+import {
   nodejsExportDeclarationIdentity,
   nodejsExportMemberDeclarationIdentity,
   nodejsExportMemberSignatureDeclarationIdentity,
@@ -113,6 +168,28 @@ export interface NodejsUnsupportedTargetMetadataRecord {
 
 export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMemberMetadataRecord[] {
   return [
+    ...classCallRecords(nodeEventsModuleSpecifier, nodeEventsClassCallTargetMembers()),
+    ...classCallRecords(nodeStreamModuleSpecifier, nodeStreamClassCallTargetMembers()),
+    ...classPropertyRecords(nodeStreamModuleSpecifier, nodeStreamClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeZlibModuleSpecifier, nodeZlibCallTargetMembers()),
+    ...classCallRecords(nodeZlibModuleSpecifier, nodeZlibClassCallTargetMembers()),
+    ...classPropertyRecords(nodeZlibModuleSpecifier, nodeZlibClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeDnsModuleSpecifier, nodeDnsCallTargetMembers()),
+    ...modulePropertyRecords(nodeDnsModuleSpecifier, nodeDnsPropertyTargetMembers()),
+    ...classPropertyRecords(nodeDnsModuleSpecifier, nodeDnsClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeDnsPromisesModuleSpecifier, nodeDnsPromisesCallTargetMembers()),
+    ...moduleCallRecords(nodeNetModuleSpecifier, nodeNetCallTargetMembers()),
+    ...classCallRecords(nodeNetModuleSpecifier, nodeNetClassCallTargetMembers()),
+    ...classPropertyRecords(nodeNetModuleSpecifier, nodeNetClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeTlsModuleSpecifier, nodeTlsCallTargetMembers()),
+    ...classPropertyRecords(nodeTlsModuleSpecifier, nodeTlsClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeReadlineModuleSpecifier, nodeReadlineCallTargetMembers()),
+    ...classCallRecords(nodeReadlineModuleSpecifier, nodeReadlineClassCallTargetMembers()),
+    ...classPropertyRecords(nodeReadlineModuleSpecifier, nodeReadlineClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsModuleCallTargetMembers()),
+    ...modulePropertyRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsModulePropertyTargetMembers()),
+    ...classCallRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassCallTargetMembers()),
+    ...classPropertyRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeBufferModuleSpecifier, nodeBufferModuleCallTargetMembers()),
     ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers()),
     ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers()),
@@ -125,13 +202,18 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classPropertyRecords(nodePathModuleSpecifier, nodePathPathModulePropertyTargetMembers()),
     ...classPropertyRecords(nodePathModuleSpecifier, nodePathClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeFsModuleSpecifier, nodeFsCallTargetMembers()),
+    ...moduleCallRecords(nodeFsModuleSpecifier, nodeFsStreamCallTargetMembers()),
     ...classCallRecords(nodeFsModuleSpecifier, nodeFsClassCallTargetMembers()),
+    ...classCallRecords(nodeFsModuleSpecifier, nodeFsStreamClassCallTargetMembers()),
     ...classPropertyRecords(nodeFsModuleSpecifier, nodeFsClassPropertyTargetMembers()),
+    ...classPropertyRecords(nodeFsModuleSpecifier, nodeFsStreamClassPropertyTargetMembers()),
     ...classPropertyRecords(nodeFsModuleSpecifier, nodeFsOptionClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeFsPromisesModuleSpecifier, nodeFsPromisesCallTargetMembers()),
     ...moduleCallRecords(nodeHttpModuleSpecifier, nodeHttpCallTargetMembers()),
     ...classCallRecords(nodeHttpModuleSpecifier, nodeHttpClassCallTargetMembers()),
     ...classPropertyRecords(nodeHttpModuleSpecifier, nodeHttpClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeHttpsModuleSpecifier, nodeHttpsCallTargetMembers()),
+    ...classPropertyRecords(nodeHttpsModuleSpecifier, nodeHttpsClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeCryptoModuleSpecifier, nodeCryptoCallTargetMembers()),
     ...classCallRecords(nodeCryptoModuleSpecifier, nodeCryptoClassCallTargetMembers()),
     ...moduleCallRecords(nodeOsModuleSpecifier, nodeOsCallTargetMembers()),

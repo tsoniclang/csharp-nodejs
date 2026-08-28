@@ -3,6 +3,7 @@ import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import type {
+  CsharpTargetInvocation,
   CsharpTargetMember,
   TargetParameter,
   TargetTypeRef,
@@ -42,6 +43,7 @@ export interface NodejsClassPropertyTargetMetadata extends NodejsClassPropertyTa
   readonly memberKind: "property" | "indexer";
   readonly providerType: ProviderTypeExpression;
   readonly readonly?: true;
+  readonly optional?: true;
 }
 
 export interface NodejsModuleCallTargetMetadataRow {
@@ -82,6 +84,7 @@ export interface NodejsClassCallTargetMetadataRow {
   readonly targetReturnType: TargetTypeRef;
   readonly declaringType: TargetTypeRef;
   readonly static?: boolean;
+  readonly csharpInvocation?: CsharpTargetInvocation;
 }
 
 export interface NodejsClassPropertyTargetMetadataRow {
@@ -98,6 +101,7 @@ export interface NodejsClassPropertyTargetMetadataRow {
   readonly targetReturnType: TargetTypeRef;
   readonly declaringType: TargetTypeRef;
   readonly readonly?: true;
+  readonly optional?: true;
 }
 
 export function nodejsModuleCallTargetMetadata(
@@ -167,6 +171,9 @@ export function nodejsClassCallTargetMetadata(
       targetReturnType: row.targetReturnType,
       declaringType: row.declaringType,
       ...(row.static === true ? { static: true } : {}),
+      ...(row.csharpInvocation === undefined
+        ? {}
+        : { csharpInvocation: row.csharpInvocation }),
     }),
   };
 }
@@ -184,6 +191,7 @@ export function nodejsClassPropertyTargetMetadata(
     memberKind: row.memberKind,
     providerType: row.providerType,
     ...(row.readonly === true ? { readonly: true } : {}),
+    ...(row.optional === true ? { optional: true } : {}),
     member: nodejsTargetMember({
       targetMemberId: row.targetMemberId,
       sourceName: row.sourceName,
@@ -207,6 +215,7 @@ function nodejsTargetMember(row: {
   readonly declaringType: TargetTypeRef;
   readonly static?: true;
   readonly readonly?: true;
+  readonly csharpInvocation?: CsharpTargetInvocation;
 }): CsharpTargetMember {
   return {
     id: row.targetMemberId,
@@ -218,5 +227,8 @@ function nodejsTargetMember(row: {
     declaringType: row.declaringType,
     ...(row.static === true ? { static: true } : {}),
     ...(row.readonly === true ? { readonly: true } : {}),
+    ...(row.csharpInvocation === undefined
+      ? {}
+      : { csharpInvocation: row.csharpInvocation }),
   };
 }

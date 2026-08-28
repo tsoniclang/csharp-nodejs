@@ -46,6 +46,44 @@ import {
   nodeHttpModuleSpecifier,
 } from "./http.js";
 import {
+  nodeHttpsExports,
+  nodeHttpsModuleSpecifier,
+} from "./https.js";
+import {
+  nodeEventsExports,
+  nodeEventsModuleSpecifier,
+} from "./events.js";
+import {
+  nodeStreamExports,
+  nodeStreamModuleSpecifier,
+} from "./stream.js";
+import {
+  nodeZlibExports,
+  nodeZlibModuleSpecifier,
+} from "./zlib.js";
+import {
+  nodeDnsExports,
+  nodeDnsModuleSpecifier,
+  nodeDnsPromisesExports,
+  nodeDnsPromisesModuleSpecifier,
+} from "./dns.js";
+import {
+  nodeNetExports,
+  nodeNetModuleSpecifier,
+} from "./net.js";
+import {
+  nodeTlsExports,
+  nodeTlsModuleSpecifier,
+} from "./tls.js";
+import {
+  nodeReadlineExports,
+  nodeReadlineModuleSpecifier,
+} from "./readline.js";
+import {
+  nodeWorkerThreadsExports,
+  nodeWorkerThreadsModuleSpecifier,
+} from "./worker-threads.js";
+import {
   nodeOsExports,
   nodeOsModuleSpecifier,
 } from "./os.js";
@@ -82,6 +120,16 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeFsModuleSpecifier, nodeFsExports()],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
   [nodeHttpModuleSpecifier, nodeHttpExports()],
+  [nodeHttpsModuleSpecifier, nodeHttpsExports()],
+  [nodeEventsModuleSpecifier, nodeEventsExports()],
+  [nodeStreamModuleSpecifier, nodeStreamExports()],
+  [nodeZlibModuleSpecifier, nodeZlibExports()],
+  [nodeDnsModuleSpecifier, nodeDnsExports()],
+  [nodeDnsPromisesModuleSpecifier, nodeDnsPromisesExports()],
+  [nodeNetModuleSpecifier, nodeNetExports()],
+  [nodeTlsModuleSpecifier, nodeTlsExports()],
+  [nodeReadlineModuleSpecifier, nodeReadlineExports()],
+  [nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],

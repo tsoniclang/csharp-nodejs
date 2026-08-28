@@ -3,6 +3,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   csharpQualifiedTypeRenderShape,
+  csharpJsEventLoopBinaryEpilogue,
   csharpProviderPolicyContribution,
   csharpSourcePrimitiveTargetType,
   csharpTargetNamedType,
@@ -50,6 +51,7 @@ export function createCsharpNodejsProviderPolicyContribution() {
     csharpNodejsProviderPackageProviderIdentity.version,
     nodejsProviderTargetRelations(),
     nodejsProviderTargetRejections(),
+    Object.freeze([csharpJsEventLoopBinaryEpilogue]),
   );
 }
 

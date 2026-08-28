@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -26,13 +27,19 @@ public class DnsPromises
         return tcs.Task;
     }
 
-    public Task<LookupAddress[]> lookupAll(string hostname, LookupOptions? options = null)
+    public Task<JSArray<LookupAddress>> lookupAll(string hostname, LookupOptions? options = null)
     {
-        var lookupOptions = options ?? new LookupOptions();
-        lookupOptions.all = true;
+        var lookupOptions = new LookupOptions
+        {
+            family = options?.family,
+            hints = options?.hints,
+            all = true,
+            order = options?.order,
+            verbatim = options?.verbatim,
+        };
 
-        var tcs = new TaskCompletionSource<LookupAddress[]>();
-        dns.lookup(hostname, lookupOptions, (Exception? err, LookupAddress[] addresses) =>
+        var tcs = new TaskCompletionSource<JSArray<LookupAddress>>();
+        dns.lookup(hostname, lookupOptions, (Exception? err, JSArray<LookupAddress> addresses) =>
         {
             if (err != null)
             {

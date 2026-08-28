@@ -24,7 +24,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, records)</param>
     public static void resolveCaa(string hostname, Action<Exception?, CaaRecord[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -47,7 +47,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveMx(string hostname, Action<Exception?, MxRecord[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -70,7 +70,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveNaptr(string hostname, Action<Exception?, NaptrRecord[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -93,7 +93,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveNs(string hostname, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -116,7 +116,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolvePtr(string hostname, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -140,7 +140,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, address)</param>
     public static void resolveSoa(string hostname, Action<Exception?, SoaRecord> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -163,7 +163,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveSrv(string hostname, Action<Exception?, SrvRecord[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -186,7 +186,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveTlsa(string hostname, Action<Exception?, TlsaRecord[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {

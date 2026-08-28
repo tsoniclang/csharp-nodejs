@@ -1,7 +1,28 @@
 namespace Tsonic.CSharp.Node;
 
+using System.Linq;
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    public EventEmitter prependListener(TsValue eventName, Delegate listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, once: false), prepend: true);
+
+    public EventEmitter prependListener(TsValue eventName, Action listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, _ => listener(), once: false), prepend: true);
+
+    public EventEmitter prependListener(TsValue eventName, Action<TsValue[]> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(args.Select(TsValue.from).ToArray()), once: false), prepend: true);
+
+    public EventEmitter prependListener<T>(TsValue eventName, Action<T> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T>(args, 0)), once: false), prepend: true);
+
+    public EventEmitter prependListener<T1, T2>(TsValue eventName, Action<T1, T2> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1)), once: false), prepend: true);
+
+    public EventEmitter prependListener<T1, T2, T3>(TsValue eventName, Action<T1, T2, T3> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1), Argument<T3>(args, 2)), once: false), prepend: true);
+
     /// <summary>
     /// Adds a listener to the beginning of the listeners array for the specified event.
     /// </summary>

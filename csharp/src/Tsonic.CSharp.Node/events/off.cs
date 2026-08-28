@@ -1,7 +1,11 @@
 namespace Tsonic.CSharp.Node;
 
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    public EventEmitter off(TsValue eventName, Delegate listener) => removeListener(eventName, listener);
+
     /// <summary>
     /// Alias for removeListener().
     /// </summary>

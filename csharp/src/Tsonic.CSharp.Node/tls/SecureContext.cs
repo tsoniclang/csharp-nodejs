@@ -1,6 +1,8 @@
 using System;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -51,44 +53,38 @@ public class SecureContext
     /// </summary>
     public void LoadCertificate(object? cert, object? key, string? passphrase)
     {
+        cert = Unwrap(cert);
+        key = Unwrap(key);
         if (cert == null)
             return;
 
-        try
+        if (cert is Buffer certBuffer)
+            cert = certBuffer.InternalData;
+        if (key is Buffer keyBuffer)
+            key = Encoding.UTF8.GetString(keyBuffer.InternalData);
+
+        if (cert is X509Certificate2 x509Cert)
         {
-            if (cert is X509Certificate2 x509Cert)
-            {
-                // Already an X509Certificate2 object
-                _certificate = x509Cert;
-            }
-            else if (cert is string certString)
-            {
-                // PEM format
-                if (certString.Contains("BEGIN CERTIFICATE"))
-                {
-                    var certBytes = System.Text.Encoding.UTF8.GetBytes(certString);
-                    _certificate = new X509Certificate2(certBytes);
-                }
-            }
-            else if (cert is byte[] certBytes)
-            {
-                // Try PFX first, then PEM
-                try
-                {
-                    _certificate = passphrase != null
-                        ? new X509Certificate2(certBytes, passphrase)
-                        : new X509Certificate2(certBytes);
-                }
-                catch
-                {
-                    _certificate = new X509Certificate2(certBytes);
-                }
-            }
+            _certificate = x509Cert;
+            return;
         }
-        catch (Exception)
+        if (cert is string certString)
         {
-            // Certificate loading failed
+            if (key is not string keyString)
+            {
+                throw new ArgumentException("A PEM certificate requires a PEM private key.", nameof(key));
+            }
+            _certificate = passphrase == null
+                ? X509Certificate2.CreateFromPem(certString, keyString)
+                : X509Certificate2.CreateFromEncryptedPem(certString, keyString, passphrase);
+            return;
         }
+        if (cert is byte[] certBytes)
+        {
+            _certificate = new X509Certificate2(certBytes, passphrase);
+            return;
+        }
+        throw new ArgumentException("Certificate input must be PEM text, PKCS#12 bytes, or an X509Certificate2.", nameof(cert));
     }
 
     /// <summary>
@@ -96,34 +92,28 @@ public class SecureContext
     /// </summary>
     public void LoadCACertificates(object? ca)
     {
+        ca = Unwrap(ca);
+        if (ca is Buffer buffer)
+            ca = Encoding.UTF8.GetString(buffer.InternalData);
         if (ca == null)
             return;
 
         _caCertificates = new X509Certificate2Collection();
 
-        try
+        if (ca is string[] caArray)
         {
-            if (ca is string[] caArray)
+            foreach (var caString in caArray)
             {
-                foreach (var caString in caArray)
-                {
-                    if (caString.Contains("BEGIN CERTIFICATE"))
-                    {
-                        var caBytes = System.Text.Encoding.UTF8.GetBytes(caString);
-                        _caCertificates.Add(new X509Certificate2(caBytes));
-                    }
-                }
+                _caCertificates.Add(X509Certificate2.CreateFromPem(caString));
             }
-            else if (ca is string caString && caString.Contains("BEGIN CERTIFICATE"))
-            {
-                var caBytes = System.Text.Encoding.UTF8.GetBytes(caString);
-                _caCertificates.Add(new X509Certificate2(caBytes));
-            }
+            return;
         }
-        catch (Exception)
+        if (ca is string caString)
         {
-            // CA certificate loading failed
+            _caCertificates.Add(X509Certificate2.CreateFromPem(caString));
+            return;
         }
+        throw new ArgumentException("CA input must be PEM text or a string array of PEM certificates.", nameof(ca));
     }
 
     /// <summary>
@@ -159,6 +149,11 @@ public class SecureContext
             }
         }
     }
+
+    private static object? Unwrap(object? value) =>
+        value is TsValue typed
+            ? typed.isUndefined() ? null : typed.unwrap()
+            : value;
 }
 
 #pragma warning restore CS8981

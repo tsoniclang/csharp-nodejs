@@ -27,6 +27,7 @@ public partial class Server : EventEmitter
     private IWebHost? _host;
     private AddressInfo? _boundAddress;
     private readonly Action<IncomingMessage, ServerResponse>? _requestListener;
+    private readonly Action<ListenOptions>? _configureListener;
     private int _maxHeadersCount = 2000;
     private int _timeout = 0; // 0 means no timeout (Node.js default)
     private int _headersTimeout = 60000; // 60 seconds (Node.js default)
@@ -60,8 +61,16 @@ public partial class Server : EventEmitter
     /// </summary>
     /// <param name="requestListener">Optional request handler function.</param>
     public Server(Action<IncomingMessage, ServerResponse>? requestListener = null)
+        : this(requestListener, null)
+    {
+    }
+
+    internal Server(
+        Action<IncomingMessage, ServerResponse>? requestListener,
+        Action<ListenOptions>? configureListener)
     {
         _requestListener = requestListener;
+        _configureListener = configureListener;
 
         // If request listener provided, register it as event listener
         if (requestListener != null)
@@ -162,6 +171,7 @@ public partial class Server : EventEmitter
                     options.ListenAnyIP(listenPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
+                        _configureListener?.Invoke(listenOptions);
                     });
                 }
                 else
@@ -170,6 +180,7 @@ public partial class Server : EventEmitter
                     options.Listen(resolvedHostname!, listenPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
+                        _configureListener?.Invoke(listenOptions);
                     });
                 }
 
@@ -188,8 +199,7 @@ public partial class Server : EventEmitter
                     var req = new IncomingMessage(context.Request);
                     var res = new ServerResponse(context.Response);
 
-                    // Emit 'request' event - registered listeners will handle the request
-                    emit("request", req, res);
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("request", req, res));
 
                     await res.Completion.WaitAsync(context.RequestAborted);
                     await context.Response.CompleteAsync();
@@ -210,8 +220,11 @@ public partial class Server : EventEmitter
                 family = (resolvedHostname ?? IPAddress.Loopback).AddressFamily == AddressFamily.InterNetwork ? "IPv4" : "IPv6",
                 port = listenPort
             };
-            emit("listening");
-            callback?.Invoke();
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("listening");
+                callback?.Invoke();
+            });
             return this;
         }
         catch
@@ -251,7 +264,8 @@ public partial class Server : EventEmitter
     {
         if (_host == null)
         {
-            callback?.Invoke();
+            if (callback != null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
             return this;
         }
 
@@ -271,8 +285,11 @@ public partial class Server : EventEmitter
             _host = null;
             _listening = false;
             ProcessKeepAlive.Release();
-            emit("close");
-            callback?.Invoke();
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("close");
+                callback?.Invoke();
+            });
         }
 
         return this;

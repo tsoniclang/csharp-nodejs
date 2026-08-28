@@ -21,6 +21,9 @@ import {
   nodeHttpModuleSpecifier,
 } from "./http.js";
 import {
+  nodeHttpsModuleSpecifier,
+} from "./https.js";
+import {
   nodePathModuleSpecifier,
 } from "./path.js";
 import {
@@ -35,6 +38,31 @@ import {
 import {
   nodeUrlModuleSpecifier,
 } from "./url.js";
+import {
+  nodeEventsModuleSpecifier,
+} from "./events.js";
+import {
+  nodeStreamModuleSpecifier,
+} from "./stream.js";
+import {
+  nodeZlibModuleSpecifier,
+} from "./zlib.js";
+import {
+  nodeDnsModuleSpecifier,
+  nodeDnsPromisesModuleSpecifier,
+} from "./dns.js";
+import {
+  nodeNetModuleSpecifier,
+} from "./net.js";
+import {
+  nodeTlsModuleSpecifier,
+} from "./tls.js";
+import {
+  nodeReadlineModuleSpecifier,
+} from "./readline.js";
+import {
+  nodeWorkerThreadsModuleSpecifier,
+} from "./worker-threads.js";
 
 const canonicalBySpecifier = new Map<string, string>([
   ["assert", nodeAssertModuleSpecifier],
@@ -53,6 +81,26 @@ const canonicalBySpecifier = new Map<string, string>([
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesModuleSpecifier],
   ["http", nodeHttpModuleSpecifier],
   [nodeHttpModuleSpecifier, nodeHttpModuleSpecifier],
+  ["https", nodeHttpsModuleSpecifier],
+  [nodeHttpsModuleSpecifier, nodeHttpsModuleSpecifier],
+  ["events", nodeEventsModuleSpecifier],
+  [nodeEventsModuleSpecifier, nodeEventsModuleSpecifier],
+  ["stream", nodeStreamModuleSpecifier],
+  [nodeStreamModuleSpecifier, nodeStreamModuleSpecifier],
+  ["zlib", nodeZlibModuleSpecifier],
+  [nodeZlibModuleSpecifier, nodeZlibModuleSpecifier],
+  ["dns", nodeDnsModuleSpecifier],
+  [nodeDnsModuleSpecifier, nodeDnsModuleSpecifier],
+  ["dns/promises", nodeDnsPromisesModuleSpecifier],
+  [nodeDnsPromisesModuleSpecifier, nodeDnsPromisesModuleSpecifier],
+  ["net", nodeNetModuleSpecifier],
+  [nodeNetModuleSpecifier, nodeNetModuleSpecifier],
+  ["tls", nodeTlsModuleSpecifier],
+  [nodeTlsModuleSpecifier, nodeTlsModuleSpecifier],
+  ["readline", nodeReadlineModuleSpecifier],
+  [nodeReadlineModuleSpecifier, nodeReadlineModuleSpecifier],
+  ["worker_threads", nodeWorkerThreadsModuleSpecifier],
+  [nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsModuleSpecifier],
   ["os", nodeOsModuleSpecifier],
   [nodeOsModuleSpecifier, nodeOsModuleSpecifier],
   ["path", nodePathModuleSpecifier],

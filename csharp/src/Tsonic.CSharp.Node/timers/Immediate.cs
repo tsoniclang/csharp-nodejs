@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
@@ -19,10 +17,6 @@ public class Immediate : IDisposable
 
     private static int _nextHandleId = 0;
     private static readonly ConcurrentDictionary<int, Immediate> ActiveHandles = new();
-    private static readonly object SchedulerSync = new();
-    private static Queue<Immediate> _pendingHandles = new();
-    private static bool _dispatchScheduled;
-
     private readonly int _handleId;
     private readonly Action _callback;
     private int _state = StateScheduled;
@@ -35,54 +29,7 @@ public class Immediate : IDisposable
         _callback = callback;
         ProcessKeepAlive.Acquire();
         ActiveHandles[_handleId] = this;
-        EnqueueForDispatch(this);
-    }
-
-    private static void EnqueueForDispatch(Immediate handle)
-    {
-        var startDispatcher = false;
-        lock (SchedulerSync)
-        {
-            _pendingHandles.Enqueue(handle);
-            if (!_dispatchScheduled)
-            {
-                _dispatchScheduled = true;
-                startDispatcher = true;
-            }
-        }
-
-        if (startDispatcher)
-        {
-            _ = BackgroundDispatch.RunAsync(DispatchPendingAsync, "Tsonic.CSharp.Node.Immediate.dispatch");
-        }
-    }
-
-    private static async Task DispatchPendingAsync()
-    {
-        await Task.Yield();
-
-        while (true)
-        {
-            Queue<Immediate> currentTurn;
-            lock (SchedulerSync)
-            {
-                if (_pendingHandles.Count == 0)
-                {
-                    _dispatchScheduled = false;
-                    return;
-                }
-
-                currentTurn = _pendingHandles;
-                _pendingHandles = new Queue<Immediate>();
-            }
-
-            while (currentTurn.TryDequeue(out var handle))
-            {
-                handle.TryExecute();
-            }
-
-            await Task.Yield();
-        }
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(TryExecute);
     }
 
     private void TryExecute()
@@ -113,7 +60,6 @@ public class Immediate : IDisposable
 
     /// <summary>
     /// Requests that the Node.js event loop not exit so long as the Immediate is active.
-    /// In this C# implementation, this is a no-op for compatibility.
     /// </summary>
     public Immediate @ref()
     {
@@ -127,7 +73,6 @@ public class Immediate : IDisposable
 
     /// <summary>
     /// Allows the Node.js event loop to exit if this is the only active handle.
-    /// In this C# implementation, this is a no-op for compatibility.
     /// </summary>
     public Immediate unref()
     {

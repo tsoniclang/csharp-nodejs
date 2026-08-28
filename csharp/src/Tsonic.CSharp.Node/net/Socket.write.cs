@@ -28,19 +28,26 @@ public partial class Socket : Stream
     {
         if (_stream == null || _destroyed)
         {
-            callback?.Invoke(new InvalidOperationException("Socket not connected"));
+            if (callback != null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(new InvalidOperationException("Socket not connected")));
             return false;
         }
 
         // Queue the write request for FIFO processing (like Node.js)
         _writeQueueEmpty.Reset();
+        var queuedBytes = Interlocked.Add(ref _queuedWriteBytes, data.Length);
+        if (queuedBytes >= WriteHighWaterMark)
+            Interlocked.Exchange(ref _needsDrain, 1);
         _writeQueue.Add(new WriteRequest(data, callback));
 
         // Start the write loop if not already running
         StartWriteLoop();
 
-        return true;
+        return queuedBytes < WriteHighWaterMark;
     }
+
+    public bool write(Buffer data, Action<Exception?>? callback = null) =>
+        write(data.InternalData, callback);
 
     /// <summary>
     /// Starts the write loop that processes queued writes in FIFO order.
@@ -53,7 +60,7 @@ public partial class Socket : Stream
             _writeLoopStarted = true;
         }
 
-        _writeLoopTask = BackgroundDispatch.RunAsync(async () =>
+        _writeLoopTask = BackgroundDispatch.RunHandleOwnedAsync(async () =>
         {
             try
             {
@@ -65,13 +72,20 @@ public partial class Socket : Stream
                     {
                         await _stream.WriteAsync(request.Data, 0, request.Data.Length);
                         bytesWritten += request.Data.Length;
-                        request.Callback?.Invoke(null);
-                        emit("drain");
+                        if (request.Callback != null)
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => request.Callback(null));
                     }
                     catch (Exception ex)
                     {
-                        request.Callback?.Invoke(ex);
-                        emit("error", ex);
+                        if (request.Callback != null)
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => request.Callback(ex));
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+                    }
+                    finally
+                    {
+                        var remaining = Interlocked.Add(ref _queuedWriteBytes, -request.Data.Length);
+                        if (remaining < WriteHighWaterMark && Interlocked.Exchange(ref _needsDrain, 0) == 1)
+                            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("drain"));
                     }
 
                     // Signal if queue is empty
@@ -115,7 +129,7 @@ public partial class Socket : Stream
         if (_stream != null && !_destroyed)
         {
             // Wait for pending writes to complete before closing (like Node.js)
-            BackgroundDispatch.Run(() =>
+            BackgroundDispatch.RunHandleOwned(() =>
             {
                 // Wait for write queue to be empty with timeout
                 _writeQueueEmpty.Wait(TimeSpan.FromSeconds(30));
@@ -123,9 +137,15 @@ public partial class Socket : Stream
                 // Complete the write queue to stop the write loop
                 _writeQueue.CompleteAdding();
 
-                _stream?.Close();
-                emit("end");
-                callback?.Invoke();
+                try
+                {
+                    _client?.Client?.Shutdown(SocketShutdown.Send);
+                }
+                catch (SocketException)
+                {
+                }
+                if (callback != null)
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
             });
         }
         return this;
@@ -148,6 +168,9 @@ public partial class Socket : Stream
         });
         return this;
     }
+
+    public Socket end(Buffer data, Action? callback = null) =>
+        end(data.InternalData, callback);
 
     /// <summary>
     /// Half-closes the socket after writing string data.

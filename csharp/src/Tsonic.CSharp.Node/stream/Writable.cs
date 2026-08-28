@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -8,42 +8,47 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Writable : Stream
 {
-    private readonly Queue<WriteRequest> _buffer = new Queue<WriteRequest>();
-    private bool _ended = false;
-    private bool _writing = false;
-    private bool _corked = false;
+    private readonly WritableState _state;
 
-    private class WriteRequest
+    public Writable()
+        : this(64 * 1024)
     {
-        public object? Chunk { get; set; }
-        public string? Encoding { get; set; }
-        public Action? Callback { get; set; }
+    }
+
+    protected Writable(int highWaterMark)
+    {
+        _state = new WritableState(
+            (chunk, encoding, callback) => _write(chunk, encoding, callback),
+            callback => _final(callback),
+            eventName => emit(eventName),
+            highWaterMark);
+        _state.SetFinishCallbackRegistrar(callback => once("finish", callback));
     }
 
     /// <summary>
     /// Is true if it is safe to call write().
     /// </summary>
-    public bool writable => !_ended && !destroyed;
+    public bool writable => _state.Writable;
 
     /// <summary>
     /// Is true after writable.end() has been called.
     /// </summary>
-    public bool writableEnded => _ended;
+    public bool writableEnded => _state.Ended;
 
     /// <summary>
     /// Is true after destroy() has been called.
     /// </summary>
-    public bool destroyed { get; private set; }
+    public bool destroyed => _state.Destroyed;
 
     /// <summary>
     /// Number of bytes (or objects) in the write queue ready to be written.
     /// </summary>
-    public int writableLength => _buffer.Count;
+    public long writableLength => _state.BufferedSize;
 
     /// <summary>
     /// Is true if the stream's buffer has been corked.
     /// </summary>
-    public bool writableCorked => _corked;
+    public bool writableCorked => _state.Corked;
 
     /// <summary>
     /// Writes data to the stream.
@@ -54,28 +59,11 @@ public partial class Writable : Stream
     /// <returns>False if the stream wishes for the calling code to wait for the 'drain' event to be emitted before continuing to write.</returns>
     public bool write(object? chunk, string? encoding = null, Action? callback = null)
     {
-        if (_ended)
-        {
-            throw new InvalidOperationException("write after end");
-        }
-
-        var request = new WriteRequest
-        {
-            Chunk = chunk,
-            Encoding = encoding,
-            Callback = callback
-        };
-
-        _buffer.Enqueue(request);
-
-        if (!_corked)
-        {
-            ProcessWrites();
-        }
-
-        // Simplified: always return true (no backpressure handling in basic implementation)
-        return true;
+        return _state.Write(chunk, encoding, callback);
     }
+
+    public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
+        write(chunk.unwrap(), encoding, callback);
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.
@@ -85,35 +73,18 @@ public partial class Writable : Stream
     /// <param name="callback">Optional callback for when the stream has finished.</param>
     public void end(object? chunk = null, string? encoding = null, Action? callback = null)
     {
-        if (chunk != null)
-        {
-            write(chunk, encoding);
-        }
-
-        if (callback != null)
-        {
-            once("finish", callback);
-        }
-
-        _ended = true;
-
-        if (!_corked)
-        {
-            ProcessWrites();
-        }
-
-        if (_buffer.Count == 0)
-        {
-            emit("finish");
-        }
+        _state.End(chunk, encoding, callback);
     }
+
+    public void end(TsValue chunk, string? encoding = null, Action? callback = null) =>
+        end(chunk.unwrap(), encoding, callback);
 
     /// <summary>
     /// Forces all written data to be buffered in memory. The buffered data will be flushed when uncork() is called.
     /// </summary>
     public void cork()
     {
-        _corked = true;
+        _state.Cork();
     }
 
     /// <summary>
@@ -121,8 +92,7 @@ public partial class Writable : Stream
     /// </summary>
     public void uncork()
     {
-        _corked = false;
-        ProcessWrites();
+        _state.Uncork();
     }
 
     /// <summary>
@@ -131,37 +101,10 @@ public partial class Writable : Stream
     /// <param name="error">Optional error to emit.</param>
     public override void destroy(Exception? error = null)
     {
-        if (destroyed)
+        if (_state.Destroyed)
             return;
-
-        destroyed = true;
-        _buffer.Clear();
-
+        _state.Destroy();
         base.destroy(error);
-    }
-
-    private void ProcessWrites()
-    {
-        if (_writing || _buffer.Count == 0)
-            return;
-
-        _writing = true;
-
-        while (_buffer.Count > 0)
-        {
-            var request = _buffer.Dequeue();
-            _write(request.Chunk, request.Encoding, () =>
-            {
-                request.Callback?.Invoke();
-            });
-        }
-
-        _writing = false;
-
-        if (_ended && _buffer.Count == 0)
-        {
-            emit("finish");
-        }
     }
 
     /// <summary>
@@ -185,4 +128,5 @@ public partial class Writable : Stream
         // To be implemented by subclasses
         callback();
     }
+
 }

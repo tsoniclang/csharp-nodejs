@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Node;
 
 namespace Tsonic.CSharp.Node.Http;
@@ -16,17 +18,16 @@ public partial class ClientRequest : EventEmitter
     private readonly HttpClient _httpClient;
     private readonly RequestOptions _options;
     private readonly HttpRequestMessage _request;
-    private readonly StringBuilder _requestBody = new();
-    private Action<IncomingMessage>? _responseCallback;
+    private readonly bool _ownsHttpClient;
+    private readonly MemoryStream _requestBody = new();
     private bool _aborted = false;
     private bool _ended = false;
 
-    internal ClientRequest(HttpClient httpClient, RequestOptions options, Action<IncomingMessage>? callback)
+    internal ClientRequest(HttpClient httpClient, RequestOptions options, Action<IncomingMessage>? callback, bool ownsHttpClient = false)
     {
         _httpClient = httpClient;
         _options = options;
-        _responseCallback = callback;
-
+        _ownsHttpClient = ownsHttpClient;
         // Build URL
         var protocol = options.protocol ?? "http:";
         var hostname = options.hostname ?? "localhost";
@@ -153,8 +154,22 @@ public partial class ClientRequest : EventEmitter
         if (_ended)
             throw new InvalidOperationException("Cannot write after request has been sent");
 
-        _requestBody.Append(chunk);
-        callback?.Invoke();
+        var bytes = Buffer.from(chunk, encoding ?? "utf8").InternalData;
+        _requestBody.Write(bytes, 0, bytes.Length);
+        if (callback != null)
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+        return true;
+    }
+
+    public bool write(Buffer chunk, Action? callback = null)
+    {
+        if (_ended)
+            throw new InvalidOperationException("Cannot write after request has been sent");
+
+        var bytes = chunk.InternalData;
+        _requestBody.Write(bytes, 0, bytes.Length);
+        if (callback != null)
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
         return true;
     }
 
@@ -176,13 +191,14 @@ public partial class ClientRequest : EventEmitter
         }
 
         _ended = true;
+        ProcessKeepAlive.Acquire();
 
         try
         {
             // Set request body if present
             if (_requestBody.Length > 0)
             {
-                _request.Content = new StringContent(_requestBody.ToString(), Encoding.UTF8, "text/plain");
+                _request.Content = new ByteArrayContent(_requestBody.ToArray());
             }
 
             // Apply timeout if specified
@@ -198,31 +214,48 @@ public partial class ClientRequest : EventEmitter
                 await HandleResponse(response);
             }
 
-            callback?.Invoke();
+            if (callback != null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
         }
         catch (TaskCanceledException)
         {
-            emit("timeout");
-            emit("error", new TimeoutException("Request timeout"));
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("timeout");
+                emit("error", new TimeoutException("Request timeout"));
+            });
         }
         catch (Exception ex)
         {
-            emit("error", ex);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
         }
+        finally
+        {
+            if (_ownsHttpClient)
+                _httpClient.Dispose();
+            ProcessKeepAlive.Release();
+        }
+    }
+
+    public Task end(Buffer chunk, Action? callback = null)
+    {
+        if (_ended)
+            return Task.CompletedTask;
+
+        write(chunk);
+        return end(callback: callback);
     }
 
     private async Task HandleResponse(HttpResponseMessage response)
     {
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsByteArrayAsync();
         var incomingMessage = new IncomingMessage(response, body);
 
-        emit("response", incomingMessage);
-
-        _ = BackgroundDispatch.RunAsync(async () =>
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
-            await Task.Yield();
-            incomingMessage.EmitBufferedClientBody();
-        }, "Tsonic.CSharp.Node.Http.ClientRequest.ResponseBody");
+            emit("response", incomingMessage);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(incomingMessage.EmitBufferedClientBody);
+        });
     }
 
     /// <summary>

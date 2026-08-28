@@ -7,11 +7,16 @@ import type {
 import {
   csharpDelegateTargetType,
   csharpNullableTargetType,
+  csharpNullableValueTargetType,
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpTargetNamedType,
+  csharpVoidTargetType,
   targetParameter,
+} from "@tsonic/target-csharp/provider";
+import type {
+  TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import {
   nodejsClassCallTargetMetadata,
@@ -44,6 +49,8 @@ export const nodeHttpModuleSpecifier = "node:http";
 export const nodeHttpIncomingMessageExportName = "IncomingMessage";
 export const nodeHttpServerResponseExportName = "ServerResponse";
 export const nodeHttpServerExportName = "Server";
+export const nodeHttpClientRequestExportName = "ClientRequest";
+export const nodeHttpRequestOptionsExportName = "RequestOptions";
 
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
@@ -57,6 +64,9 @@ const stringTargetType = csharpStringTargetType();
 const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const doubleTargetType = csharpSourcePrimitiveTargetType("float64");
+const boolTargetType = csharpSourcePrimitiveTargetType("bool");
+const voidTargetType = csharpVoidTargetType();
+const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const incomingMessageTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.IncomingMessage",
   undefined,
@@ -77,9 +87,28 @@ const httpTargetType = csharpTargetNamedType(
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "http"),
 );
+const clientRequestTargetType = csharpTargetNamedType(
+  "Tsonic.CSharp.Node.Http.ClientRequest",
+  undefined,
+  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "ClientRequest"),
+);
+const requestOptionsTargetType = csharpTargetNamedType(
+  "Tsonic.CSharp.Node.Http.RequestOptions",
+  undefined,
+  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "RequestOptions"),
+);
 const incomingMessageProviderType = providerRef(nodeHttpIncomingMessageExportName);
 const serverResponseProviderType = providerRef(nodeHttpServerResponseExportName);
 const serverProviderType = providerRef(nodeHttpServerExportName);
+const clientRequestProviderType = providerRef(nodeHttpClientRequestExportName);
+const requestOptionsProviderType = providerRef(nodeHttpRequestOptionsExportName);
+const responseListenerProviderType = callbackProviderType("node:http.response-listener", [
+  { name: "response", type: incomingMessageProviderType },
+], voidProviderType);
+const responseListenerTargetType = csharpDelegateTargetType(
+  "System.Action",
+  [incomingMessageTargetType],
+);
 const voidCallbackProviderType = callbackProviderType("node:http.listen.callback", [], voidProviderType);
 const voidListenHostnameCallbackProviderType = callbackProviderType("node:http.listen-hostname.callback", [], voidProviderType);
 const voidCallbackTargetType = csharpDelegateTargetType("System.Action", []);
@@ -101,6 +130,8 @@ export function nodeHttpExports(): readonly ProviderExportDeclaration[] {
     nodeHttpIncomingMessageDeclaration(),
     nodeHttpServerResponseDeclaration(),
     nodeHttpServerDeclaration(),
+    nodeHttpClientRequestDeclaration(),
+    nodeHttpRequestOptionsDeclaration(),
     ...providerModuleFunctions(nodeHttpCallTargetMembers()),
   ];
   return [
@@ -122,6 +153,30 @@ export function nodeHttpCallTargetMembers(): readonly NodejsModuleCallTargetMeta
       targetParameters: [targetParameter("requestListener", requestListenerTargetType, { optional: true })],
       targetReturnType: serverTargetType,
     }),
+    ...(["request", "get"] as const).flatMap((exportName) => [
+      nodeHttpModuleCall({
+        exportName,
+        signatureId: `node:http.${exportName}(System.String,System.Action\`1)`,
+        targetMemberId: `Tsonic.CSharp.Node.Http.http.${exportName}(System.String,System.Action\`1)`,
+        sourceName: exportName,
+        targetName: exportName,
+        providerParameters: [stringParameter("url"), { name: "callback", type: responseListenerProviderType, optional: true }],
+        providerReturnType: clientRequestProviderType,
+        targetParameters: [targetParameter("url", stringTargetType), targetParameter("callback", responseListenerTargetType, { optional: true })],
+        targetReturnType: clientRequestTargetType,
+      }),
+      nodeHttpModuleCall({
+        exportName,
+        signatureId: `node:http.${exportName}(RequestOptions,System.Action\`1)`,
+        targetMemberId: `Tsonic.CSharp.Node.Http.http.${exportName}(Tsonic.CSharp.Node.Http.RequestOptions,System.Action\`1)`,
+        sourceName: exportName,
+        targetName: exportName,
+        providerParameters: [{ name: "options", type: requestOptionsProviderType }, { name: "callback", type: responseListenerProviderType, optional: true }],
+        providerReturnType: clientRequestProviderType,
+        targetParameters: [targetParameter("options", requestOptionsTargetType), targetParameter("callback", responseListenerTargetType, { optional: true })],
+        targetReturnType: clientRequestTargetType,
+      }),
+    ]),
   ];
 }
 
@@ -142,6 +197,22 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       targetReturnType: taskTargetType(stringTargetType),
       declaringType: incomingMessageTargetType,
     }),
+    nodeHttpClassCall({
+      exportName: nodeHttpIncomingMessageExportName,
+      memberName: "readAllBuffer",
+      memberId: "node:http.IncomingMessage.readAllBuffer",
+      signatureId: "node:http.IncomingMessage.readAllBuffer()",
+      targetMemberId: "Tsonic.CSharp.Node.Http.IncomingMessage.readAllBuffer()",
+      sourceName: "readAllBuffer",
+      targetName: "readAllBuffer",
+      memberKind: "method",
+      providerParameters: [],
+      providerReturnType: promiseProviderType(nodeBufferProviderType),
+      targetParameters: [],
+      targetReturnType: taskTargetType(nodeBufferTargetType),
+      declaringType: incomingMessageTargetType,
+    }),
+    ...clientRequestCallTargetMembers(),
     nodeHttpClassCall({
       exportName: nodeHttpServerResponseExportName,
       memberName: "setHeader",
@@ -266,6 +337,8 @@ export function nodeHttpClassPropertyTargetMembers(): readonly NodejsClassProper
       declaringType: incomingMessageTargetType,
       readonly: true,
     }),
+    ...requestOptionsPropertyTargetMembers(),
+    ...clientRequestPropertyTargetMembers(),
     nodeHttpClassProperty({
       exportName: nodeHttpIncomingMessageExportName,
       memberName: "url",
@@ -314,6 +387,164 @@ function nodeHttpServerDeclaration(): ProviderExportDeclaration {
   return providerClassDeclaration(nodeHttpServerExportName, [
     ...providerClassCallMembers(nodeHttpClassCallTargetMembers().filter((member) => member.exportName === nodeHttpServerExportName)),
   ]);
+}
+
+function nodeHttpClientRequestDeclaration(): ProviderExportDeclaration {
+  return providerClassDeclaration(nodeHttpClientRequestExportName, [
+    ...providerClassCallMembers(nodeHttpClassCallTargetMembers().filter((member) => member.exportName === nodeHttpClientRequestExportName)),
+    ...providerClassPropertyMembers(nodeHttpClassPropertyTargetMembers().filter((member) => member.exportName === nodeHttpClientRequestExportName)),
+  ]);
+}
+
+function nodeHttpRequestOptionsDeclaration(): ProviderExportDeclaration {
+  return {
+    id: `${nodeHttpModuleSpecifier}.${nodeHttpRequestOptionsExportName}`,
+    name: nodeHttpRequestOptionsExportName,
+    kind: "interface",
+    members: providerClassPropertyMembers(
+      nodeHttpClassPropertyTargetMembers().filter((member) => member.exportName === nodeHttpRequestOptionsExportName),
+    ),
+  };
+}
+
+function clientRequestCallTargetMembers(): readonly NodejsClassCallTargetMetadata[] {
+  const rows: NodejsClassCallTargetMetadata[] = [];
+  const add = (row: NodeHttpClassCallTargetMetadataRow): void => {
+    rows.push(nodeHttpClassCall(row));
+  };
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "write",
+    memberId: "node:http.ClientRequest.write",
+    signatureId: "node:http.ClientRequest.write(System.String)",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.write(System.String,System.String,System.Action)",
+    sourceName: "write",
+    targetName: "write",
+    memberKind: "method",
+    providerParameters: [stringParameter("chunk")],
+    providerReturnType: { kind: "boolean" },
+    targetParameters: [targetParameter("chunk", stringTargetType)],
+    targetReturnType: boolTargetType,
+    declaringType: clientRequestTargetType,
+  });
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "write",
+    memberId: "node:http.ClientRequest.write",
+    signatureId: "node:http.ClientRequest.write(Buffer)",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.write(Tsonic.CSharp.Node.Buffer,System.Action)",
+    sourceName: "write",
+    targetName: "write",
+    memberKind: "method",
+    providerParameters: [{ name: "chunk", type: nodeBufferProviderType }],
+    providerReturnType: { kind: "boolean" },
+    targetParameters: [targetParameter("chunk", nodeBufferTargetType)],
+    targetReturnType: boolTargetType,
+    declaringType: clientRequestTargetType,
+  });
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "end",
+    memberId: "node:http.ClientRequest.end",
+    signatureId: "node:http.ClientRequest.end()",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.end(System.String,System.String,System.Action)",
+    sourceName: "end",
+    targetName: "end",
+    memberKind: "method",
+    providerParameters: [],
+    providerReturnType: promiseProviderType(voidProviderType),
+    targetParameters: [],
+    targetReturnType: taskTargetType(voidTargetType),
+    declaringType: clientRequestTargetType,
+  });
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "end",
+    memberId: "node:http.ClientRequest.end",
+    signatureId: "node:http.ClientRequest.end(Buffer)",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.end(Tsonic.CSharp.Node.Buffer,System.Action)",
+    sourceName: "end",
+    targetName: "end",
+    memberKind: "method",
+    providerParameters: [{ name: "chunk", type: nodeBufferProviderType }],
+    providerReturnType: promiseProviderType(voidProviderType),
+    targetParameters: [targetParameter("chunk", nodeBufferTargetType)],
+    targetReturnType: taskTargetType(voidTargetType),
+    declaringType: clientRequestTargetType,
+  });
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "setHeader",
+    memberId: "node:http.ClientRequest.setHeader",
+    signatureId: "node:http.ClientRequest.setHeader(System.String,System.String)",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.setHeader(System.String,System.String)",
+    sourceName: "setHeader",
+    targetName: "setHeader",
+    memberKind: "method",
+    providerParameters: [stringParameter("name"), stringParameter("value")],
+    providerReturnType: voidProviderType,
+    targetParameters: [targetParameter("name", stringTargetType), targetParameter("value", stringTargetType)],
+    targetReturnType: voidTargetType,
+    declaringType: clientRequestTargetType,
+  });
+  add({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: "removeHeader",
+    memberId: "node:http.ClientRequest.removeHeader",
+    signatureId: "node:http.ClientRequest.removeHeader(System.String)",
+    targetMemberId: "Tsonic.CSharp.Node.Http.ClientRequest.removeHeader(System.String)",
+    sourceName: "removeHeader",
+    targetName: "removeHeader",
+    memberKind: "method",
+    providerParameters: [stringParameter("name")],
+    providerReturnType: voidProviderType,
+    targetParameters: [targetParameter("name", stringTargetType)],
+    targetReturnType: voidTargetType,
+    declaringType: clientRequestTargetType,
+  });
+  return rows;
+}
+
+function requestOptionsPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
+  const rows: readonly [string, ProviderTypeExpression, TargetTypeRef, boolean][] = [
+    ["hostname", stringProviderType, nullableStringTargetType, true],
+    ["path", stringProviderType, nullableStringTargetType, true],
+    ["method", stringProviderType, stringTargetType, false],
+    ["protocol", stringProviderType, stringTargetType, false],
+    ["port", numberProviderType, intTargetType, false],
+    ["timeout", numberProviderType, nullableIntTargetType, true],
+  ];
+  return rows.map(([name, providerType, targetType, optional]) => nodeHttpClassProperty({
+    exportName: nodeHttpRequestOptionsExportName,
+    memberName: name,
+    memberId: `node:http.RequestOptions.${name}`,
+    targetMemberId: `Tsonic.CSharp.Node.Http.RequestOptions.${name}`,
+    sourceName: name,
+    targetName: name,
+    memberKind: "property",
+    providerType,
+    targetParameters: [],
+    targetReturnType: targetType,
+    declaringType: requestOptionsTargetType,
+    ...(optional === true ? { optional: true as const } : {}),
+  }));
+}
+
+function clientRequestPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
+  return ["path", "method", "host", "protocol"].map((name) => nodeHttpClassProperty({
+    exportName: nodeHttpClientRequestExportName,
+    memberName: name,
+    memberId: `node:http.ClientRequest.${name}`,
+    targetMemberId: `Tsonic.CSharp.Node.Http.ClientRequest.${name}`,
+    sourceName: name,
+    targetName: name,
+    memberKind: "property",
+    providerType: stringProviderType,
+    targetParameters: [],
+    targetReturnType: stringTargetType,
+    declaringType: clientRequestTargetType,
+    readonly: true,
+  }));
 }
 
 function providerClassDeclaration(

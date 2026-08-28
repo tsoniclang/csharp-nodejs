@@ -5,6 +5,8 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Tsonic.CSharp.Node;
 
@@ -26,6 +28,16 @@ public partial class TLSSocket : Socket
     private SecureContext? _secureContext;
     private X509Certificate2? _localCertificate;
     private X509Certificate2? _remoteCertificate;
+    private Exception? _tlsHandshakeError;
+    private readonly BlockingCollection<TlsWriteRequest> _tlsWriteQueue = new();
+    private readonly ManualResetEventSlim _tlsReady = new(false);
+    private readonly object _tlsWriteLoopLock = new();
+    private bool _tlsWriteLoopStarted;
+    private long _tlsQueuedWriteBytes;
+    private int _tlsNeedsDrain;
+    private const long TlsWriteHighWaterMark = 64 * 1024;
+
+    private sealed record TlsWriteRequest(byte[]? Data, Action<Exception?>? Callback, Action? EndCallback);
 
     /// <summary>
     /// True if the peer certificate was signed by one of the CAs.
@@ -57,6 +69,7 @@ public partial class TLSSocket : Socket
     {
         _baseSocket = socket;
         _options = options;
+        socket.ReserveTransportRead();
 
         if (options != null)
         {
@@ -88,7 +101,7 @@ public partial class TLSSocket : Socket
             // If this is a client connection, start handshake
             if (_options.isServer != true)
             {
-                Task.Run(async () =>
+                BackgroundDispatch.RunHandleOwnedAsync(async () =>
                 {
                     try
                     {
@@ -110,16 +123,19 @@ public partial class TLSSocket : Socket
                         _authorized = _sslStream.IsAuthenticated;
                         _remoteCertificate = _sslStream.RemoteCertificate as X509Certificate2;
                         _localCertificate = _sslStream.LocalCertificate as X509Certificate2;
+                        _tlsReady.Set();
 
                         // Start reading data from the stream
                         StartReading();
 
-                        emit("secureConnect");
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("secureConnect"));
                     }
                     catch (Exception ex)
                     {
                         _authorizationError = ex;
-                        emit("error", ex);
+                        _tlsHandshakeError = ex;
+                        _tlsReady.Set();
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
                     }
                 });
             }
@@ -140,6 +156,7 @@ public partial class TLSSocket : Socket
         _authorized = sslStream.IsAuthenticated;
         _remoteCertificate = sslStream.RemoteCertificate as X509Certificate2;
         _localCertificate = sslStream.LocalCertificate as X509Certificate2;
+        _tlsReady.Set();
 
         // Start reading from the stream
         StartReading();
@@ -159,7 +176,7 @@ public partial class TLSSocket : Socket
 
         // Check if we should reject unauthorized
         // Default to rejecting if not explicitly set
-        var rejectUnauthorized = true; // TODO: Get from options
+        var rejectUnauthorized = _options?.rejectUnauthorized ?? true;
 
         if (!rejectUnauthorized)
         {

@@ -1,4 +1,6 @@
 using System.Text;
+using System.Threading;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -38,83 +40,280 @@ public sealed class FsWatchEvent
 public sealed class FsWatcher : EventEmitter
 {
     private readonly FileSystemWatcher? _watcher;
+    private int _closed;
+    private int _referenced = 1;
 
     internal FsWatcher(FileSystemWatcher? watcher)
     {
         _watcher = watcher;
+        ProcessKeepAlive.Acquire();
     }
 
-    public bool closed { get; private set; }
+    public bool closed => Volatile.Read(ref _closed) != 0;
 
     public void close()
     {
-        if (closed)
+        if (Interlocked.Exchange(ref _closed, 1) != 0)
             return;
-        closed = true;
         _watcher?.Dispose();
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            ProcessKeepAlive.Release();
         emit("close");
     }
 
-    public void @ref() { }
-    public void unref() { }
+    internal void publish(string eventType, string? filename)
+    {
+        if (!closed)
+            emit("change", eventType, filename);
+    }
+
+    public FsWatcher @ref()
+    {
+        if (!closed && Interlocked.Exchange(ref _referenced, 1) == 0)
+            ProcessKeepAlive.Acquire();
+        return this;
+    }
+    public FsWatcher unref()
+    {
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            ProcessKeepAlive.Release();
+        return this;
+    }
     public void poll() { }
 }
 
 public sealed class StatWatcher : EventEmitter
 {
-    public void @ref() { }
-    public void unref() { }
+    private readonly FileSystemWatcher _watcher;
+    private readonly Action _onClose;
+    private int _closed;
+    private int _referenced = 1;
+
+    internal StatWatcher(
+        string path,
+        Action<Stats, Stats>? listener,
+        FileSystemWatcher watcher,
+        Action onClose)
+    {
+        this.path = path;
+        this.listener = listener;
+        _watcher = watcher;
+        _onClose = onClose;
+        ProcessKeepAlive.Acquire();
+    }
+
+    internal string path { get; }
+    internal Action<Stats, Stats>? listener { get; }
+    public bool closed => Volatile.Read(ref _closed) != 0;
+
+    public void close()
+    {
+        if (Interlocked.Exchange(ref _closed, 1) != 0)
+            return;
+        _watcher.Dispose();
+        _onClose();
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            ProcessKeepAlive.Release();
+        emit("close");
+    }
+
+    internal void publish(Stats current, Stats previous)
+    {
+        if (!closed)
+        {
+            listener?.Invoke(current, previous);
+            emit("change", current, previous);
+        }
+    }
+
+    public StatWatcher @ref()
+    {
+        if (!closed && Interlocked.Exchange(ref _referenced, 1) == 0)
+            ProcessKeepAlive.Acquire();
+        return this;
+    }
+    public StatWatcher unref()
+    {
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            ProcessKeepAlive.Release();
+        return this;
+    }
 }
 
-public sealed class FsStreamOptions
+public sealed class ReadStreamOptions
 {
     public string flags { get; set; } = "r";
     public string? encoding { get; set; }
-    public int? fd { get; set; }
-    public bool autoClose { get; set; } = true;
-    public bool emitClose { get; set; } = true;
     public long? start { get; set; }
     public long? end { get; set; }
     public int highWaterMark { get; set; } = 64 * 1024;
+}
+
+public sealed class WriteStreamOptions
+{
+    public string flags { get; set; } = "w";
+    public string? encoding { get; set; }
+    public long? start { get; set; }
+    public int highWaterMark { get; set; } = 64 * 1024;
     public bool flush { get; set; }
-    public object? signal { get; set; }
 }
 
 public sealed class ReadStream : Readable
 {
-    public ReadStream(string path)
+    private readonly FileStream _stream;
+    private readonly int _highWaterMark;
+    private long? _remaining;
+
+    public ReadStream(string path, ReadStreamOptions? options = null)
+        : base(ValidateHighWaterMark(options?.highWaterMark ?? 64 * 1024))
     {
         this.path = path;
         pending = false;
-        if (File.Exists(path))
+        var open = FsStreamOpenOptions.ForRead(options?.flags ?? "r");
+        _highWaterMark = options?.highWaterMark ?? 64 * 1024;
+        _stream = new FileStream(
+            path,
+            open.Mode,
+            open.Access,
+            FileShare.ReadWrite | FileShare.Delete,
+            _highWaterMark,
+            open.Options);
+        if (options?.start is long start)
         {
-            var bytes = File.ReadAllBytes(path);
-            bytesRead = bytes.Length;
-            push(bytes);
-            push(null);
+            if (start < 0)
+                throw new ArgumentOutOfRangeException(nameof(options), "ReadStream start must be non-negative.");
+            _stream.Seek(start, SeekOrigin.Begin);
         }
+        if (options?.end is long end)
+        {
+            var start = options.start ?? 0;
+            if (end < start)
+                throw new ArgumentOutOfRangeException(nameof(options), "ReadStream end must not precede start.");
+            _remaining = checked(end - start + 1);
+        }
+        if (options?.encoding is string encoding)
+            setEncoding(encoding);
     }
+
+    private static int ValidateHighWaterMark(int value) =>
+        value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value));
 
     public string path { get; }
     public bool pending { get; private set; }
     public long bytesRead { get; private set; }
+
+    protected override void _read(int size)
+    {
+        if (_remaining == 0)
+        {
+            _stream.Dispose();
+            push(null);
+            return;
+        }
+        var requested = Math.Max(1, Math.Min(size, _highWaterMark));
+        if (_remaining is long remaining)
+            requested = checked((int)Math.Min(requested, remaining));
+        var bytes = new byte[requested];
+        var count = _stream.Read(bytes, 0, bytes.Length);
+        if (count == 0)
+        {
+            _stream.Dispose();
+            push(null);
+            return;
+        }
+        if (count != bytes.Length)
+            Array.Resize(ref bytes, count);
+        bytesRead += count;
+        if (_remaining is not null)
+            _remaining -= count;
+        push(Buffer.from(bytes));
+    }
+
+    public WriteStream pipeTo(WriteStream destination)
+    {
+        _ = pipe(destination);
+        return destination;
+    }
+
+    public override void destroy(Exception? error = null)
+    {
+        _stream.Dispose();
+        base.destroy(error);
+    }
 }
 
 public sealed class WriteStream : Writable
 {
-    public WriteStream(string path)
+    private readonly FileStream _stream;
+    private readonly string _defaultEncoding;
+    private readonly bool _flushToDisk;
+
+    public WriteStream(string path, WriteStreamOptions? options = null)
+        : base(ValidateHighWaterMark(options?.highWaterMark ?? 64 * 1024))
     {
         this.path = path;
         pending = false;
+        _defaultEncoding = options?.encoding ?? "utf-8";
+        _ = Encoding.GetEncoding(_defaultEncoding);
+        _flushToDisk = options?.flush == true;
+        var open = FsStreamOpenOptions.ForWrite(options?.flags ?? "w");
+        _stream = new FileStream(
+            path,
+            open.Mode,
+            open.Access,
+            FileShare.ReadWrite | FileShare.Delete,
+            options?.highWaterMark ?? 64 * 1024,
+            open.Options);
+        if (open.Append)
+            _stream.Seek(0, SeekOrigin.End);
+        else if (options?.start is long start)
+        {
+            if (start < 0)
+                throw new ArgumentOutOfRangeException(nameof(options), "WriteStream start must be non-negative.");
+            _stream.Seek(start, SeekOrigin.Begin);
+        }
     }
+
+    private static int ValidateHighWaterMark(int value) =>
+        value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value));
 
     public string path { get; }
     public bool pending { get; private set; }
     public long bytesWritten { get; private set; }
+
+    protected override void _write(object? chunk, string? encoding, Action callback)
+    {
+        var bytes = chunk switch
+        {
+            Buffer buffer => buffer.InternalData,
+            byte[] value => value,
+            string value => Encoding.GetEncoding(encoding ?? _defaultEncoding).GetBytes(value),
+            _ => throw new ArgumentException("WriteStream accepts Buffer, byte[], or string chunks.", nameof(chunk))
+        };
+        _stream.Write(bytes, 0, bytes.Length);
+        bytesWritten += bytes.Length;
+        callback();
+    }
+
+    protected override void _final(Action callback)
+    {
+        _stream.Flush(_flushToDisk);
+        _stream.Dispose();
+        callback();
+    }
+
+    public override void destroy(Exception? error = null)
+    {
+        _stream.Dispose();
+        base.destroy(error);
+    }
 }
 
 public static partial class fs
 {
+    private static readonly object StatWatchersLock = new();
+    private static readonly Dictionary<string, HashSet<StatWatcher>> StatWatchers = new(StringComparer.Ordinal);
+
     public static bool exists(string path) => File.Exists(path) || Directory.Exists(path);
     public static Task<bool> exists(string path, Action<bool> callback)
     {
@@ -314,25 +513,106 @@ public static partial class fs
     public static FsWatcher watch(string path, Action<string, string?>? listener = null)
     {
         var directory = Directory.Exists(path) ? path : Path.GetDirectoryName(Path.GetFullPath(path)) ?? Environment.CurrentDirectory;
-        var filter = Directory.Exists(path) ? "*.*" : Path.GetFileName(path);
+        var filter = Directory.Exists(path) ? "*" : Path.GetFileName(path);
         var watcher = new FileSystemWatcher(directory, filter);
-        if (listener != null)
+        var result = new FsWatcher(watcher);
+        void Publish(string eventType, string? filename)
         {
-            watcher.Changed += (_, e) => listener("change", e.Name);
-            watcher.Created += (_, e) => listener("rename", e.Name);
-            watcher.Deleted += (_, e) => listener("rename", e.Name);
-            watcher.Renamed += (_, e) => listener("rename", e.Name);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                if (result.closed)
+                    return;
+                listener?.Invoke(eventType, filename);
+                result.publish(eventType, filename);
+            });
         }
+        watcher.Changed += (_, e) => Publish("change", e.Name);
+        watcher.Created += (_, e) => Publish("rename", e.Name);
+        watcher.Deleted += (_, e) => Publish("rename", e.Name);
+        watcher.Renamed += (_, e) => Publish("rename", e.Name);
+        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (!result.closed)
+                result.emit("error", e.GetException());
+        });
         watcher.EnableRaisingEvents = true;
-        return new FsWatcher(watcher);
+        return result;
     }
     public static StatWatcher watchFile(string path, Action<Stats, Stats>? listener = null)
     {
-        _ = path; _ = listener;
-        return new StatWatcher();
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
+        var fileName = Path.GetFileName(fullPath);
+        var watcher = new FileSystemWatcher(directory, fileName);
+        var previous = File.Exists(fullPath) || Directory.Exists(fullPath)
+            ? statSync(fullPath)
+            : new Stats();
+        StatWatcher? result = null;
+        result = new StatWatcher(fullPath, listener, watcher, () => RemoveStatWatcher(result!));
+
+        void Publish()
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                if (result.closed)
+                    return;
+                var current = File.Exists(fullPath) || Directory.Exists(fullPath)
+                    ? statSync(fullPath)
+                    : new Stats();
+                var prior = previous;
+                previous = current;
+                result.publish(current, prior);
+            });
+        }
+
+        watcher.Changed += (_, _) => Publish();
+        watcher.Created += (_, _) => Publish();
+        watcher.Deleted += (_, _) => Publish();
+        watcher.Renamed += (_, _) => Publish();
+        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (!result.closed)
+                result.emit("error", e.GetException());
+        });
+        lock (StatWatchersLock)
+        {
+            if (!StatWatchers.TryGetValue(fullPath, out var entries))
+            {
+                entries = [];
+                StatWatchers.Add(fullPath, entries);
+            }
+            entries.Add(result);
+        }
+        watcher.EnableRaisingEvents = true;
+        return result;
     }
-    public static ReadStream createReadStream(string path, FsStreamOptions? options = null) { _ = options; return new ReadStream(path); }
-    public static WriteStream createWriteStream(string path, FsStreamOptions? options = null) { _ = options; return new WriteStream(path); }
+    public static void unwatchFile(string path, Action<Stats, Stats>? listener = null)
+    {
+        var fullPath = Path.GetFullPath(path);
+        StatWatcher[] matches;
+        lock (StatWatchersLock)
+        {
+            matches = StatWatchers.TryGetValue(fullPath, out var entries)
+                ? entries.Where(entry => listener is null || Equals(entry.listener, listener)).ToArray()
+                : [];
+        }
+        foreach (var watcher in matches)
+            watcher.close();
+    }
+    public static ReadStream createReadStream(string path, ReadStreamOptions? options = null) => new(path, options);
+    public static WriteStream createWriteStream(string path, WriteStreamOptions? options = null) => new(path, options);
+
+    private static void RemoveStatWatcher(StatWatcher watcher)
+    {
+        lock (StatWatchersLock)
+        {
+            if (!StatWatchers.TryGetValue(watcher.path, out var entries))
+                return;
+            entries.Remove(watcher);
+            if (entries.Count == 0)
+                StatWatchers.Remove(watcher.path);
+        }
+    }
 
     private static FileStream EnsureFd(int fd) => FileDescriptorManager.Get(fd) ?? throw new ArgumentException($"Bad file descriptor: {fd}", nameof(fd));
 

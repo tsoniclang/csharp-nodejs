@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -125,7 +126,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, address, family) or (err, addresses) if all=true</param>
     public static void lookup(string hostname, LookupOptions? options, Action<Exception?, string, int> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -144,16 +145,18 @@ public static partial class dns
                 if (addresses.Length == 0)
                 {
                     var ex = new Exception($"{NOTFOUND}: {hostname}");
-                    callback(ex, string.Empty, 0);
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, string.Empty, 0));
                     return;
                 }
 
                 var address = addresses[0];
-                callback(null, address.ToString(), address.AddressFamily == AddressFamily.InterNetwork ? 4 : 6);
+                var addressText = address.ToString();
+                var resultFamily = address.AddressFamily == AddressFamily.InterNetwork ? 4 : 6;
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, addressText, resultFamily));
             }
             catch (Exception ex)
             {
-                callback(ex, string.Empty, 0);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, string.Empty, 0));
             }
         });
     }
@@ -161,9 +164,9 @@ public static partial class dns
     /// <summary>
     /// Resolves a host name and returns all addresses when options.all is true.
     /// </summary>
-    public static void lookup(string hostname, LookupOptions? options, Action<Exception?, LookupAddress[]> callback)
+    public static void lookup(string hostname, LookupOptions? options, Action<Exception?, JSArray<LookupAddress>> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -188,11 +191,12 @@ public static partial class dns
                 // Apply ordering
                 results = ApplyAddressOrdering(results, options);
 
-                callback(null, results);
+                var resultArray = new JSArray<LookupAddress>(results);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, resultArray));
             }
             catch (Exception ex)
             {
-                callback(ex, Array.Empty<LookupAddress>());
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, new JSArray<LookupAddress>()));
             }
         });
     }
@@ -205,7 +209,7 @@ public static partial class dns
         if (family == null)
             return 0;
 
-        if (family is int intFamily)
+        if (family is int intFamily && intFamily is 0 or 4 or 6)
             return intFamily;
 
         if (family is string strFamily)
@@ -214,11 +218,11 @@ public static partial class dns
             {
                 "ipv4" => 4,
                 "ipv6" => 6,
-                _ => 0
+                _ => throw new ArgumentOutOfRangeException(nameof(family), "DNS family must be 0, 4, 6, 'IPv4', or 'IPv6'.")
             };
         }
 
-        return 0;
+        throw new ArgumentOutOfRangeException(nameof(family), "DNS family must be 0, 4, 6, 'IPv4', or 'IPv6'.");
     }
 
     private static LookupAddress[] ApplyAddressOrdering(LookupAddress[] addresses, LookupOptions? options)
@@ -238,7 +242,7 @@ public static partial class dns
             return addresses.OrderBy(a => a.family == 6 ? 0 : 1).ToArray();
         }
 
-        return addresses;
+        throw new ArgumentOutOfRangeException(nameof(options), "DNS result order must be 'verbatim', 'ipv4first', or 'ipv6first'.");
     }
 }
 

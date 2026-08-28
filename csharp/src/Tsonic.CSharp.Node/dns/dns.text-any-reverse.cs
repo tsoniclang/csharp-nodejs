@@ -24,7 +24,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveTxt(string hostname, Action<Exception?, string[][]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -47,7 +47,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveAny(string hostname, Action<Exception?, object[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -71,7 +71,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, hostnames)</param>
     public static void reverse(string ip, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {

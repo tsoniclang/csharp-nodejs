@@ -20,11 +20,15 @@ import {
 import {
   nodejsDefaultModuleObjectExports,
 } from "../module-defaults.js";
+import {
+  nodeFsStreamExportDeclarations,
+} from "./streams.js";
 
 export function nodeFsExports(): readonly ProviderExportDeclaration[] {
   const exports = [
     ...nodeFsOptionExportDeclarations(),
     nodeFsStatsExportDeclaration(),
+    ...nodeFsStreamExportDeclarations(),
     ...nodeFsCallExportDeclarations(),
   ];
   return [

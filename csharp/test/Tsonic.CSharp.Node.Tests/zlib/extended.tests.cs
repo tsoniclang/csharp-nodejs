@@ -38,16 +38,6 @@ public class ZlibExtendedTests
     }
 
     [Fact]
-    public void ZstdOperations_FailClosedWithoutManagedZstdCarrier()
-    {
-        var input = Encoding.UTF8.GetBytes("zstd");
-
-        Assert.Throws<NotSupportedException>(() => zlib.zstdCompressSync(input));
-        Assert.Throws<NotSupportedException>(() => zlib.zstdDecompressSync(input));
-        Assert.Throws<NotSupportedException>(() => zlib.createZstdCompress().transform(input));
-    }
-
-    [Fact]
     public void GzipStringHelper_RoundTrips()
     {
         var compressed = zlib.gzipStringSync("string gzip");

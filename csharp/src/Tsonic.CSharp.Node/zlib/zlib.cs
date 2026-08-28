@@ -19,6 +19,7 @@ public static partial class zlib
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
 
         var level = options?.level ?? -1; // Default compression
         var compressionLevel = level switch
@@ -27,10 +28,10 @@ public static partial class zlib
             >= 1 and <= 5 => CompressionLevel.Fastest,
             >= 6 and <= 9 => CompressionLevel.Optimal,
             -1 => CompressionLevel.Optimal,
-            _ => CompressionLevel.Optimal
+            _ => throw new ArgumentOutOfRangeException(nameof(options), "Zlib compression level must be -1 through 9.")
         };
 
-        using var output = new MemoryStream();
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var gzip = new GZipStream(output, compressionLevel))
         {
             gzip.Write(buffer, 0, buffer.Length);
@@ -48,10 +49,11 @@ public static partial class zlib
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
 
         using var input = new MemoryStream(buffer);
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream();
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
         gzip.CopyTo(output);
         return output.ToArray();
@@ -67,6 +69,7 @@ public static partial class zlib
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
 
         var level = options?.level ?? -1;
         var compressionLevel = level switch
@@ -75,11 +78,11 @@ public static partial class zlib
             >= 1 and <= 5 => CompressionLevel.Fastest,
             >= 6 and <= 9 => CompressionLevel.Optimal,
             -1 => CompressionLevel.Optimal,
-            _ => CompressionLevel.Optimal
+            _ => throw new ArgumentOutOfRangeException(nameof(options), "Zlib compression level must be -1 through 9.")
         };
 
-        using var output = new MemoryStream();
-        using (var deflate = new DeflateStream(output, compressionLevel))
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
+        using (var deflate = new ZLibStream(output, compressionLevel))
         {
             deflate.Write(buffer, 0, buffer.Length);
         }
@@ -96,10 +99,11 @@ public static partial class zlib
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
 
         using var input = new MemoryStream(buffer);
-        using var deflate = new DeflateStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream();
+        using var deflate = new ZLibStream(input, CompressionMode.Decompress);
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
         deflate.CopyTo(output);
         return output.ToArray();
@@ -113,8 +117,21 @@ public static partial class zlib
     /// <returns>The compressed data.</returns>
     public static byte[] deflateRawSync(byte[] buffer, ZlibOptions? options = null)
     {
-        // .NET's DeflateStream is already "raw" deflate (no zlib wrapper)
-        return deflateSync(buffer, options);
+        if (buffer == null)
+            throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
+        var level = options?.level ?? -1;
+        var compressionLevel = level switch
+        {
+            0 => CompressionLevel.NoCompression,
+            >= 1 and <= 5 => CompressionLevel.Fastest,
+            >= 6 and <= 9 or -1 => CompressionLevel.Optimal,
+            _ => throw new ArgumentOutOfRangeException(nameof(options), "Zlib compression level must be -1 through 9."),
+        };
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
+        using (var deflate = new DeflateStream(output, compressionLevel))
+            deflate.Write(buffer, 0, buffer.Length);
+        return output.ToArray();
     }
 
     /// <summary>
@@ -125,8 +142,14 @@ public static partial class zlib
     /// <returns>The decompressed data.</returns>
     public static byte[] inflateRawSync(byte[] buffer, ZlibOptions? options = null)
     {
-        // .NET's DeflateStream is already "raw" deflate (no zlib wrapper)
-        return inflateSync(buffer, options);
+        if (buffer == null)
+            throw new ArgumentNullException(nameof(buffer));
+        ValidateZlibOptions(options);
+        using var input = new MemoryStream(buffer);
+        using var deflate = new DeflateStream(input, CompressionMode.Decompress);
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
+        deflate.CopyTo(output);
+        return output.ToArray();
     }
 
     /// <summary>
@@ -146,10 +169,10 @@ public static partial class zlib
             >= 0 and <= 3 => CompressionLevel.Fastest,
             >= 4 and <= 8 => CompressionLevel.Optimal,
             >= 9 and <= 11 => CompressionLevel.SmallestSize,
-            _ => CompressionLevel.Optimal
+            _ => throw new ArgumentOutOfRangeException(nameof(options), "Brotli quality must be 0 through 11.")
         };
 
-        using var output = new MemoryStream();
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var brotli = new BrotliStream(output, compressionLevel))
         {
             brotli.Write(buffer, 0, buffer.Length);
@@ -170,7 +193,7 @@ public static partial class zlib
 
         using var input = new MemoryStream(buffer);
         using var brotli = new BrotliStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream();
+        using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
         brotli.CopyTo(output);
         return output.ToArray();
@@ -258,6 +281,14 @@ public static partial class zlib
         }
 
         return table;
+    }
+
+    private static void ValidateZlibOptions(ZlibOptions? options)
+    {
+        if (options?.chunkSize is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "Codec chunk size must be positive.");
+        if (options?.maxOutputLength is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum codec output length must be positive.");
     }
 
     /// <summary>

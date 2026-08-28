@@ -1,7 +1,11 @@
 namespace Tsonic.CSharp.Node;
 
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    public Delegate[] rawListeners(TsValue eventName) => listeners(eventName);
+
     /// <summary>
     /// Returns a copy of the array of listeners for the event, including any wrappers.
     /// </summary>

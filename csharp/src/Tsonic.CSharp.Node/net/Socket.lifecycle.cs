@@ -30,12 +30,14 @@ public partial class Socket : Stream
         _destroyed = true;
         _stream?.Close();
         _client?.Close();
+        ReleaseKeepAlive();
 
-        emit("close", error != null);
-        if (error != null)
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
-            emit("error", error);
-        }
+            if (error != null)
+                emit("error", error);
+            emit("close", error != null);
+        });
 
         return this;
     }
@@ -165,7 +167,7 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public Socket unref()
     {
-        // Not applicable in .NET managed context
+        ReleaseKeepAlive();
         return this;
     }
 
@@ -175,7 +177,8 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public Socket @ref()
     {
-        // Not applicable in .NET managed context
+        if (_client?.Connected == true)
+            AcquireKeepAlive();
         return this;
     }
 

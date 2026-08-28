@@ -1,7 +1,31 @@
 namespace Tsonic.CSharp.Node;
 
+using System.Linq;
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    public EventEmitter once(TsValue eventName, Delegate listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, once: true), prepend: false);
+
+    public EventEmitter once(TsValue eventName, Action listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, _ => listener(), once: true), prepend: false);
+
+    public EventEmitter once(TsValue eventName, Action<TsValue[]> listener) =>
+        addEventListenerCore(
+            EventKey(eventName),
+            CreateEventListener(listener, args => listener(args.Select(TsValue.from).ToArray()), once: true),
+            prepend: false);
+
+    public EventEmitter once<T>(TsValue eventName, Action<T> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T>(args, 0)), once: true), prepend: false);
+
+    public EventEmitter once<T1, T2>(TsValue eventName, Action<T1, T2> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1)), once: true), prepend: false);
+
+    public EventEmitter once<T1, T2, T3>(TsValue eventName, Action<T1, T2, T3> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1), Argument<T3>(args, 2)), once: true), prepend: false);
+
     /// <summary>
     /// Adds a listener function that will be invoked only once for the specified event.
     /// </summary>
@@ -23,6 +47,15 @@ public partial class EventEmitter
     /// <inheritdoc cref="once(string, Delegate)" />
     public EventEmitter once(string eventName, Action<object?[]> listener) =>
         addEventListenerCore(eventName, CreateEventListener(listener, args => listener(args), once: true), prepend: false);
+
+    public EventEmitter once(string eventName, Action<TsValue[]> listener) =>
+        addEventListenerCore(
+            eventName,
+            CreateEventListener(
+                listener,
+                args => listener(args.Select(TsValue.from).ToArray()),
+                once: true),
+            prepend: false);
 
     /// <inheritdoc cref="once(string, Delegate)" />
     public EventEmitter once<T>(string eventName, Action<T> listener) =>

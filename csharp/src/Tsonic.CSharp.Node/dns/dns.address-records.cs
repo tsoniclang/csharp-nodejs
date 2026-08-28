@@ -24,7 +24,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolve4(string hostname, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -49,7 +49,7 @@ public static partial class dns
         if (options.ttl)
         {
             // Note: .NET DNS doesn't provide TTL info, so we return default TTL
-            BackgroundDispatch.Run(() =>
+            BackgroundDispatch.RunReferenced(() =>
             {
                 try
                 {
@@ -80,7 +80,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolve6(string hostname, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
@@ -104,7 +104,7 @@ public static partial class dns
     {
         if (options.ttl)
         {
-            BackgroundDispatch.Run(() =>
+            BackgroundDispatch.RunReferenced(() =>
             {
                 try
                 {
@@ -135,7 +135,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, addresses)</param>
     public static void resolveCname(string hostname, Action<Exception?, string[]> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
