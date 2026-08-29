@@ -160,6 +160,8 @@ function nodejsProviderTargetRelation(
       bindingTypeArgumentSource:
         providerBindingTypeArgumentSource(targetMember),
       methodTypeParameters: [],
+      invocationTypeParameters: [],
+      selectedTypeParameterCount: 0,
     };
   }
   if (source.kind === "member") {

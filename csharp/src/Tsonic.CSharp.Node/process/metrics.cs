@@ -174,7 +174,7 @@ public static partial class process
 
     public static double[] hrtime(double[]? previous = null)
     {
-        var elapsedNs = Hrtime.ElapsedTicks * 1_000_000_000L / Stopwatch.Frequency;
+        var elapsedNs = HrtimeNanoseconds();
         if (previous is { Length: >= 2 })
         {
             var previousNs = (long)previous[0] * 1_000_000_000L + (long)previous[1];
@@ -186,8 +186,11 @@ public static partial class process
 
     public static long hrtime_bigint()
     {
-        return Hrtime.ElapsedTicks * 1_000_000_000L / Stopwatch.Frequency;
+        return HrtimeNanoseconds();
     }
+
+    private static long HrtimeNanoseconds() =>
+        checked((long)((Int128)Hrtime.ElapsedTicks * 1_000_000_000 / Stopwatch.Frequency));
 
     public static MemoryUsage memoryUsage()
     {

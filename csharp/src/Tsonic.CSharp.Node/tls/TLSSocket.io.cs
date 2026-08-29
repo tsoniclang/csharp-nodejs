@@ -41,6 +41,7 @@ public partial class TLSSocket : Socket
         return queued < TlsWriteHighWaterMark;
     }
 
+    /// <summary>Writes a binary buffer to the TLS stream.</summary>
     public new bool write(Buffer data, Action<Exception?>? callback = null) =>
         write(data.InternalData, callback);
 
@@ -53,6 +54,7 @@ public partial class TLSSocket : Socket
         return write(bytes, callback);
     }
 
+    /// <summary>Finishes the TLS stream after queued writes complete.</summary>
     public new TLSSocket end(Action? callback = null)
     {
         if (!destroyed)
@@ -63,6 +65,7 @@ public partial class TLSSocket : Socket
         return this;
     }
 
+    /// <summary>Finishes the TLS stream after writing a final byte array.</summary>
     public new TLSSocket end(byte[] data, Action? callback = null)
     {
         write(data, error =>
@@ -73,9 +76,11 @@ public partial class TLSSocket : Socket
         return this;
     }
 
+    /// <summary>Finishes the TLS stream after writing a final binary buffer.</summary>
     public new TLSSocket end(Buffer data, Action? callback = null) =>
         end(data.InternalData, callback);
 
+    /// <summary>Finishes the TLS stream after writing final encoded text.</summary>
     public new TLSSocket end(string data, string? encoding = null, Action? callback = null)
     {
         var bytes = Encoding.GetEncoding(encoding ?? "utf-8").GetBytes(data);

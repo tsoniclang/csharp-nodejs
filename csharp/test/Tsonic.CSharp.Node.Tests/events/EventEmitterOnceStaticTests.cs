@@ -66,7 +66,7 @@ public class EventEmitterOnceStaticTests
     public void Once_Static_NullEventName_Throws()
     {
         var emitter = new EventEmitter();
-        Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentNullException>(() =>
         {
             var _ = EventEmitter.once(emitter, null!);
         });

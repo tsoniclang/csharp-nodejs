@@ -66,8 +66,8 @@ test("every canonical Node source operation has exact target policy", () => {
     }
   }
 
-  assert.equal(sourceSignatures.size, 271);
-  assert.equal(sourceProperties.size, 123);
+  assert.equal(sourceSignatures.size, 451);
+  assert.equal(sourceProperties.size, 250);
   assert.deepEqual([...policySignatures].sort(), [...sourceSignatures].sort());
   assert.deepEqual([...policyProperties].sort(), [...sourceProperties].sort());
 });
@@ -123,6 +123,7 @@ test("Node provider families compile together through selected source evidence",
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import fsPromises from "node:fs/promises";
       import { mkdtempSync } from "node:fs";
@@ -165,6 +166,7 @@ test("required Node capability families compile together through exact provider 
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { Buffer } from "node:buffer";
       import { lookup } from "node:dns";
@@ -287,6 +289,7 @@ test("unsupported selected Node operations fail closed without artifacts", () =>
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { format } from "node:util";
       export function invalid(): string {

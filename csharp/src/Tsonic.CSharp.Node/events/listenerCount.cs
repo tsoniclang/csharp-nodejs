@@ -4,6 +4,7 @@ using Tsonic.CSharp.Runtime;
 
 public partial class EventEmitter
 {
+    /// <summary>Returns the number of listeners registered for the selected event.</summary>
     public int listenerCount(TsValue eventName) => listenerCountCore(EventKey(eventName));
 
     /// <summary>

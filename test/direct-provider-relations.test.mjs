@@ -30,8 +30,8 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 1020);
-  assert.equal(rejections.length, 182);
+  assert.equal(relations.length, 1748);
+  assert.equal(rejections.length, 166);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
   assert.doesNotThrow(() =>
@@ -175,6 +175,7 @@ test("Node class staticness comes from the exact provider declaration", () => {
 test("named, namespace, default, property, and class-static Node operations compile", () => {
   const compiled = compileCsharpSource({
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import path, { join } from "node:path";
       import * as pathNamespace from "node:path";
@@ -217,8 +218,9 @@ test("standard filesystem option objects lower through exact provider constructi
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
-      import { mkdirSync, rmSync } from "node:fs";
+      import { mkdirSync, rmSync, watch } from "node:fs";
 
       export function recreate(
         path: string,
@@ -228,6 +230,12 @@ test("standard filesystem option objects lower through exact provider constructi
       ): void {
         mkdirSync(path, { recursive: true, mode });
         rmSync(path, { recursive: true, force: true, maxRetries, retryDelay });
+        const watcher = watch(
+          path,
+          { persistent: false, recursive: true },
+          (_eventType, _filename) => {},
+        );
+        watcher.close();
       }
     `,
   });
@@ -242,12 +250,17 @@ test("standard filesystem option objects lower through exact provider constructi
     source,
     /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = maxRetries[\s\S]*retryDelay = retryDelay[\s\S]*\}/u,
   );
+  assert.match(
+    source,
+    /new Tsonic\.CSharp\.Node\.WatchOptions\s*\{[\s\S]*persistent = false[\s\S]*recursive = true[\s\S]*\}/u,
+  );
 });
 
 test("provider-private boolean filesystem overloads are absent", () => {
   const checked = checkCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { mkdirSync, rmSync } from "node:fs";
 
@@ -269,6 +282,7 @@ test("filesystem links, child processes, legacy URLs, and text decoding use exac
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { Buffer } from "node:buffer";
       import { spawnSync } from "node:child_process";
@@ -339,6 +353,7 @@ test("filesystem links, child processes, legacy URLs, and text decoding use exac
 test("legacy URL declarations preserve nullable selected source results", () => {
   const checked = checkCsharpSource({
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { parse } from "node:url";
 
@@ -357,6 +372,7 @@ test("combined portability provider selection is independent of source ordering"
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { format, parse } from "node:url";
       import { TextDecoder } from "node:util";
@@ -385,6 +401,7 @@ test("combined portability provider selection is independent of source ordering"
   assertCsharpCompilationSucceeded(compiled);
   assert.deepEqual([...compiled.artifacts.keys()].sort(), [
     "TsonicGenerated.csproj",
+    "generated/TsonicEntrypoint.cs",
     "src/Index.cs",
   ]);
 });
@@ -392,6 +409,7 @@ test("combined portability provider selection is independent of source ordering"
 test("Node numeric API parameters preserve the source number carrier", () => {
   const compiled = compileCsharpSource({
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import * as http from "node:http";
 
@@ -493,7 +511,7 @@ test("Node provider relations declare every source-number target adapter exactly
     }
   }
 
-  assert.equal(adapterCount, 244);
+  assert.equal(adapterCount, 256);
 });
 
 function findSourceSignature(relation) {

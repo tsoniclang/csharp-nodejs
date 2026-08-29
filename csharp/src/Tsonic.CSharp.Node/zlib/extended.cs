@@ -1,6 +1,3 @@
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Tsonic.CSharp.Node;
 
 #pragma warning disable CS1591
@@ -83,24 +80,15 @@ public static partial class zlib
     private static readonly ZlibConstants ConstantsValue = new();
     public static ZlibConstants constants => ConstantsValue;
 
-    public static Task<byte[]> gzip(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(gzipSync(buffer, options));
-    public static Task<byte[]> gunzip(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(gunzipSync(buffer, options));
-    public static Task<byte[]> deflate(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(deflateSync(buffer, options));
-    public static Task<byte[]> inflate(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(inflateSync(buffer, options));
-    public static Task<byte[]> deflateRaw(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(deflateRawSync(buffer, options));
-    public static Task<byte[]> inflateRaw(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(inflateRawSync(buffer, options));
-    public static Task<byte[]> unzip(byte[] buffer, ZlibOptions? options = null) => Task.FromResult(unzipSync(buffer, options));
-    public static Task<byte[]> brotliCompress(byte[] buffer, BrotliOptions? options = null) => Task.FromResult(brotliCompressSync(buffer, options));
-    public static Task<byte[]> brotliDecompress(byte[] buffer, BrotliOptions? options = null) => Task.FromResult(brotliDecompressSync(buffer, options));
-    public static Buffer gzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(gzipSync(buffer.InternalData, options));
-    public static Buffer gunzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(gunzipSync(buffer.InternalData, options));
-    public static Buffer deflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(deflateSync(buffer.InternalData, options));
-    public static Buffer inflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(inflateSync(buffer.InternalData, options));
-    public static Buffer deflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(deflateRawSync(buffer.InternalData, options));
-    public static Buffer inflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(inflateRawSync(buffer.InternalData, options));
-    public static Buffer unzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(unzipSync(buffer.InternalData, options));
-    public static Buffer brotliCompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(brotliCompressSync(buffer.InternalData, options));
-    public static Buffer brotliDecompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(brotliDecompressSync(buffer.InternalData, options));
+    public static Buffer gzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(GzipBytes(BufferBytes(buffer), options));
+    public static Buffer gunzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(GunzipBytes(BufferBytes(buffer), options));
+    public static Buffer deflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(DeflateBytes(BufferBytes(buffer), options));
+    public static Buffer inflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(InflateBytes(BufferBytes(buffer), options));
+    public static Buffer deflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(DeflateRawBytes(BufferBytes(buffer), options));
+    public static Buffer inflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(InflateRawBytes(BufferBytes(buffer), options));
+    public static Buffer unzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(UnzipBytes(BufferBytes(buffer), options));
+    public static Buffer brotliCompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(BrotliCompressBytes(BufferBytes(buffer), options));
+    public static Buffer brotliDecompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(BrotliDecompressBytes(BufferBytes(buffer), options));
     public static void gzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer), callback);
     public static void gzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer, options), callback);
     public static void gunzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gunzipSync(buffer), callback);
@@ -119,8 +107,6 @@ public static partial class zlib
     public static void brotliCompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliCompressSync(buffer, options), callback);
     public static void brotliDecompress(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliDecompressSync(buffer), callback);
     public static void brotliDecompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliDecompressSync(buffer, options), callback);
-    public static byte[] gzipStringSync(string value, ZlibOptions? options = null) => gzipSync(Encoding.UTF8.GetBytes(value), options);
-    public static string gunzipStringSync(byte[] buffer, ZlibOptions? options = null) => Encoding.UTF8.GetString(gunzipSync(buffer, options));
     public static ZlibTransform createDeflate(ZlibOptions? options = null) => new(ZlibMode.Deflate, options);
     public static ZlibTransform createInflate(ZlibOptions? options = null) => new(ZlibMode.Inflate, options);
     public static ZlibTransform createGzip(ZlibOptions? options = null) => new(ZlibMode.Gzip, options);
@@ -130,6 +116,12 @@ public static partial class zlib
     public static ZlibTransform createUnzip(ZlibOptions? options = null) => new(ZlibMode.Unzip, options);
     public static ZlibTransform createBrotliCompress(BrotliOptions? options = null) => new(ZlibMode.BrotliCompress, brotliOptions: options);
     public static ZlibTransform createBrotliDecompress(BrotliOptions? options = null) => new(ZlibMode.BrotliDecompress, brotliOptions: options);
+    private static byte[] BufferBytes(Buffer buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        return buffer.InternalData;
+    }
+
     private static void CompleteBuffer(Func<Buffer> operation, Action<Exception?, Buffer> callback)
     {
         _ = BackgroundDispatch.RunReferenced(() =>

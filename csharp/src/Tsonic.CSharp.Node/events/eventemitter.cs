@@ -69,6 +69,7 @@ public partial class EventEmitter
         return tcs.Task;
     }
 
+    /// <summary>Returns a task that completes with the next selected event payload.</summary>
     public static Task<object?[]> once(EventEmitter emitter, TsValue eventName)
     {
         ArgumentNullException.ThrowIfNull(emitter);
@@ -109,7 +110,14 @@ public partial class EventEmitter
                 $"Use emitter.setMaxListeners() to increase limit");
         }
 
+        OnListenerAdded(eventName);
+
         return this;
+    }
+
+    /// <summary>Allows a specialized emitter to apply its documented listener lifecycle.</summary>
+    protected virtual void OnListenerAdded(object eventName)
+    {
     }
 
     private static EventListener CreateEventListener(Delegate listener, bool once)

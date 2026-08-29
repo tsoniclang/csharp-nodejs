@@ -161,6 +161,7 @@ public partial class ClientRequest : EventEmitter
         return true;
     }
 
+    /// <summary>Writes a binary chunk to the request body.</summary>
     public bool write(Buffer chunk, Action? callback = null)
     {
         if (_ended)
@@ -237,6 +238,7 @@ public partial class ClientRequest : EventEmitter
         }
     }
 
+    /// <summary>Finishes the request after writing a final binary chunk.</summary>
     public Task end(Buffer chunk, Action? callback = null)
     {
         if (_ended)

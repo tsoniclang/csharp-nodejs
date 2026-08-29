@@ -23,11 +23,13 @@ public partial class Readable : Stream
     private bool _reading;
     private bool _endEmitted;
 
+    /// <summary>Creates a readable stream with the default finite buffer limit.</summary>
     public Readable()
         : this(64 * 1024)
     {
     }
 
+    /// <summary>Creates a readable stream with the selected finite buffer limit.</summary>
     protected Readable(int highWaterMark)
     {
         if (highWaterMark <= 0)
@@ -59,6 +61,7 @@ public partial class Readable : Stream
     /// Is true after destroy() has been called.
     /// </summary>
     private bool _destroyed;
+    /// <summary>Indicates whether the stream has been destroyed.</summary>
     public bool destroyed { get { lock (_readLock) return _destroyed; } }
 
     /// <summary>
@@ -103,6 +106,7 @@ public partial class Readable : Stream
         return chunk;
     }
 
+    /// <summary>Reads a chunk as a closed TypeScript value.</summary>
     public TsValue readValue(int? size = null)
     {
         var value = read(size);
@@ -187,6 +191,7 @@ public partial class Readable : Stream
         return this;
     }
 
+    /// <summary>Pipes this stream into the selected writable destination.</summary>
     public Writable pipeTo(Writable destination)
     {
         _ = pipe(destination);
@@ -316,6 +321,14 @@ public partial class Readable : Stream
         // To be implemented by subclasses
     }
 
+    /// <inheritdoc />
+    protected override void OnListenerAdded(object eventName)
+    {
+        if (eventName is string text && string.Equals(text, "data", StringComparison.Ordinal))
+            resume();
+    }
+
+    /// <summary>Waits until the finite readable buffer can accept more data.</summary>
     protected void WaitForReadCapacity(CancellationToken cancellationToken = default)
     {
         _capacityAvailable.Wait(cancellationToken);

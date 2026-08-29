@@ -4,6 +4,7 @@ using Tsonic.CSharp.Runtime;
 
 public partial class EventEmitter
 {
+    /// <summary>Returns the listeners registered for the selected event.</summary>
     public Delegate[] listeners(TsValue eventName) => listenersCore(EventKey(eventName));
 
     /// <summary>

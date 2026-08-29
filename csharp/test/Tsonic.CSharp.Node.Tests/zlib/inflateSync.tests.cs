@@ -9,22 +9,22 @@ public class Zlib_inflateSyncTests
     [Fact]
     public void inflateSync_ShouldDecompressData()
     {
-        var original = Encoding.UTF8.GetBytes("Hello, World!");
+        var original = Buffer.from("Hello, World!");
         var compressed = zlib.deflateSync(original);
         var decompressed = zlib.inflateSync(compressed);
 
-        Assert.Equal(original, decompressed);
+        Assert.Equal(original.toString(), decompressed.toString());
     }
 
     [Fact]
     public void inflateSync_ShouldRestoreOriginalText()
     {
         var originalText = "The quick brown fox jumps over the lazy dog";
-        var original = Encoding.UTF8.GetBytes(originalText);
+        var original = Buffer.from(originalText);
 
         var compressed = zlib.deflateSync(original);
         var decompressed = zlib.inflateSync(compressed);
-        var resultText = Encoding.UTF8.GetString(decompressed);
+        var resultText = decompressed.toString();
 
         Assert.Equal(originalText, resultText);
     }
@@ -38,7 +38,7 @@ public class Zlib_inflateSyncTests
     [Fact]
     public void inflateSync_WithInvalidData_ShouldThrow()
     {
-        var invalidData = Encoding.UTF8.GetBytes("This is not compressed");
+        var invalidData = Buffer.from("This is not compressed");
 
         Assert.Throws<System.IO.InvalidDataException>(() => zlib.inflateSync(invalidData));
     }

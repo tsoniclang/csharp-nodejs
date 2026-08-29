@@ -7,6 +7,7 @@ using Tsonic.CSharp.Node.Http;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class ServerResponseBufferEndTests
 {
     [Fact]
@@ -22,6 +23,7 @@ public class ServerResponseBufferEndTests
         });
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -51,6 +53,7 @@ public class ServerResponseBufferEndTests
         });
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {

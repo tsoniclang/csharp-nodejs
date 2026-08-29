@@ -87,7 +87,7 @@ public static partial class dns
     public const string CANCELLED = "ECANCELLED";
 
     private static string _defaultResultOrder = "verbatim";
-    private static string[] _servers = Array.Empty<string>();
+    private static string[] _servers = System.Array.Empty<string>();
 
     /// <summary>
     /// Promise-based dns APIs.
@@ -130,29 +130,9 @@ public static partial class dns
         {
             try
             {
-                var family = ParseFamily(options?.family);
-                var addressFamily = family == 4 ? AddressFamily.InterNetwork :
-                                  family == 6 ? AddressFamily.InterNetworkV6 :
-                                  AddressFamily.Unspecified;
-
-                var addresses = Dns.GetHostAddresses(hostname);
-
-                if (addressFamily != AddressFamily.Unspecified)
-                {
-                    addresses = addresses.Where(a => a.AddressFamily == addressFamily).ToArray();
-                }
-
-                if (addresses.Length == 0)
-                {
-                    var ex = new Exception($"{NOTFOUND}: {hostname}");
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, string.Empty, 0));
-                    return;
-                }
-
-                var address = addresses[0];
-                var addressText = address.ToString();
-                var resultFamily = address.AddressFamily == AddressFamily.InterNetwork ? 4 : 6;
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, addressText, resultFamily));
+                var result = LookupCore(hostname, options);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                    callback(null, result.address, result.family));
             }
             catch (Exception ex)
             {
@@ -170,28 +150,7 @@ public static partial class dns
         {
             try
             {
-                var family = ParseFamily(options?.family);
-                var addressFamily = family == 4 ? AddressFamily.InterNetwork :
-                                  family == 6 ? AddressFamily.InterNetworkV6 :
-                                  AddressFamily.Unspecified;
-
-                var addresses = Dns.GetHostAddresses(hostname);
-
-                if (addressFamily != AddressFamily.Unspecified)
-                {
-                    addresses = addresses.Where(a => a.AddressFamily == addressFamily).ToArray();
-                }
-
-                var results = addresses.Select(a => new LookupAddress
-                {
-                    address = a.ToString(),
-                    family = a.AddressFamily == AddressFamily.InterNetwork ? 4 : 6
-                }).ToArray();
-
-                // Apply ordering
-                results = ApplyAddressOrdering(results, options);
-
-                var resultArray = new JSArray<LookupAddress>(results);
+                var resultArray = LookupAllCore(hostname, options);
                 Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, resultArray));
             }
             catch (Exception ex)
@@ -199,6 +158,35 @@ public static partial class dns
                 Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, new JSArray<LookupAddress>()));
             }
         });
+    }
+
+    internal static LookupAddress LookupCore(string hostname, LookupOptions? options)
+    {
+        var addresses = LookupAddresses(hostname, options);
+        if (addresses.Length == 0)
+            throw new Exception($"{NOTFOUND}: {hostname}");
+
+        return addresses[0];
+    }
+
+    internal static JSArray<LookupAddress> LookupAllCore(string hostname, LookupOptions? options) =>
+        new(ApplyAddressOrdering(LookupAddresses(hostname, options), options));
+
+    private static LookupAddress[] LookupAddresses(string hostname, LookupOptions? options)
+    {
+        var family = ParseFamily(options?.family);
+        var addressFamily = family == 4 ? AddressFamily.InterNetwork :
+            family == 6 ? AddressFamily.InterNetworkV6 :
+            AddressFamily.Unspecified;
+        var addresses = Dns.GetHostAddresses(hostname);
+        if (addressFamily != AddressFamily.Unspecified)
+            addresses = addresses.Where(address => address.AddressFamily == addressFamily).ToArray();
+
+        return addresses.Select(address => new LookupAddress
+        {
+            address = address.ToString(),
+            family = address.AddressFamily == AddressFamily.InterNetwork ? 4 : 6,
+        }).ToArray();
     }
 
 

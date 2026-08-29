@@ -8,6 +8,7 @@ using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
+/// <summary>Provides the Node-compatible worker-thread module surface.</summary>
 public static class worker_threads
 {
     internal const string WorkerArgumentMarker = "--tsonic-node-worker-v1";
@@ -20,21 +21,27 @@ public static class worker_threads
     private static readonly object UntransferableMarker = new();
     private static WorkerProcessContext? _context;
 
+    /// <summary>Reports whether the current process is the main worker context.</summary>
     public static bool isMainThread => Volatile.Read(ref _context) is null;
 
+    /// <summary>Gets the current worker identity, or zero for the main context.</summary>
     public static int threadId => Volatile.Read(ref _context)?.ThreadId ?? 0;
 
+    /// <summary>Gets the current worker's structured-cloned startup value.</summary>
     public static TsValue workerData =>
         Volatile.Read(ref _context)?.WorkerData ?? TsValue.undefined();
 
+    /// <summary>Gets the current worker's parent message port.</summary>
     public static MessagePort? parentPort => Volatile.Read(ref _context)?.ParentPort;
 
+    /// <summary>Synchronously receives the next queued message from a port.</summary>
     public static TsValue receiveMessageOnPort(MessagePort port)
     {
         ArgumentNullException.ThrowIfNull(port);
         return port.receiveMessageOnPort();
     }
 
+    /// <summary>Gets a structured-cloned environment value by key.</summary>
     public static TsValue getEnvironmentData(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -47,6 +54,7 @@ public static class worker_threads
         }
     }
 
+    /// <summary>Stores a structured-cloned environment value by key.</summary>
     public static void setEnvironmentData(string key, TsValue value)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -58,6 +66,7 @@ public static class worker_threads
         }
     }
 
+    /// <summary>Marks a reference value as unavailable for transfer.</summary>
     public static void markAsUntransferable(TsValue value)
     {
         var identity = TransferIdentity(value);
@@ -68,6 +77,7 @@ public static class worker_threads
         }
     }
 
+    /// <summary>Reports whether a reference value was marked unavailable for transfer.</summary>
     public static bool isMarkedAsUntransferable(TsValue value)
     {
         var identity = TransferIdentity(value);
@@ -77,6 +87,7 @@ public static class worker_threads
         }
     }
 
+    /// <summary>Initializes a worker process from the closed bootstrap protocol, or returns null for a main process.</summary>
     public static string? InitializeWorkerProcess(string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);

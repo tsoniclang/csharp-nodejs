@@ -4,6 +4,7 @@ using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
+/// <summary>Represents one endpoint of a structured-clone worker message channel.</summary>
 public sealed class MessagePort : EventEmitter, IDisposable
 {
     private const int MaximumQueuedMessages = 1 << 16;
@@ -38,6 +39,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
         _ = Task.Run(ReadTransport);
     }
 
+    /// <summary>Sends a structured-cloned value to the connected endpoint.</summary>
     public void postMessage(TsValue value)
     {
         lock (_stateLock)
@@ -54,6 +56,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
         }
     }
 
+    /// <summary>Synchronously receives the next queued message, or undefined when none is available.</summary>
     public TsValue receiveMessageOnPort()
     {
         if (!_queue.TryDequeue(out var value))
@@ -62,8 +65,10 @@ public sealed class MessagePort : EventEmitter, IDisposable
         return value;
     }
 
+    /// <summary>Starts delivery of messages from the underlying transport.</summary>
     public void start() => StartTransportReader();
 
+    /// <summary>Closes this endpoint and releases its transport resources.</summary>
     public void close()
     {
         WorkerTransport? transport;
@@ -86,6 +91,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("close"));
     }
 
+    /// <summary>Keeps the process alive while this port remains open.</summary>
     public MessagePort @ref()
     {
         lock (_stateLock)
@@ -99,6 +105,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
         return this;
     }
 
+    /// <summary>Allows the process to exit while this port remains open.</summary>
     public MessagePort unref()
     {
         lock (_stateLock)
@@ -112,11 +119,13 @@ public sealed class MessagePort : EventEmitter, IDisposable
         return this;
     }
 
+    /// <summary>Reports whether this port currently keeps the process alive.</summary>
     public bool hasRef()
     {
         lock (_stateLock) return _refed;
     }
 
+    /// <summary>Closes the port and releases its transport resources.</summary>
     public void Dispose() => close();
 
     private void ReceiveLocal(byte[] payload)
@@ -196,8 +205,10 @@ public sealed class MessagePort : EventEmitter, IDisposable
     }
 }
 
+/// <summary>Creates two locally connected message-port endpoints.</summary>
 public sealed class MessageChannel
 {
+    /// <summary>Creates a connected pair of message ports.</summary>
     public MessageChannel()
     {
         port1 = new MessagePort();
@@ -206,6 +217,8 @@ public sealed class MessageChannel
         port2.Connect(port1);
     }
 
+    /// <summary>Gets the first endpoint.</summary>
     public MessagePort port1 { get; }
+    /// <summary>Gets the second endpoint.</summary>
     public MessagePort port2 { get; }
 }

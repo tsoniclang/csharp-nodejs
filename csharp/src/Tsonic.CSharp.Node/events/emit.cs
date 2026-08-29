@@ -5,6 +5,7 @@ using Tsonic.CSharp.Runtime;
 
 public partial class EventEmitter
 {
+    /// <summary>Synchronously dispatches an event to its registered listeners.</summary>
     public bool emit(TsValue eventName, params TsValue[] args) =>
         emitCore(EventKey(eventName), args.Cast<object?>().ToArray());
 

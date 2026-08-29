@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Tsonic.CSharp.Node;
 
+/// <summary>Transforms stream chunks using the selected Node-compatible compression codec.</summary>
 public class ZlibTransform : Transform
 {
     private readonly CodecInputStream _input = new();
@@ -17,6 +18,7 @@ public class ZlibTransform : Transform
     private Exception? _processorError;
     private int _flushStarted;
 
+    /// <summary>Creates a transform for the selected codec and validated options.</summary>
     public ZlibTransform(
         ZlibMode mode,
         ZlibOptions? zlibOptions = null,
@@ -29,8 +31,10 @@ public class ZlibTransform : Transform
         _processor = BackgroundDispatch.RunReferenced(Process);
     }
 
+    /// <summary>Gets the codec mode selected for this transform.</summary>
     public ZlibMode mode => _mode;
 
+    /// <inheritdoc />
     protected override void _transform(
         object? chunk,
         string? encoding,
@@ -53,6 +57,7 @@ public class ZlibTransform : Transform
         _input.Enqueue(bytes, error => callback(error, null));
     }
 
+    /// <inheritdoc />
     protected override void _flush(Action<Exception?> callback)
     {
         if (Interlocked.Exchange(ref _flushStarted, 1) != 0)
@@ -109,7 +114,7 @@ public class ZlibTransform : Transform
             WaitForReadCapacity();
     }
 
-    private void RunCodec(Stream input, Stream output)
+    private void RunCodec(System.IO.Stream input, System.IO.Stream output)
     {
         var bufferSize = _zlibOptions?.chunkSize ?? _brotliOptions?.chunkSize ?? 16 * 1024;
         switch (_mode)
@@ -147,9 +152,9 @@ public class ZlibTransform : Transform
     }
 
     private static void CopyIntoCompressor(
-        Stream input,
-        Stream output,
-        Stream compressor,
+        System.IO.Stream input,
+        System.IO.Stream output,
+        System.IO.Stream compressor,
         int bufferSize)
     {
         using (compressor)
@@ -157,13 +162,19 @@ public class ZlibTransform : Transform
         output.Flush();
     }
 
-    private static void CopyFromDecompressor(Stream decompressor, Stream output, int bufferSize)
+    private static void CopyFromDecompressor(
+        System.IO.Stream decompressor,
+        System.IO.Stream output,
+        int bufferSize)
     {
         using (decompressor)
             decompressor.CopyTo(output, bufferSize);
     }
 
-    private static void CopyUnzip(Stream input, Stream output, int bufferSize)
+    private static void CopyUnzip(
+        System.IO.Stream input,
+        System.IO.Stream output,
+        int bufferSize)
     {
         var prefix = new byte[2];
         var count = 0;
@@ -217,7 +228,7 @@ public class ZlibTransform : Transform
         _ = mode;
     }
 
-    private sealed class CodecInputStream : Stream
+    private sealed class CodecInputStream : System.IO.Stream
     {
         private sealed record Chunk(byte[]? Data, Action<Exception?>? Consumed);
 
@@ -282,12 +293,12 @@ public class ZlibTransform : Transform
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
-    private sealed class CodecOutputStream : Stream
+    private sealed class CodecOutputStream : System.IO.Stream
     {
         private readonly Action<byte[]> _publish;
         private readonly long? _maximumLength;
@@ -317,17 +328,17 @@ public class ZlibTransform : Transform
         public override long Position { get => _length; set => throw new NotSupportedException(); }
         public override void Flush() { }
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
     }
 
-    private sealed class PrefixStream : Stream
+    private sealed class PrefixStream : System.IO.Stream
     {
         private readonly byte[] _prefix;
-        private readonly Stream _source;
+        private readonly System.IO.Stream _source;
         private int _offset;
 
-        public PrefixStream(byte[] prefix, Stream source)
+        public PrefixStream(byte[] prefix, System.IO.Stream source)
         {
             _prefix = prefix;
             _source = source;
@@ -356,7 +367,7 @@ public class ZlibTransform : Transform
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }

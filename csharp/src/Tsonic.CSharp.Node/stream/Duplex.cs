@@ -56,6 +56,7 @@ public class Duplex : Readable
         return _writableState.Write(chunk, encoding, callback);
     }
 
+    /// <summary>Writes a closed TypeScript value to the writable side of the stream.</summary>
     public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
         write(chunk.unwrap(), encoding, callback);
 
@@ -70,6 +71,7 @@ public class Duplex : Readable
         _writableState.End(chunk, encoding, callback);
     }
 
+    /// <summary>Finishes the writable side after writing a final closed TypeScript value.</summary>
     public void end(TsValue chunk, string? encoding = null, Action? callback = null) =>
         end(chunk.unwrap(), encoding, callback);
 
@@ -111,6 +113,7 @@ public class Duplex : Readable
         callback();
     }
 
+    /// <summary>Finalizes the writable side of the duplex stream.</summary>
     protected virtual void _final(Action callback)
     {
         callback();

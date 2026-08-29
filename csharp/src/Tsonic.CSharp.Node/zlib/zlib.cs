@@ -15,11 +15,20 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    public static byte[] gzipSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] GzipBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
+        if (buffer.Length == 0)
+        {
+            return
+            [
+                0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+            ];
+        }
 
         var level = options?.level ?? -1; // Default compression
         var compressionLevel = level switch
@@ -35,6 +44,7 @@ public static partial class zlib
         using (var gzip = new GZipStream(output, compressionLevel))
         {
             gzip.Write(buffer, 0, buffer.Length);
+            gzip.Flush();
         }
         return output.ToArray();
     }
@@ -45,7 +55,7 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    public static byte[] gunzipSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] GunzipBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -65,11 +75,13 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    public static byte[] deflateSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] DeflateBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
+        if (buffer.Length == 0)
+            return [0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01];
 
         var level = options?.level ?? -1;
         var compressionLevel = level switch
@@ -95,7 +107,7 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    public static byte[] inflateSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] InflateBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -115,11 +127,13 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    public static byte[] deflateRawSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] DeflateRawBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
+        if (buffer.Length == 0)
+            return [0x03, 0x00];
         var level = options?.level ?? -1;
         var compressionLevel = level switch
         {
@@ -140,7 +154,7 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    public static byte[] inflateRawSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] InflateRawBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -158,7 +172,7 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    public static byte[] brotliCompressSync(byte[] buffer, BrotliOptions? options = null)
+    private static byte[] BrotliCompressBytes(byte[] buffer, BrotliOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -186,7 +200,7 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    public static byte[] brotliDecompressSync(byte[] buffer, BrotliOptions? options = null)
+    private static byte[] BrotliDecompressBytes(byte[] buffer, BrotliOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -205,7 +219,7 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    public static byte[] unzipSync(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] UnzipBytes(byte[] buffer, ZlibOptions? options = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -218,20 +232,17 @@ public static partial class zlib
         // Zlib (Deflate with header): 0x78 (multiple variations)
         if (buffer[0] == 0x1f && buffer[1] == 0x8b)
         {
-            return gunzipSync(buffer, options);
+            return GunzipBytes(buffer, options);
         }
         else if (buffer[0] == 0x78)
         {
             // Zlib format (deflate with header)
-            // Skip the 2-byte zlib header and use raw deflate
-            var deflateData = new byte[buffer.Length - 2];
-            Array.Copy(buffer, 2, deflateData, 0, deflateData.Length);
-            return inflateSync(deflateData, options);
+            return InflateBytes(buffer, options);
         }
         else
         {
             // Try raw deflate
-            return inflateSync(buffer, options);
+            return InflateRawBytes(buffer, options);
         }
     }
 

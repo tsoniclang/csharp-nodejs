@@ -1,30 +1,43 @@
 using System.Collections.Generic;
+using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Node;
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class WorkerThreadsTests
 {
     [Fact]
     public void MessageChannel_DeliversMessagesBetweenPorts()
     {
         var channel = new MessageChannel();
-        var messages = new List<object?>();
-        channel.port2.on("message", (object? value) => messages.Add(value));
+        var messages = new List<string>();
+        channel.port2.on<TsValue>("message", value =>
+            messages.Add(TsValue.CastDynamic<string>(value)));
 
-        channel.port1.postMessage("hello");
+        channel.port1.postMessage(TsValue.from("hello"));
+        JsEventLoop.Run();
 
         Assert.Equal(["hello"], messages);
-        Assert.Equal("hello", channel.port2.receiveMessageOnPort());
+
+        channel.port1.postMessage(TsValue.from("direct"));
+        Assert.Equal(
+            "direct",
+            TsValue.CastDynamic<string>(channel.port2.receiveMessageOnPort()));
+        JsEventLoop.Run();
     }
 
     [Fact]
     public void EnvironmentData_UsesProcessEnvironment()
     {
-        worker_threads.setEnvironmentData("TSONIC_NODE_TEST", "ok");
+        worker_threads.setEnvironmentData("TSONIC_NODE_TEST", TsValue.from("ok"));
 
-        Assert.Equal("ok", worker_threads.getEnvironmentData("TSONIC_NODE_TEST"));
+        Assert.Equal(
+            "ok",
+            TsValue.CastDynamic<string>(
+                worker_threads.getEnvironmentData("TSONIC_NODE_TEST")));
     }
 
     [Fact]
@@ -33,7 +46,9 @@ public class WorkerThreadsTests
         var channel = new MessageChannel();
         channel.port1.close();
 
-        Assert.Throws<System.InvalidOperationException>(() => channel.port1.postMessage("closed"));
+        Assert.Throws<System.InvalidOperationException>(() =>
+            channel.port1.postMessage(TsValue.from("closed")));
+        JsEventLoop.Run();
     }
 
     [Fact]
@@ -47,11 +62,11 @@ public class WorkerThreadsTests
     [Fact]
     public void TransferMarkers_PreserveExactReferenceIdentity()
     {
-        var value = new object();
+        var value = TsValue.from(new JSObject());
 
         worker_threads.markAsUntransferable(value);
 
         Assert.True(worker_threads.isMarkedAsUntransferable(value));
-        Assert.False(worker_threads.isMarkedAsUntransferable(new object()));
+        Assert.False(worker_threads.isMarkedAsUntransferable(TsValue.from(new JSObject())));
     }
 }

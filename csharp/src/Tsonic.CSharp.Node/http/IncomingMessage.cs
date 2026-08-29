@@ -183,6 +183,7 @@ public partial class IncomingMessage : EventEmitter
         on("data", callback);
     }
 
+    /// <summary>Reads the complete message body into a binary buffer.</summary>
     public async Task<Buffer> readAllBuffer()
     {
         if (_isServerSide && _serverRequest != null)

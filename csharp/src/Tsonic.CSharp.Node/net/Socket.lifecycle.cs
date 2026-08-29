@@ -25,12 +25,16 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public new Socket destroy(Exception? error = null)
     {
-        if (_destroyed) return this;
+        lock (_writeLoopLock)
+        {
+            if (_destroyed) return this;
+            _destroyed = true;
+            _writeQueue.CompleteAdding();
+        }
 
-        _destroyed = true;
         _stream?.Close();
         _client?.Close();
-        ReleaseKeepAlive();
+        var releaseSocketReference = Interlocked.Exchange(ref _referenced, 0) != 0;
 
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
@@ -38,6 +42,8 @@ public partial class Socket : Stream
                 emit("error", error);
             emit("close", error != null);
         });
+        if (releaseSocketReference)
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
 
         return this;
     }

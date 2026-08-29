@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class ServerTests
 {
     private static int GetListeningPort(Server server)
@@ -67,6 +68,7 @@ public class ServerTests
         });
 
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         resetEvent.Wait(2000);
         Assert.True(listeningEmitted);
@@ -87,6 +89,7 @@ public class ServerTests
             callbackCalled = true;
             resetEvent.Set();
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         resetEvent.Wait(2000);
         Assert.True(callbackCalled);
@@ -110,6 +113,7 @@ public class ServerTests
         });
 
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
         listenResetEvent.Wait(2000);
 
         server.close();
@@ -130,6 +134,7 @@ public class ServerTests
         server.on("listening", () => listenResetEvent.Set());
 
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
         listenResetEvent.Wait(2000);
 
         server.close((err) =>
@@ -150,6 +155,7 @@ public class ServerTests
 
         server.on("listening", () => resetEvent.Set());
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
         resetEvent.Wait(2000);
 
         var address = server.address();
@@ -169,18 +175,21 @@ public class ServerTests
     {
         var server = new Server();
         var resetEvent = new ManualResetEventSlim(false);
+        var connectionsRead = new ManualResetEventSlim(false);
         var connectionCount = -1;
 
         server.on("listening", () => resetEvent.Set());
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
         resetEvent.Wait(2000);
 
         server.getConnections((err, count) =>
         {
             connectionCount = count;
+            connectionsRead.Set();
         });
 
-        Thread.Sleep(100); // Give callback time to execute
+        Assert.True(connectionsRead.Wait(2000));
         Assert.Equal(0, connectionCount);
 
         server.close();
@@ -218,6 +227,11 @@ public class ServerTests
         });
 
         server.listen(0, "127.0.0.1");
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            serverSocket?.destroy();
+            server.close();
+        });
         serverResetEvent.Wait(2000);
 
         // Connect a client

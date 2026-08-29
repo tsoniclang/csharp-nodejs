@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Tsonic.CSharp.Node;
 using Tsonic.CSharp.Node.Http;
 using Tsonic.CSharp.Runtime;
@@ -34,7 +33,10 @@ public static class https
             ?? throw new ArgumentException("HTTPS server options require a valid certificate and private key.", nameof(options));
         return new Http.Server(
             requestListener,
-            listenOptions => listenOptions.UseHttps(certificate));
+            listenOptions =>
+                Microsoft.AspNetCore.Hosting.ListenOptionsHttpsExtensions.UseHttps(
+                    listenOptions,
+                    certificate));
     }
 
     public static ClientRequest request(string url, Action<IncomingMessage>? callback = null)

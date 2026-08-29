@@ -67,7 +67,10 @@ public class TLSServerTests : IDisposable
     [Fact]
     public void TLSServer_ConstructorWithOptions_CreatesInstance()
     {
-        var options = new TlsOptions { cert = _serverCert };
+        var options = new TlsOptions
+        {
+            pfx = TlsTestCertificate.PfxValue(_serverCert!)
+        };
         var server = new TLSServer(options, null);
         Assert.NotNull(server);
     }
@@ -106,7 +109,10 @@ public class TLSServerTests : IDisposable
     {
         var server = new TLSServer();
         var exception = Record.Exception(() =>
-            server.setSecureContext(new SecureContextOptions { cert = _serverCert }));
+            server.setSecureContext(new SecureContextOptions
+            {
+                pfx = TlsTestCertificate.PfxValue(_serverCert!)
+            }));
         Assert.Null(exception);
     }
 

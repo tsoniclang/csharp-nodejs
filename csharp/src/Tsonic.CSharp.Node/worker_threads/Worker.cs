@@ -9,6 +9,7 @@ using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
+/// <summary>Runs a compiled module entry in an isolated worker process.</summary>
 public sealed class Worker : EventEmitter, IDisposable
 {
     private static int _nextThreadId;
@@ -19,6 +20,7 @@ public sealed class Worker : EventEmitter, IDisposable
     private bool _refed = true;
     private int? _exitCode;
 
+    /// <summary>Starts the selected compiled worker entry with the supplied options.</summary>
     public Worker(string moduleEntryIdentity, WorkerOptions? options = null)
     {
         if (string.IsNullOrEmpty(moduleEntryIdentity))
@@ -79,8 +81,10 @@ public sealed class Worker : EventEmitter, IDisposable
         }
     }
 
+    /// <summary>Gets the worker's process-local thread identity.</summary>
     public int threadId { get; }
 
+    /// <summary>Sends a structured-cloned value to the worker.</summary>
     public void postMessage(TsValue value)
     {
         lock (_stateLock)
@@ -91,6 +95,7 @@ public sealed class Worker : EventEmitter, IDisposable
         }
     }
 
+    /// <summary>Terminates the worker and returns its exit code.</summary>
     public async Task<int> terminate()
     {
         lock (_stateLock)
@@ -103,6 +108,7 @@ public sealed class Worker : EventEmitter, IDisposable
         return _process.ExitCode;
     }
 
+    /// <summary>Keeps the process alive while this worker is running.</summary>
     public Worker @ref()
     {
         lock (_stateLock)
@@ -116,6 +122,7 @@ public sealed class Worker : EventEmitter, IDisposable
         return this;
     }
 
+    /// <summary>Allows the process to exit while this worker is running.</summary>
     public Worker unref()
     {
         lock (_stateLock)
@@ -129,6 +136,7 @@ public sealed class Worker : EventEmitter, IDisposable
         return this;
     }
 
+    /// <summary>Terminates the worker and releases its process and transport resources.</summary>
     public void Dispose()
     {
         if (!_process.HasExited)

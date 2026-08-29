@@ -100,7 +100,6 @@ import {
 } from "../stream.js";
 import {
   nodeZlibCallTargetMembers,
-  nodeZlibClassCallTargetMembers,
   nodeZlibClassPropertyTargetMembers,
   nodeZlibModuleSpecifier,
 } from "../zlib.js";
@@ -172,7 +171,6 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classCallRecords(nodeStreamModuleSpecifier, nodeStreamClassCallTargetMembers()),
     ...classPropertyRecords(nodeStreamModuleSpecifier, nodeStreamClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeZlibModuleSpecifier, nodeZlibCallTargetMembers()),
-    ...classCallRecords(nodeZlibModuleSpecifier, nodeZlibClassCallTargetMembers()),
     ...classPropertyRecords(nodeZlibModuleSpecifier, nodeZlibClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeDnsModuleSpecifier, nodeDnsCallTargetMembers()),
     ...modulePropertyRecords(nodeDnsModuleSpecifier, nodeDnsPropertyTargetMembers()),

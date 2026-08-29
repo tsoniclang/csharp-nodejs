@@ -257,6 +257,7 @@ public partial class ServerResponse : Writable
         return this;
     }
 
+    /// <inheritdoc />
     protected override void _write(object? chunk, string? encoding, Action callback)
     {
         if (!_headersSent)
@@ -280,6 +281,7 @@ public partial class ServerResponse : Writable
         callback();
     }
 
+    /// <inheritdoc />
     protected override void _final(Action callback)
     {
         _finished = true;
@@ -310,7 +312,11 @@ public partial class ServerResponse : Writable
             {
                 if (!_finished)
                 {
-                    emit("timeout");
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                    {
+                        if (!_finished)
+                            emit("timeout");
+                    });
                 }
             }, null, msecs, System.Threading.Timeout.Infinite);
         }

@@ -2,6 +2,7 @@ import type {
   ProviderExportDeclaration,
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
+  ProviderSignatureDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import {
@@ -46,7 +47,6 @@ export function nodejsCapabilityModuleExports(options: {
   const classNames = new Set([
     ...(options.classes ?? []),
     ...classCalls.map((member) => member.exportName),
-    ...classProperties.map((member) => member.exportName),
   ]);
   const exports: readonly ProviderExportDeclaration[] = [
     ...providerModuleFunctions(options.moduleSpecifier, moduleCalls),
@@ -135,11 +135,11 @@ function providerModuleFunctions(
       id: `${moduleSpecifier}.${exportName}`,
       name: exportName,
       kind: "function",
-      signatures: overloads.map((member) => ({
-        id: member.signatureId,
-        parameters: member.providerParameters,
-        returnType: member.providerReturnType,
-      })),
+      signatures: overloads.map((member) => nodejsProviderSignature(
+        member.signatureId,
+        member.providerParameters,
+        member.providerReturnType,
+      )),
     }),
   );
 }
@@ -153,15 +153,157 @@ function providerClassCallMembers(
       id: first.memberId,
       name: first.memberName,
       kind: first.memberKind,
-      signatures: overloads.map((member) => ({
-        id: member.signatureId,
-        parameters: member.providerParameters,
-        ...(member.providerReturnType === undefined
-          ? {}
-          : { returnType: member.providerReturnType }),
-      })),
+      signatures: overloads.map((member) => nodejsProviderSignature(
+        member.signatureId,
+        member.providerParameters,
+        member.providerReturnType,
+      )),
     };
   });
+}
+
+export function nodejsProviderSignature(
+  signatureId: string,
+  parameters: readonly ProviderParameterDeclaration[],
+  returnType: ProviderTypeExpression | undefined,
+): ProviderSignatureDeclaration {
+  return {
+    id: signatureId,
+    parameters: parameters.map((parameter, index) => ({
+      ...parameter,
+      type: scopeProviderCallableType(
+        parameter.type,
+        `${signatureId}.parameter[${index}]`,
+      ),
+      ...(parameter.defaultType === undefined
+        ? {}
+        : {
+            defaultType: scopeProviderCallableType(
+              parameter.defaultType,
+              `${signatureId}.parameter[${index}].default`,
+            ),
+          }),
+    })),
+    ...(returnType === undefined
+      ? {}
+      : {
+          returnType: scopeProviderCallableType(
+            returnType,
+            `${signatureId}.return`,
+          ),
+        }),
+  };
+}
+
+function scopeProviderCallableType(
+  type: ProviderTypeExpression,
+  occurrenceIdentity: string,
+): ProviderTypeExpression {
+  switch (type.kind) {
+    case "function":
+      return {
+        ...type,
+        id: occurrenceIdentity,
+        parameters: type.parameters.map((parameter, index) => ({
+          ...parameter,
+          type: scopeProviderCallableType(
+            parameter.type,
+            `${occurrenceIdentity}.parameter[${index}]`,
+          ),
+          ...(parameter.defaultType === undefined
+            ? {}
+            : {
+                defaultType: scopeProviderCallableType(
+                  parameter.defaultType,
+                  `${occurrenceIdentity}.parameter[${index}].default`,
+                ),
+              }),
+        })),
+        returnType: scopeProviderCallableType(
+          type.returnType,
+          `${occurrenceIdentity}.return`,
+        ),
+        ...(type.typeParameters === undefined
+          ? {}
+          : {
+              typeParameters: type.typeParameters.map((parameter, index) => ({
+                ...parameter,
+                ...(parameter.constraints === undefined
+                  ? {}
+                  : {
+                      constraints: parameter.constraints.map((constraint, constraintIndex) =>
+                        scopeProviderCallableType(
+                          constraint,
+                          `${occurrenceIdentity}.typeParameter[${index}].constraint[${constraintIndex}]`,
+                        )),
+                    }),
+                ...(parameter.defaultType === undefined
+                  ? {}
+                  : {
+                      defaultType: scopeProviderCallableType(
+                        parameter.defaultType,
+                        `${occurrenceIdentity}.typeParameter[${index}].default`,
+                      ),
+                    }),
+              })),
+            }),
+      };
+    case "array":
+      return {
+        ...type,
+        elementType: scopeProviderCallableType(
+          type.elementType,
+          `${occurrenceIdentity}.element`,
+        ),
+      };
+    case "tuple":
+      return {
+        ...type,
+        elementTypes: type.elementTypes.map((elementType, index) =>
+          scopeProviderCallableType(
+            elementType,
+            `${occurrenceIdentity}.element[${index}]`,
+          )),
+      };
+    case "union":
+    case "intersection":
+      return {
+        ...type,
+        types: type.types.map((memberType, index) =>
+          scopeProviderCallableType(
+            memberType,
+            `${occurrenceIdentity}.member[${index}]`,
+          )),
+      };
+    case "provider-ref":
+    case "source-global":
+      return {
+        ...type,
+        ...(type.typeArguments === undefined
+          ? {}
+          : {
+              typeArguments: type.typeArguments.map((argument, index) =>
+                scopeProviderCallableType(
+                  argument,
+                  `${occurrenceIdentity}.typeArgument[${index}]`,
+                )),
+            }),
+      };
+    case "any":
+    case "unknown":
+    case "void":
+    case "never":
+    case "undefined":
+    case "boolean":
+    case "string":
+    case "number":
+    case "bigint":
+    case "object":
+    case "literal":
+    case "source-primitive":
+    case "type-parameter":
+      return type;
+  }
 }
 
 function providerClassPropertyMembers(

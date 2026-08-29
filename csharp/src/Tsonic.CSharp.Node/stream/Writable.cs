@@ -10,11 +10,13 @@ public partial class Writable : Stream
 {
     private readonly WritableState _state;
 
+    /// <summary>Creates a writable stream with the default finite buffer limit.</summary>
     public Writable()
         : this(64 * 1024)
     {
     }
 
+    /// <summary>Creates a writable stream with the selected finite buffer limit.</summary>
     protected Writable(int highWaterMark)
     {
         _state = new WritableState(
@@ -62,6 +64,7 @@ public partial class Writable : Stream
         return _state.Write(chunk, encoding, callback);
     }
 
+    /// <summary>Writes a closed TypeScript value to the stream.</summary>
     public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
         write(chunk.unwrap(), encoding, callback);
 
@@ -77,6 +80,7 @@ public partial class Writable : Stream
         return this;
     }
 
+    /// <summary>Finishes the stream after writing a final closed TypeScript value.</summary>
     public Writable end(TsValue chunk, string? encoding = null, Action? callback = null) =>
         end(chunk.unwrap(), encoding, callback);
 

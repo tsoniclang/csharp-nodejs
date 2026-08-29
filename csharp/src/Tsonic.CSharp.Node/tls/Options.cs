@@ -330,10 +330,13 @@ public class ConnectionOptions : CommonConnectionOptions
 /// </summary>
 public class TlsOptions : CommonConnectionOptions
 {
+    /// <summary>PFX or PKCS12 encoded private key and certificate chain.</summary>
     public TsValue pfx { get; set; } = TsValue.undefined();
 
+    /// <summary>Minimum TLS version to allow.</summary>
     public string? minVersion { get; set; }
 
+    /// <summary>Maximum TLS version to allow.</summary>
     public string? maxVersion { get; set; }
 
     /// <summary>

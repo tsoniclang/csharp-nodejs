@@ -26,26 +26,36 @@ public partial class Socket : Stream
     /// <returns>True if flushed to kernel buffer</returns>
     public bool write(byte[] data, Action<Exception?>? callback = null)
     {
-        if (_stream == null || _destroyed)
+        ArgumentNullException.ThrowIfNull(data);
+
+        lock (_writeLoopLock)
         {
-            if (callback != null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(new InvalidOperationException("Socket not connected")));
-            return false;
+            if (_stream == null || _destroyed || _writeQueue.IsAddingCompleted)
+            {
+                if (callback != null)
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(new InvalidOperationException("Socket not connected")));
+                return false;
+            }
+
+            _writeQueueEmpty.Reset();
+            var queuedBytes = Interlocked.Add(ref _queuedWriteBytes, data.Length);
+            if (!_writeQueue.TryAdd(new WriteRequest(data, callback)))
+            {
+                Interlocked.Add(ref _queuedWriteBytes, -data.Length);
+                if (_writeQueue.Count == 0)
+                    _writeQueueEmpty.Set();
+                throw new InvalidOperationException("Socket write queue exceeds its finite limit.");
+            }
+            if (queuedBytes >= WriteHighWaterMark)
+                Interlocked.Exchange(ref _needsDrain, 1);
+
+            StartWriteLoop();
+
+            return queuedBytes < WriteHighWaterMark;
         }
-
-        // Queue the write request for FIFO processing (like Node.js)
-        _writeQueueEmpty.Reset();
-        var queuedBytes = Interlocked.Add(ref _queuedWriteBytes, data.Length);
-        if (queuedBytes >= WriteHighWaterMark)
-            Interlocked.Exchange(ref _needsDrain, 1);
-        _writeQueue.Add(new WriteRequest(data, callback));
-
-        // Start the write loop if not already running
-        StartWriteLoop();
-
-        return queuedBytes < WriteHighWaterMark;
     }
 
+    /// <summary>Writes a binary buffer to the socket.</summary>
     public bool write(Buffer data, Action<Exception?>? callback = null) =>
         write(data.InternalData, callback);
 
@@ -169,6 +179,7 @@ public partial class Socket : Stream
         return this;
     }
 
+    /// <summary>Half-closes the socket after writing a final binary buffer.</summary>
     public Socket end(Buffer data, Action? callback = null) =>
         end(data.InternalData, callback);
 

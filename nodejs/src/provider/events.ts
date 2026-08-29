@@ -147,7 +147,7 @@ export function nodeEventsClassCallTargetMembers(): readonly NodejsClassCallTarg
     memberKind: "method",
     providerParameters: [
       { name: "eventName", type: eventNameProviderType },
-      { name: "values", type: unknownProviderType, rest: true },
+      { name: "values", type: { kind: "array", elementType: unknownProviderType }, rest: true },
     ],
     providerReturnType: { kind: "boolean" },
     targetParameters: [
@@ -173,11 +173,19 @@ export function nodeEventsClassCallTargetMembers(): readonly NodejsClassCallTarg
     declaringType: eventEmitterTargetType,
   });
   const removeAllWithName = nodejsClassCallTargetMetadata({
-    ...removeAllWithoutName,
+    exportName: nodeEventEmitterExportName,
+    memberName: "removeAllListeners",
+    memberId: "node:events.EventEmitter.removeAllListeners",
     signatureId: "node:events.EventEmitter.removeAllListeners(eventName)",
     targetMemberId: "Tsonic.CSharp.Node.EventEmitter.removeAllListeners(TsValue)",
+    sourceName: "removeAllListeners",
+    targetName: "removeAllListeners",
+    memberKind: "method",
     providerParameters: [{ name: "eventName", type: eventNameProviderType }],
+    providerReturnType: providerEventEmitterType(),
     targetParameters: [targetParameter("eventName", tsValueTargetType)],
+    targetReturnType: eventEmitterTargetType,
+    declaringType: eventEmitterTargetType,
   });
   const scalarCalls = [
     scalarCall("getMaxListeners", [], numberProviderType(), [], intTargetType),

@@ -99,14 +99,14 @@ export function nodeDnsPromisesExports(): readonly ProviderExportDeclaration[] {
 
 export function nodeDnsCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
   return Object.freeze([
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", [
+    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,callback", [
       stringParameter("hostname"),
       callbackParameter("callback", lookupCallbackProviderType),
     ], voidProviderType, [
       targetParameter("hostname", stringTargetType),
       targetParameter("callback", lookupCallbackTargetType),
     ], voidTargetType),
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", [
+    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,lookup-options,callback", [
       stringParameter("hostname"),
       { name: "options", type: lookupOptionsProviderType },
       callbackParameter("callback", lookupCallbackProviderType),
@@ -115,7 +115,7 @@ export function nodeDnsCallTargetMembers(): readonly NodejsModuleCallTargetMetad
       targetParameter("options", lookupOptionsTargetType),
       targetParameter("callback", lookupCallbackTargetType),
     ], voidTargetType),
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", [
+    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,lookup-all-options,callback", [
       stringParameter("hostname"),
       { name: "options", type: lookupAllOptionsProviderType },
       callbackParameter("callback", lookupAllCallbackProviderType),
@@ -129,14 +129,14 @@ export function nodeDnsCallTargetMembers(): readonly NodejsModuleCallTargetMetad
 
 export function nodeDnsPromisesCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
   return Object.freeze([
-    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", [
+    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", "hostname,lookup-options", [
       stringParameter("hostname"),
       optionalParameter("options", lookupOptionsProviderType),
     ], promiseProviderType(lookupAddressProviderType), [
       targetParameter("hostname", stringTargetType),
       targetParameter("options", lookupOptionsTargetType, { optional: true }),
     ], csharpTaskTargetType(lookupAddressTargetType)),
-    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", [
+    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", "hostname,lookup-all-options", [
       stringParameter("hostname"),
       { name: "options", type: lookupAllOptionsProviderType },
     ], promiseProviderType(lookupAddressArrayProviderType), [
@@ -179,17 +179,17 @@ function moduleCall(
   moduleSpecifier: string,
   declaringType: TargetTypeRef,
   exportName: string,
+  identityShape: string,
   providerParameters: readonly ProviderParameterDeclaration[],
   providerReturnType: ProviderTypeExpression,
   targetParameters: Parameters<typeof nodejsModuleCallTargetMetadata>[0]["targetParameters"],
   targetReturnType: TargetTypeRef,
   targetName = exportName,
 ): NodejsModuleCallTargetMetadata {
-  const shape = providerParameters.map((parameter) => parameter.name).join(",");
   return nodejsModuleCallTargetMetadata({
     exportName,
-    signatureId: `${moduleSpecifier}.${exportName}(${shape})`,
-    targetMemberId: `${declaringType.kind === "target-named" ? declaringType.id : moduleSpecifier}.${targetName}(${shape})`,
+    signatureId: `${moduleSpecifier}.${exportName}(${identityShape})`,
+    targetMemberId: `${declaringType.kind === "target-named" ? declaringType.id : moduleSpecifier}.${targetName}(${identityShape})`,
     sourceName: exportName,
     targetName,
     providerParameters,

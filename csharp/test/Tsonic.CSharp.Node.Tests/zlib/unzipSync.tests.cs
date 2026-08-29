@@ -9,31 +9,31 @@ public class Zlib_unzipSyncTests
     [Fact]
     public void unzipSync_ShouldDecompressGzip()
     {
-        var original = Encoding.UTF8.GetBytes("Hello, World!");
+        var original = Buffer.from("Hello, World!");
         var compressed = zlib.gzipSync(original);
         var decompressed = zlib.unzipSync(compressed);
 
-        Assert.Equal(original, decompressed);
+        Assert.Equal(original.toString(), decompressed.toString());
     }
 
     [Fact]
     public void unzipSync_ShouldDecompressDeflate()
     {
-        var original = Encoding.UTF8.GetBytes("Hello, World!");
+        var original = Buffer.from("Hello, World!");
         var compressed = zlib.deflateSync(original);
         var decompressed = zlib.unzipSync(compressed);
 
-        Assert.Equal(original, decompressed);
+        Assert.Equal(original.toString(), decompressed.toString());
     }
 
     [Fact]
     public void unzipSync_WithGzipData_ShouldAutoDetect()
     {
         var originalText = "Test data for auto-detection";
-        var original = Encoding.UTF8.GetBytes(originalText);
+        var original = Buffer.from(originalText);
         var compressed = zlib.gzipSync(original);
         var decompressed = zlib.unzipSync(compressed);
-        var resultText = Encoding.UTF8.GetString(decompressed);
+        var resultText = decompressed.toString();
 
         Assert.Equal(originalText, resultText);
     }
@@ -47,7 +47,7 @@ public class Zlib_unzipSyncTests
     [Fact]
     public void unzipSync_WithTooSmallBuffer_ShouldThrow()
     {
-        var tooSmall = new byte[] { 0x00 };
+        var tooSmall = Buffer.of(0x00);
 
         Assert.Throws<ArgumentException>(() => zlib.unzipSync(tooSmall));
     }

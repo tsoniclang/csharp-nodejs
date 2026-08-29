@@ -3,7 +3,6 @@ import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import type {
-  CsharpTargetInvocation,
   CsharpTargetMember,
   TargetParameter,
   TargetTypeRef,
@@ -14,6 +13,10 @@ import type {
   NodejsModuleCallTargetMember,
   NodejsModulePropertyTargetMember,
 } from "./types.js";
+
+type CsharpTargetInvocation = NonNullable<
+  CsharpTargetMember["csharpInvocation"]
+>;
 
 export interface NodejsModuleCallTargetMetadata extends NodejsModuleCallTargetMember {
   readonly targetMemberId: string;

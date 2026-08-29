@@ -10,7 +10,9 @@ internal static class BackgroundDispatch
 {
     private const int WorkerCount = 4;
     private const int MaximumPendingWork = 16 * 1024;
-    private static readonly Channel<WorkItem> Work = Channel.CreateBounded<WorkItem>(
+    private static readonly SemaphoreSlim WorkReservations = new(MaximumPendingWork, MaximumPendingWork);
+    private static readonly System.Threading.Channels.Channel<WorkItem> Work =
+        System.Threading.Channels.Channel.CreateBounded<WorkItem>(
         new BoundedChannelOptions(MaximumPendingWork)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -43,6 +45,36 @@ internal static class BackgroundDispatch
             ProcessKeepAlive.Release();
             throw;
         }
+    }
+
+    public static Task<TResult> RunReferenced<TResult>(Func<TResult> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var completion = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            _ = RunReferenced(() =>
+            {
+                try
+                {
+                    completion.TrySetResult(action());
+                }
+                catch (OperationCanceledException error)
+                {
+                    completion.TrySetCanceled(error.CancellationToken);
+                }
+                catch (Exception error)
+                {
+                    completion.TrySetException(error);
+                }
+            });
+        }
+        catch (Exception error)
+        {
+            completion.TrySetException(error);
+        }
+
+        return completion.Task;
     }
 
     public static Task RunReferencedAsync(Func<Task> action)
@@ -89,9 +121,15 @@ internal static class BackgroundDispatch
     private static Task Enqueue(Func<Task> action)
     {
         _ = Workers;
+        if (!WorkReservations.Wait(0))
+            throw new InvalidOperationException("Node background work count exceeds its finite limit.");
+
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!Work.Writer.TryWrite(new WorkItem(action, completion)))
+        {
+            WorkReservations.Release();
             throw new InvalidOperationException("Node background work queue exceeds its finite limit.");
+        }
         return completion.Task;
     }
 
@@ -106,16 +144,27 @@ internal static class BackgroundDispatch
     private static async Task WorkerLoop()
     {
         await foreach (var item in Work.Reader.ReadAllAsync().ConfigureAwait(false))
+            _ = Execute(item);
+    }
+
+    private static async Task Execute(WorkItem item)
+    {
+        try
         {
-            try
-            {
-                await item.Action().ConfigureAwait(false);
-                item.Completion.TrySetResult();
-            }
-            catch (Exception error)
-            {
-                item.Completion.TrySetException(error);
-            }
+            await item.Action().ConfigureAwait(false);
+            item.Completion.TrySetResult();
+        }
+        catch (OperationCanceledException error)
+        {
+            item.Completion.TrySetCanceled(error.CancellationToken);
+        }
+        catch (Exception error)
+        {
+            item.Completion.TrySetException(error);
+        }
+        finally
+        {
+            WorkReservations.Release();
         }
     }
 

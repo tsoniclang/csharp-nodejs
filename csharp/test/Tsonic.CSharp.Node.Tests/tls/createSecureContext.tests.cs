@@ -62,7 +62,7 @@ public class createSecureContextTests : IDisposable
     {
         var context = tls.createSecureContext(new SecureContextOptions
         {
-            cert = _serverCert
+            pfx = TlsTestCertificate.PfxValue(_serverCert!)
         });
         Assert.NotNull(context);
         Assert.NotNull(context.Certificate);

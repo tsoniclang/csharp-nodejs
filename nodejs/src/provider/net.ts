@@ -147,6 +147,8 @@ export function nodeNetClassCallTargetMembers(): readonly NodejsClassCallTargetM
     classCall("Server", "close", [optionalProvider("callback", errorCallbackProviderType)], providerClass("Server"), [
       targetParameter("callback", errorCallbackTargetType, { optional: true }),
     ], targetTypes.Server),
+    classCall("Server", "ref", [], providerClass("Server"), [], targetTypes.Server),
+    classCall("Server", "unref", [], providerClass("Server"), [], targetTypes.Server),
   ];
   return Object.freeze(calls);
 }

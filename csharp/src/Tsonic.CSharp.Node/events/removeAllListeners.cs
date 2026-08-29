@@ -4,6 +4,7 @@ using Tsonic.CSharp.Runtime;
 
 public partial class EventEmitter
 {
+    /// <summary>Removes every listener registered for the selected event.</summary>
     public EventEmitter removeAllListeners(TsValue eventName) =>
         removeAllListenersCore(EventKey(eventName));
 

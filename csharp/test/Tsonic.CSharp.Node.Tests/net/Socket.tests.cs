@@ -1,9 +1,11 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class SocketTests
 {
     private const int TEST_PORT = 18234;
@@ -71,7 +73,8 @@ public class SocketTests
     public void Socket_Connect_StartsConnection()
     {
         var socket = new Socket();
-        var server = net.createServer();
+        Socket? acceptedSocket = null;
+        var server = net.createServer(client => acceptedSocket = client);
         var listenEvent = new ManualResetEventSlim(false);
         var connectEvent = new ManualResetEventSlim(false);
         var observedConnecting = false;
@@ -85,13 +88,17 @@ public class SocketTests
             observedConnecting = socket.connecting || socket.readyState == "opening" || socket.readyState == "open";
             listenEvent.Set();
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            socket.destroy();
+            acceptedSocket?.destroy();
+            server.close();
+        });
 
         Assert.True(listenEvent.Wait(2000), "Server should start listening");
         Assert.True(observedConnecting, "Socket should begin opening or already be open");
         Assert.True(connectEvent.Wait(5000), "Connect callback should be invoked");
 
-        server.close();
-        socket.destroy();
     }
 
     [Fact]
@@ -99,6 +106,7 @@ public class SocketTests
     {
         var socket = new Socket();
         socket.destroy();
+        JsEventLoop.Run();
         Assert.True(socket.destroyed);
         Assert.Equal("closed", socket.readyState);
     }
@@ -108,17 +116,15 @@ public class SocketTests
     {
         var socket = new Socket();
         var closeEmitted = false;
-        var resetEvent = new ManualResetEventSlim(false);
 
         socket.on("close", (bool hadError) =>
         {
             closeEmitted = true;
-            resetEvent.Set();
         });
 
         socket.destroy();
+        JsEventLoop.Run();
 
-        resetEvent.Wait(1000);
         Assert.True(closeEmitted);
     }
 
@@ -127,17 +133,15 @@ public class SocketTests
     {
         var socket = new Socket();
         var errorEmitted = false;
-        var resetEvent = new ManualResetEventSlim(false);
 
         socket.on("error", (Exception err) =>
         {
             errorEmitted = true;
-            resetEvent.Set();
         });
 
         socket.destroy(new Exception("Test error"));
+        JsEventLoop.Run();
 
-        resetEvent.Wait(1000);
         Assert.True(errorEmitted);
     }
 
@@ -235,6 +239,7 @@ public class SocketTests
     {
         var socket = new Socket();
         var result = socket.resetAndDestroy();
+        JsEventLoop.Run();
         Assert.Same(socket, result);
         Assert.True(socket.destroyed);
     }
@@ -246,10 +251,13 @@ public class SocketTests
         var receivedMessage = "";
         var resetEvent = new ManualResetEventSlim(false);
         var testMessage = "Hello, Socket!";
+        Socket? client = null;
+        Socket? acceptedSocket = null;
 
         // Create a server
         var server = net.createServer((Socket clientSocket) =>
         {
+            acceptedSocket = clientSocket;
             clientSocket.on("data", (Buffer data) =>
             {
                 dataReceived = true;
@@ -260,17 +268,20 @@ public class SocketTests
 
         server.listen(0, () =>
         {
-            // Connect a client and send data
-            var client = new Socket();
+            client = new Socket();
             client.connect(GetListeningPort(server), "localhost", () =>
             {
                 client.write(testMessage);
             });
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            client?.destroy();
+            acceptedSocket?.destroy();
+            server.close();
+        });
 
-        // Wait for data event
         var signaled = resetEvent.Wait(5000);
-        server.close();
 
         Assert.True(signaled, "Data event should have been received within timeout");
         Assert.True(dataReceived, "Data event should have been emitted");
@@ -283,10 +294,13 @@ public class SocketTests
         const string expected = "Chunk1Chunk2Chunk3";
         var combined = "";
         var resetEvent = new ManualResetEventSlim(false);
+        Socket? client = null;
+        Socket? acceptedSocket = null;
 
         // Create a server
         var server = net.createServer((Socket clientSocket) =>
         {
+            acceptedSocket = clientSocket;
             clientSocket.on("data", (Buffer data) =>
             {
                 combined += data.toString();
@@ -299,21 +313,22 @@ public class SocketTests
 
         server.listen(0, () =>
         {
-            // Connect a client and send multiple chunks
-            var client = new Socket();
+            client = new Socket();
             client.connect(GetListeningPort(server), "localhost", () =>
             {
                 client.write("Chunk1");
-                Thread.Sleep(50);
                 client.write("Chunk2");
-                Thread.Sleep(50);
                 client.write("Chunk3");
             });
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            client?.destroy();
+            acceptedSocket?.destroy();
+            server.close();
+        });
 
-        // Wait for all data events
         var signaled = resetEvent.Wait(5000);
-        server.close();
 
         Assert.True(signaled, "Should have received all chunk data within timeout");
         Assert.Equal(expected, combined);
@@ -324,10 +339,13 @@ public class SocketTests
     {
         var endReceived = false;
         var resetEvent = new ManualResetEventSlim(false);
+        Socket? client = null;
+        Socket? acceptedSocket = null;
 
         // Create a server
         var server = net.createServer((Socket clientSocket) =>
         {
+            acceptedSocket = clientSocket;
             clientSocket.on("end", () =>
             {
                 endReceived = true;
@@ -337,18 +355,20 @@ public class SocketTests
 
         server.listen(0, () =>
         {
-            // Connect a client, then close it
-            var client = new Socket();
+            client = new Socket();
             client.connect(GetListeningPort(server), "localhost", () =>
             {
-                Thread.Sleep(100);
                 client.end();
             });
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            client?.destroy();
+            acceptedSocket?.destroy();
+            server.close();
+        });
 
-        // Wait for end event
         var signaled = resetEvent.Wait(5000);
-        server.close();
 
         Assert.True(signaled, "End event should have been received within timeout");
         Assert.True(endReceived, "End event should have been emitted");
@@ -360,10 +380,13 @@ public class SocketTests
         var serverReceived = "";
         var clientReceived = "";
         var resetEvent = new ManualResetEventSlim(false);
+        Socket? client = null;
+        Socket? acceptedSocket = null;
 
         // Create a server that echoes data
         var server = net.createServer((Socket clientSocket) =>
         {
+            acceptedSocket = clientSocket;
             clientSocket.on("data", (Buffer data) =>
             {
                 serverReceived = data.toString();
@@ -374,7 +397,7 @@ public class SocketTests
 
         server.listen(0, () =>
         {
-            var client = new Socket();
+            client = new Socket();
             client.on("data", (Buffer data) =>
             {
                 clientReceived = data.toString();
@@ -386,10 +409,14 @@ public class SocketTests
                 client.write("Test message");
             });
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            client?.destroy();
+            acceptedSocket?.destroy();
+            server.close();
+        });
 
-        // Wait for round-trip
         var signaled = resetEvent.Wait(5000);
-        server.close();
 
         Assert.True(signaled, "Should have completed round-trip within timeout");
         Assert.Equal("Test message", serverReceived);

@@ -49,8 +49,8 @@ test("Node callback APIs model omitted middle options as exact overloads", () =>
   assert.deepEqual(
     signatureIds(declarations, "watch"),
     [
-      "node:fs.watch(System.String,Function)",
-      "node:fs.watch(System.String,System.Object,Function)",
+      "node:fs.watch(path,listener)",
+      "node:fs.watch(path,options,listener)",
     ],
   );
 });

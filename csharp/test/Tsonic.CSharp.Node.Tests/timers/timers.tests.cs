@@ -1,36 +1,16 @@
 using Xunit;
 using System.Threading;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class TimersTests
 {
-    private static void WithBlockedImmediateDispatcher(Action whileBlocked)
+    private static void DrainEventLoop()
     {
-        using var dispatcherEntered = new ManualResetEventSlim(false);
-        using var releaseDispatcher = new ManualResetEventSlim(false);
-        using var dispatcherDrained = new ManualResetEventSlim(false);
-        var blocker = timers.setImmediate(() =>
-        {
-            dispatcherEntered.Set();
-            releaseDispatcher.Wait();
-        });
-        Immediate? sentinel = null;
-
-        try
-        {
-            Assert.True(dispatcherEntered.Wait(1000), "Immediate dispatcher did not enter the blocking callback");
-            whileBlocked();
-            sentinel = timers.setImmediate(() => dispatcherDrained.Set());
-        }
-        finally
-        {
-            releaseDispatcher.Set();
-        }
-
-        Assert.True(dispatcherDrained.Wait(1000), "Immediate dispatcher did not drain the cancellation turn");
-        timers.clearImmediate(blocker);
-        timers.clearImmediate(sentinel);
+        JsEventLoop.EnqueueReferenced(static () => { });
+        JsEventLoop.Run();
     }
 
     [Fact]
@@ -43,6 +23,7 @@ public class TimersTests
             executed = true;
             resetEvent.Set();
         }, 50);
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearTimeout(timeout));
 
         var signaled = resetEvent.Wait(1000);
         Assert.True(signaled, "setTimeout callback was not called within timeout");
@@ -55,6 +36,7 @@ public class TimersTests
         var timeout = timers.setTimeout(() => { }, 10);
         Assert.NotNull(timeout);
         Assert.IsType<Timeout>(timeout);
+        timers.clearTimeout(timeout);
     }
 
     [Fact]
@@ -62,11 +44,12 @@ public class TimersTests
     {
         var resetEvent = new ManualResetEventSlim(false);
         var executed = false;
-        timers.setTimeout(() =>
+        var timeout = timers.setTimeout(() =>
         {
             executed = true;
             resetEvent.Set();
         }, 0);
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearTimeout(timeout));
 
         var signaled = resetEvent.Wait(1000);
         Assert.True(signaled, "setTimeout(0) callback was not called within timeout");
@@ -84,6 +67,11 @@ public class TimersTests
         {
             timeouts[index] = timers.setTimeout(() => completed.Signal(), 0);
         }
+        using var eventLoop = JsEventLoopTestHost.Start(() =>
+        {
+            foreach (var timeout in timeouts)
+                timers.clearTimeout(timeout);
+        });
 
         Assert.True(completed.Wait(5000), "Every zero-delay timeout should execute after its handle is fully initialized");
     }
@@ -100,9 +88,10 @@ public class TimersTests
         }, 50);
 
         timers.clearTimeout(timeout);
-        var signaled = resetEvent.Wait(200);
+        Thread.Sleep(100);
+        DrainEventLoop();
 
-        Assert.False(signaled, "clearTimeout should prevent callback execution");
+        Assert.False(resetEvent.IsSet, "clearTimeout should prevent callback execution");
         Assert.False(executed);
     }
 
@@ -125,6 +114,7 @@ public class TimersTests
                 resetEvent.Set();
             }
         }, 50);
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearInterval(timeout));
 
         var signaled = resetEvent.Wait(2000);
         timers.clearInterval(timeout);
@@ -143,6 +133,7 @@ public class TimersTests
             Interlocked.Increment(ref count);
             resetEvent.Set();
         }, 50);
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearInterval(timeout));
 
         var signaled = resetEvent.Wait(5000);
         timers.clearInterval(timeout);
@@ -162,6 +153,7 @@ public class TimersTests
             executed = true;
             resetEvent.Set();
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearImmediate(immediate));
 
         var signaled = resetEvent.Wait(1000);
         Assert.True(signaled, "setImmediate callback was not called within timeout");
@@ -181,6 +173,7 @@ public class TimersTests
                 executed = true;
                 resetEvent.Set();
             });
+            using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearImmediate(immediate));
 
             try
             {
@@ -201,17 +194,17 @@ public class TimersTests
         var immediate = timers.setImmediate(() => { });
         Assert.NotNull(immediate);
         Assert.IsType<Immediate>(immediate);
+        timers.clearImmediate(immediate);
+        DrainEventLoop();
     }
 
     [Fact]
     public void clearImmediate_ShouldCancelImmediate()
     {
         var executed = false;
-        WithBlockedImmediateDispatcher(() =>
-        {
-            var immediate = timers.setImmediate(() => executed = true);
-            timers.clearImmediate(immediate);
-        });
+        var immediate = timers.setImmediate(() => executed = true);
+        timers.clearImmediate(immediate);
+        DrainEventLoop();
 
         Assert.False(executed);
     }
@@ -222,11 +215,9 @@ public class TimersTests
         for (var index = 0; index < 10; index++)
         {
             var executed = false;
-            WithBlockedImmediateDispatcher(() =>
-            {
-                var immediate = timers.setImmediate(() => executed = true);
-                timers.clearImmediate(immediate);
-            });
+            var immediate = timers.setImmediate(() => executed = true);
+            timers.clearImmediate(immediate);
+            DrainEventLoop();
 
             Assert.False(executed);
         }
@@ -236,19 +227,15 @@ public class TimersTests
     public void clearImmediate_ShouldCancelImmediate_AtScale()
     {
         var executedCount = 0;
-        WithBlockedImmediateDispatcher(() =>
+        var immediates = new Immediate[100];
+        for (var index = 0; index < immediates.Length; index++)
         {
-            var immediates = new Immediate[100];
-            for (var index = 0; index < immediates.Length; index++)
-            {
-                immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
-            }
+            immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
+        }
 
-            foreach (var immediate in immediates)
-            {
-                timers.clearImmediate(immediate);
-            }
-        });
+        foreach (var immediate in immediates)
+            timers.clearImmediate(immediate);
+        DrainEventLoop();
 
         Assert.Equal(0, executedCount);
     }
@@ -257,19 +244,15 @@ public class TimersTests
     public void clearImmediate_ShouldCancelAllPendingImmediates()
     {
         var executedCount = 0;
-        WithBlockedImmediateDispatcher(() =>
+        var immediates = new Immediate[32];
+        for (var index = 0; index < immediates.Length; index++)
         {
-            var immediates = new Immediate[32];
-            for (var index = 0; index < immediates.Length; index++)
-            {
-                immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
-            }
+            immediates[index] = timers.setImmediate(() => Interlocked.Increment(ref executedCount));
+        }
 
-            foreach (var immediate in immediates)
-            {
-                timers.clearImmediate(immediate);
-            }
-        });
+        foreach (var immediate in immediates)
+            timers.clearImmediate(immediate);
+        DrainEventLoop();
 
         Assert.Equal(0, executedCount);
     }
@@ -291,6 +274,7 @@ public class TimersTests
             executed = true;
             resetEvent.Set();
         });
+        using var eventLoop = JsEventLoopTestHost.Start(static () => { });
 
         var signaled = resetEvent.Wait(1000);
         Assert.True(signaled, "queueMicrotask callback was not called within timeout");
@@ -349,6 +333,7 @@ public class TimersTests
     {
         var resetEvent = new ManualResetEventSlim(false);
         var timeout = timers.setTimeout(() => resetEvent.Set(), 120);
+        using var eventLoop = JsEventLoopTestHost.Start(() => timers.clearTimeout(timeout));
 
         Thread.Sleep(80);
         timeout.refresh();
@@ -365,6 +350,7 @@ public class TimersTests
 
         timeout.close();
         Thread.Sleep(100);
+        DrainEventLoop();
 
         Assert.False(executed);
     }
@@ -377,6 +363,7 @@ public class TimersTests
 
         Assert.Same(immediate, result);
         timers.clearImmediate(immediate);
+        DrainEventLoop();
     }
 
     [Fact]
@@ -387,6 +374,7 @@ public class TimersTests
 
         Assert.Same(immediate, result);
         timers.clearImmediate(immediate);
+        DrainEventLoop();
     }
 
     [Fact]
@@ -395,6 +383,7 @@ public class TimersTests
         var immediate = timers.setImmediate(() => { });
         Assert.True(immediate.hasRef());
         timers.clearImmediate(immediate);
+        DrainEventLoop();
     }
 
     [Fact]
@@ -404,5 +393,6 @@ public class TimersTests
         immediate.unref();
         Assert.False(immediate.hasRef());
         timers.clearImmediate(immediate);
+        DrainEventLoop();
     }
 }

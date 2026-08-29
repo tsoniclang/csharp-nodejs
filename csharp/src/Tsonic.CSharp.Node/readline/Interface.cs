@@ -198,6 +198,7 @@ public partial class Interface : EventEmitter
         }
     }
 
+    /// <summary>Writes text to the readline output stream.</summary>
     public void write(string data)
     {
         if (_closed)

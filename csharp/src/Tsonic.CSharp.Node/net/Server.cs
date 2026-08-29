@@ -127,7 +127,7 @@ public class Server : EventEmitter
             _listener.Start(backlog);
             _listening = true;
             if (Interlocked.Exchange(ref _referenced, 1) == 0)
-                ProcessKeepAlive.Acquire();
+                Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("listening"));
         }
         catch (Exception ex)
@@ -136,12 +136,12 @@ public class Server : EventEmitter
             return this;
         }
 
-        BackgroundDispatch.RunHandleOwned(AcceptConnectionsLoop);
+        BackgroundDispatch.RunHandleOwnedAsync(AcceptConnectionsLoop);
 
         return this;
     }
 
-    private void AcceptConnectionsLoop()
+    private async Task AcceptConnectionsLoop()
     {
         try
         {
@@ -149,7 +149,7 @@ public class Server : EventEmitter
             {
                 try
                 {
-                    var client = _listener!.AcceptTcpClient();
+                    var client = await _listener!.AcceptTcpClientAsync().ConfigureAwait(false);
                     _connections++;
 
                     var socket = new Socket(client);
@@ -171,6 +171,10 @@ public class Server : EventEmitter
                     }
                 }
                 catch (SocketException)
+                {
+                    break;
+                }
+                catch (ObjectDisposedException)
                 {
                     break;
                 }
@@ -222,8 +226,7 @@ public class Server : EventEmitter
 
         _listening = false;
         _listener?.Stop();
-        if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+        var releaseServerReference = Interlocked.Exchange(ref _referenced, 0) != 0;
 
         if (callback != null)
         {
@@ -231,6 +234,8 @@ public class Server : EventEmitter
         }
 
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("close"));
+        if (releaseServerReference)
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
 
         return this;
     }
@@ -269,7 +274,7 @@ public class Server : EventEmitter
     public Server unref()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
         return this;
     }
 
@@ -280,7 +285,7 @@ public class Server : EventEmitter
     public Server @ref()
     {
         if (_listening && Interlocked.Exchange(ref _referenced, 1) == 0)
-            ProcessKeepAlive.Acquire();
+            Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
         return this;
     }
 }

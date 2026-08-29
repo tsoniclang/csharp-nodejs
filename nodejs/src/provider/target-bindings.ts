@@ -52,6 +52,7 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:fs", exportName: "Stats", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Stats" },
   { moduleSpecifier: "node:fs", exportName: "MakeDirectoryOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "MakeDirectoryOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:fs", exportName: "RmOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "RmOptions", objectLiteralConstruction: "object-initializer" },
+  { moduleSpecifier: "node:fs", exportName: "WatchOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "WatchOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:fs", exportName: "ReadStreamOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ReadStreamOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:fs", exportName: "WriteStreamOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "WriteStreamOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:fs", exportName: "FsWatcher", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "FsWatcher" },

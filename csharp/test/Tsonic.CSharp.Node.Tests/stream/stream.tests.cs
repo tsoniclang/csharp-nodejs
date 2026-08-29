@@ -111,10 +111,10 @@ public class StreamTests
         stream.push("data1");
         stream.push("data2");
 
-        Assert.Equal(2, stream.readableLength);
+        Assert.Equal(10, stream.readableLength);
 
         stream.read();
-        Assert.Equal(1, stream.readableLength);
+        Assert.Equal(5, stream.readableLength);
     }
 
     [Fact]

@@ -9,17 +9,17 @@ public class Zlib_brotliCompressSyncTests
     [Fact]
     public void brotliCompressSync_ShouldCompressData()
     {
-        var data = Encoding.UTF8.GetBytes("Hello, World!");
+        var data = Buffer.from("Hello, World!");
         var compressed = zlib.brotliCompressSync(data);
 
         Assert.NotNull(compressed);
-        Assert.True(compressed.Length > 0);
+        Assert.True(compressed.length > 0);
     }
 
     [Fact]
     public void brotliCompressSync_WithQuality_ShouldWork()
     {
-        var data = Encoding.UTF8.GetBytes("Test data for compression");
+        var data = Buffer.from("Test data for compression");
 
         var compressed1 = zlib.brotliCompressSync(data, new BrotliOptions { quality = 1 });
         var compressed11 = zlib.brotliCompressSync(data, new BrotliOptions { quality = 11 });
@@ -37,7 +37,7 @@ public class Zlib_brotliCompressSyncTests
     [Fact]
     public void brotliCompressSync_EmptyBuffer_ShouldCompress()
     {
-        var data = Array.Empty<byte>();
+        var data = Buffer.alloc(0);
         var compressed = zlib.brotliCompressSync(data);
 
         Assert.NotNull(compressed);
@@ -46,8 +46,8 @@ public class Zlib_brotliCompressSyncTests
     [Fact]
     public void brotliCompressSync_LargeData_ShouldCompress()
     {
-        var data = new byte[50000];
-        for (int i = 0; i < data.Length; i++)
+        var data = Buffer.alloc(50000);
+        for (int i = 0; i < data.length; i++)
         {
             data[i] = (byte)(i % 256);
         }
@@ -55,6 +55,6 @@ public class Zlib_brotliCompressSyncTests
         var compressed = zlib.brotliCompressSync(data);
 
         Assert.NotNull(compressed);
-        Assert.True(compressed.Length < data.Length);
+        Assert.True(compressed.length < data.length);
     }
 }

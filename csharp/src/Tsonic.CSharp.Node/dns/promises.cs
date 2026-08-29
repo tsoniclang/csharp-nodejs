@@ -12,20 +12,7 @@ namespace Tsonic.CSharp.Node;
 public class DnsPromises
 {
     public Task<LookupAddress> lookup(string hostname, LookupOptions? options = null)
-    {
-        var tcs = new TaskCompletionSource<LookupAddress>();
-        dns.lookup(hostname, options, (Exception? err, string address, int family) =>
-        {
-            if (err != null)
-            {
-                tcs.TrySetException(err);
-                return;
-            }
-
-            tcs.TrySetResult(new LookupAddress { address = address, family = family });
-        });
-        return tcs.Task;
-    }
+        => BackgroundDispatch.RunReferenced(() => dns.LookupCore(hostname, options));
 
     public Task<JSArray<LookupAddress>> lookupAll(string hostname, LookupOptions? options = null)
     {
@@ -38,18 +25,7 @@ public class DnsPromises
             verbatim = options?.verbatim,
         };
 
-        var tcs = new TaskCompletionSource<JSArray<LookupAddress>>();
-        dns.lookup(hostname, lookupOptions, (Exception? err, JSArray<LookupAddress> addresses) =>
-        {
-            if (err != null)
-            {
-                tcs.TrySetException(err);
-                return;
-            }
-
-            tcs.TrySetResult(addresses);
-        });
-        return tcs.Task;
+        return BackgroundDispatch.RunReferenced(() => dns.LookupAllCore(hostname, lookupOptions));
     }
 
     public Task<LookupServiceResult> lookupService(string address, int port)

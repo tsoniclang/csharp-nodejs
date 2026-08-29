@@ -43,16 +43,24 @@ import {
   statsTargetType,
 } from "./types.js";
 
-export const nodeFsStreamClassNames = [
+const optionExportNames = [
+  "WatchOptions",
   "ReadStreamOptions",
   "WriteStreamOptions",
+] as const;
+const runtimeClassNames = [
   "FsWatcher",
   "StatWatcher",
   "ReadStream",
   "WriteStream",
 ] as const;
+export const nodeFsStreamClassNames = [
+  ...optionExportNames,
+  ...runtimeClassNames,
+] as const;
 
 const targetTypes: Record<(typeof nodeFsStreamClassNames)[number], TargetTypeRef> = {
+  WatchOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "WatchOptions"),
   ReadStreamOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "ReadStreamOptions"),
   WriteStreamOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "WriteStreamOptions"),
   FsWatcher: nodejsTargetNamedType("Tsonic.CSharp.Node", "FsWatcher"),
@@ -64,9 +72,11 @@ const fsTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "fs");
 const stringTargetType = csharpStringTargetType();
 const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
+const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const longTargetType = csharpSourcePrimitiveTargetType("int64");
 const nullableLongTargetType = csharpNullableValueTargetType(longTargetType);
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
+const nullableBoolTargetType = csharpNullableValueTargetType(boolTargetType);
 const voidTargetType = csharpVoidTargetType();
 const watchListenerProviderType = callbackProviderType("node:fs.watch.listener", [
   { name: "eventType", type: stringProviderType },
@@ -104,13 +114,14 @@ export function nodeFsStreamExportDeclarations(): readonly ProviderExportDeclara
     moduleCalls: nodeFsStreamCallTargetMembers(),
     classCalls: nodeFsStreamClassCallTargetMembers(),
     classProperties: nodeFsStreamClassPropertyTargetMembers(),
-    classes: nodeFsStreamClassNames,
+    classes: runtimeClassNames,
     classHeritage: {
       FsWatcher: [providerRef("node:events", "EventEmitter")],
       StatWatcher: [providerRef("node:events", "EventEmitter")],
       ReadStream: [providerRef("node:stream", "Readable")],
       WriteStream: [providerRef("node:stream", "Writable")],
     },
+    additionalExports: optionExportNames.map(optionDeclaration),
     includeDefaultExports: false,
   });
 }
@@ -136,6 +147,15 @@ export function nodeFsStreamCallTargetMembers(): readonly NodejsModuleCallTarget
       optionalProviderParameter("listener", watchListenerProviderType),
     ], providerClass("FsWatcher"), [
       targetParameter("path", stringTargetType),
+      targetParameter("listener", watchListenerTargetType, { optional: true }),
+    ], targetTypes.FsWatcher),
+    moduleCall("watch", [
+      stringParameter("path"),
+      { name: "options", type: providerClass("WatchOptions") },
+      optionalProviderParameter("listener", watchListenerProviderType),
+    ], providerClass("FsWatcher"), [
+      targetParameter("path", stringTargetType),
+      targetParameter("options", targetTypes.WatchOptions),
       targetParameter("listener", watchListenerTargetType, { optional: true }),
     ], targetTypes.FsWatcher),
     moduleCall("watchFile", [
@@ -172,16 +192,18 @@ export function nodeFsStreamClassCallTargetMembers(): readonly NodejsClassCallTa
 
 export function nodeFsStreamClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return Object.freeze([
-    optionProperty("ReadStreamOptions", "flags", readStreamFlagProviderType, stringTargetType),
+    optionProperty("WatchOptions", "persistent", booleanProviderType, nullableBoolTargetType),
+    optionProperty("WatchOptions", "recursive", booleanProviderType, nullableBoolTargetType),
+    optionProperty("ReadStreamOptions", "flags", readStreamFlagProviderType, nullableStringTargetType),
     optionProperty("ReadStreamOptions", "encoding", stringProviderType, nullableStringTargetType),
     optionProperty("ReadStreamOptions", "start", numberProviderType, nullableLongTargetType),
     optionProperty("ReadStreamOptions", "end", numberProviderType, nullableLongTargetType),
-    optionProperty("ReadStreamOptions", "highWaterMark", numberProviderType, intTargetType),
-    optionProperty("WriteStreamOptions", "flags", writeStreamFlagProviderType, stringTargetType),
+    optionProperty("ReadStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
+    optionProperty("WriteStreamOptions", "flags", writeStreamFlagProviderType, nullableStringTargetType),
     optionProperty("WriteStreamOptions", "encoding", stringProviderType, nullableStringTargetType),
     optionProperty("WriteStreamOptions", "start", numberProviderType, nullableLongTargetType),
-    optionProperty("WriteStreamOptions", "highWaterMark", numberProviderType, intTargetType),
-    optionProperty("WriteStreamOptions", "flush", booleanProviderType, boolTargetType),
+    optionProperty("WriteStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
+    optionProperty("WriteStreamOptions", "flush", booleanProviderType, nullableBoolTargetType),
     readonlyProperty("FsWatcher", "closed", booleanProviderType, boolTargetType),
     readonlyProperty("StatWatcher", "closed", booleanProviderType, boolTargetType),
     readonlyProperty("ReadStream", "path", stringProviderType, stringTargetType),
@@ -241,7 +263,7 @@ function classCall(
 }
 
 function optionProperty(
-  exportName: "ReadStreamOptions" | "WriteStreamOptions",
+  exportName: "WatchOptions" | "ReadStreamOptions" | "WriteStreamOptions",
   memberName: string,
   providerType: ProviderTypeExpression,
   targetReturnType: TargetTypeRef,
@@ -249,6 +271,25 @@ function optionProperty(
   return {
     ...property(exportName, memberName, providerType, targetReturnType, false),
     optional: true,
+  };
+}
+
+function optionDeclaration(
+  exportName: (typeof optionExportNames)[number],
+): ProviderExportDeclaration {
+  return {
+    id: `${nodeFsModuleSpecifier}.${exportName}`,
+    name: exportName,
+    kind: "interface",
+    members: nodeFsStreamClassPropertyTargetMembers()
+      .filter((member) => member.exportName === exportName)
+      .map((member) => ({
+        id: member.memberId,
+        name: member.memberName,
+        kind: "property" as const,
+        optional: true,
+        type: member.providerType,
+      })),
   };
 }
 

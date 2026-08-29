@@ -1,3 +1,5 @@
+using System.Linq;
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -15,10 +17,11 @@ public class eventNamesTests
 
         var names = emitter.eventNames();
 
-        Assert.Equal(3, names.Length);
-        Assert.Contains("event1", names);
-        Assert.Contains("event2", names);
-        Assert.Contains("event3", names);
+        var textNames = names.Select(name => TsValue.CastDynamic<string>(name)).ToArray();
+        Assert.Equal(3, names.length);
+        Assert.Contains("event1", textNames);
+        Assert.Contains("event2", textNames);
+        Assert.Contains("event3", textNames);
     }
 
     [Fact]

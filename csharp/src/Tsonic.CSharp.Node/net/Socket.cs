@@ -28,7 +28,9 @@ public partial class Socket : Stream
     private bool _allowHalfOpen = false;
 
     // Write queue for FIFO ordering (like Node.js)
-    private readonly BlockingCollection<WriteRequest> _writeQueue = new BlockingCollection<WriteRequest>();
+    private const int MaximumPendingWrites = 16 * 1024;
+    private readonly BlockingCollection<WriteRequest> _writeQueue =
+        new(new ConcurrentQueue<WriteRequest>(), MaximumPendingWrites);
     private Task? _writeLoopTask;
     private bool _writeLoopStarted = false;
     private readonly object _writeLoopLock = new object();
@@ -203,13 +205,13 @@ public partial class Socket : Stream
     private void AcquireKeepAlive()
     {
         if (!_destroyed && Interlocked.Exchange(ref _referenced, 1) == 0)
-            ProcessKeepAlive.Acquire();
+            Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
     }
 
     private void ReleaseKeepAlive()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
     }
 
     internal void ReserveTransportRead()
