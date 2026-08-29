@@ -20,3 +20,9 @@ export {
 export {
   nodeFsOptionClassPropertyTargetMembers,
 } from "./options.js";
+export {
+  nodeFsStreamCallTargetMembers,
+  nodeFsStreamClassCallTargetMembers,
+  nodeFsStreamClassPropertyTargetMembers,
+  nodeFsStreamClassNames,
+} from "./streams.js";

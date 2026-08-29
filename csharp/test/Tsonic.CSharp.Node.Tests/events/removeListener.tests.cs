@@ -1,3 +1,4 @@
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -43,9 +44,9 @@ public class removeListenerTests
         string? eventName = null;
         Action listener = () => { };
 
-        emitter.on("removeListener", (Action<object?, object?>)((name, listenerObj) =>
+        emitter.on("removeListener", (Action<TsValue, Delegate>)((name, listenerObj) =>
         {
-            eventName = name as string;
+            eventName = TsValue.CastDynamic<string>(name);
         }));
 
         emitter.on("test", listener);

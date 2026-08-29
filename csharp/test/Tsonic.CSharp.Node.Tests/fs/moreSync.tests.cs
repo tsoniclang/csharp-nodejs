@@ -103,9 +103,9 @@ public class FsMoreSyncTests : FsTestBase
         File.WriteAllText(path, "stream");
 
         var stream = fs.createReadStream(path);
-        var bytes = Assert.IsType<byte[]>(stream.read());
+        var bytes = Assert.IsType<Buffer>(stream.read());
 
-        Assert.Equal("stream", Encoding.UTF8.GetString(bytes));
+        Assert.Equal("stream", bytes.toString());
         Assert.Equal(6, stream.bytesRead);
     }
 

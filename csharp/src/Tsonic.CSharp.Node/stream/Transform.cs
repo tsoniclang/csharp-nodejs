@@ -54,4 +54,16 @@ public class Transform : Duplex
             callback();
         });
     }
+
+    /// <inheritdoc />
+    protected override void _final(Action callback)
+    {
+        _flush(error =>
+        {
+            if (error != null)
+                emit("error", error);
+            push(null);
+            callback();
+        });
+    }
 }

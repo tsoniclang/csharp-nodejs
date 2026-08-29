@@ -60,8 +60,10 @@ public class SecureContextTests : IDisposable
     [Fact]
     public void SecureContext_LoadCertificate_StoresCertificate()
     {
-        var context = new SecureContext();
-        context.LoadCertificate(_serverCert, null, null);
+        var context = tls.createSecureContext(new SecureContextOptions
+        {
+            pfx = TlsTestCertificate.PfxValue(_serverCert!)
+        });
         Assert.NotNull(context.Certificate);
     }
 

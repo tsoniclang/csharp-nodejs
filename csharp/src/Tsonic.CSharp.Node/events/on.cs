@@ -1,7 +1,37 @@
 namespace Tsonic.CSharp.Node;
 
+using System.Linq;
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    /// <summary>Registers a persistent listener for the selected event.</summary>
+    public EventEmitter on(TsValue eventName, Delegate listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, once: false), prepend: false);
+
+    /// <inheritdoc cref="on(TsValue, Delegate)" />
+    public EventEmitter on(TsValue eventName, Action listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, _ => listener(), once: false), prepend: false);
+
+    /// <inheritdoc cref="on(TsValue, Delegate)" />
+    public EventEmitter on(TsValue eventName, Action<TsValue[]> listener) =>
+        addEventListenerCore(
+            EventKey(eventName),
+            CreateEventListener(listener, args => listener(args.Select(TsValue.from).ToArray()), once: false),
+            prepend: false);
+
+    /// <inheritdoc cref="on(TsValue, Delegate)" />
+    public EventEmitter on<T>(TsValue eventName, Action<T> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T>(args, 0)), once: false), prepend: false);
+
+    /// <inheritdoc cref="on(TsValue, Delegate)" />
+    public EventEmitter on<T1, T2>(TsValue eventName, Action<T1, T2> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1)), once: false), prepend: false);
+
+    /// <inheritdoc cref="on(TsValue, Delegate)" />
+    public EventEmitter on<T1, T2, T3>(TsValue eventName, Action<T1, T2, T3> listener) =>
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(Argument<T1>(args, 0), Argument<T2>(args, 1), Argument<T3>(args, 2)), once: false), prepend: false);
+
     /// <summary>
     /// Adds a listener function to the end of the listeners array for the specified event.
     /// </summary>
@@ -23,6 +53,16 @@ public partial class EventEmitter
     /// <inheritdoc cref="on(string, Delegate)" />
     public EventEmitter on(string eventName, Action<object?[]> listener) =>
         addEventListenerCore(eventName, CreateEventListener(listener, args => listener(args), once: false), prepend: false);
+
+    /// <inheritdoc cref="on(string, Delegate)" />
+    public EventEmitter on(string eventName, Action<TsValue[]> listener) =>
+        addEventListenerCore(
+            eventName,
+            CreateEventListener(
+                listener,
+                args => listener(args.Select(TsValue.from).ToArray()),
+                once: false),
+            prepend: false);
 
     /// <inheritdoc cref="on(string, Delegate)" />
     public EventEmitter on<T>(string eventName, Action<T> listener) =>

@@ -139,7 +139,7 @@ public static partial class tls
         if (options != null)
         {
             // Load certificate and key
-            context.LoadCertificate(options.cert, options.key, options.passphrase);
+            context.LoadCertificate(options.cert, options.key, options.pfx, options.passphrase);
 
             // Load CA certificates
             context.LoadCACertificates(options.ca);

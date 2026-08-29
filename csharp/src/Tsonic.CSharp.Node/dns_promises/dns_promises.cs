@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -9,7 +10,7 @@ namespace Tsonic.CSharp.Node;
 public static class dns_promises
 {
     public static Task<LookupAddress> lookup(string hostname, LookupOptions? options = null) => dns.promises.lookup(hostname, options);
-    public static Task<LookupAddress[]> lookupAll(string hostname, LookupOptions? options = null) => dns.promises.lookupAll(hostname, options);
+    public static Task<JSArray<LookupAddress>> lookupAll(string hostname, LookupOptions? options = null) => dns.promises.lookupAll(hostname, options);
     public static Task<LookupServiceResult> lookupService(string address, int port) => dns.promises.lookupService(address, port);
     public static Task<string[]> resolve(string hostname) => dns.promises.resolve(hostname);
     public static Task<object> resolve(string hostname, string rrtype) => dns.promises.resolve(hostname, rrtype);

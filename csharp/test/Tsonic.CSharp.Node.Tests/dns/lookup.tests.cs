@@ -1,16 +1,16 @@
 using System;
 using System.Linq;
-using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class lookupTests
 {
     [Fact]
     public void lookup_SimpleDomain_ReturnsAddress()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         string? address = null;
         int family = 0;
         Exception? error = null;
@@ -20,11 +20,9 @@ public class lookupTests
             error = err;
             address = addr;
             family = fam;
-            resetEvent.Set();
         });
 
-        var signaled = resetEvent.Wait(5000);
-        Assert.True(signaled, "Callback was not called within timeout");
+        JsEventLoop.Run();
         Assert.Null(error);
         Assert.NotNull(address);
         Assert.True(family == 4 || family == 6);
@@ -33,7 +31,6 @@ public class lookupTests
     [Fact]
     public void lookup_WithIPv4Family_ReturnsIPv4Address()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         string? address = null;
         int family = 0;
 
@@ -41,10 +38,9 @@ public class lookupTests
         {
             address = addr;
             family = fam;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.NotNull(address);
         Assert.Equal(4, family);
     }
@@ -52,7 +48,6 @@ public class lookupTests
     [Fact]
     public void lookup_WithIPv6Family_ReturnsIPv6Address()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         string? address = null;
         int family = 0;
 
@@ -60,10 +55,9 @@ public class lookupTests
         {
             address = addr;
             family = fam;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         // May not have IPv6 support on all systems
         Assert.True(family == 0 || family == 6);
     }
@@ -71,18 +65,16 @@ public class lookupTests
     [Fact]
     public void lookup_WithOptionsAll_ReturnsAddressArray()
     {
-        var resetEvent = new ManualResetEventSlim(false);
-        LookupAddress[]? addresses = null;
+        JSArray<LookupAddress>? addresses = null;
 
         dns.lookup("localhost", new LookupOptions { all = true }, (err, addrs) =>
         {
             addresses = addrs;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.NotNull(addresses);
-        Assert.True(addresses.Length > 0);
+        Assert.True(addresses.length > 0);
         Assert.All(addresses, addr =>
         {
             Assert.NotEmpty(addr.address);
@@ -93,21 +85,20 @@ public class lookupTests
     [Fact]
     public void lookup_WithIPv4FirstOrder_SortsCorrectly()
     {
-        var resetEvent = new ManualResetEventSlim(false);
-        LookupAddress[]? addresses = null;
+        JSArray<LookupAddress>? addresses = null;
 
         dns.lookup("localhost", new LookupOptions { all = true, order = "ipv4first" }, (err, addrs) =>
         {
             addresses = addrs;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.NotNull(addresses);
 
         // Check that IPv4 addresses come before IPv6
-        var ipv4Index = Array.FindIndex(addresses, a => a.family == 4);
-        var ipv6Index = Array.FindIndex(addresses, a => a.family == 6);
+        var addressList = addresses.ToList();
+        var ipv4Index = addressList.FindIndex(address => address.family == 4);
+        var ipv6Index = addressList.FindIndex(address => address.family == 6);
 
         if (ipv4Index >= 0 && ipv6Index >= 0)
         {
@@ -118,64 +109,56 @@ public class lookupTests
     [Fact]
     public void lookup_InvalidHostname_ReturnsError()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
         dns.lookup("this-hostname-definitely-does-not-exist-12345.invalid", (err, addr, fam) =>
         {
             error = err;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.NotNull(error);
     }
 
     [Fact]
     public void lookup_WithOptionsFamily_WorksAsExpected()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         int family = 0;
 
         dns.lookup("localhost", new LookupOptions { family = 4 }, (err, addr, fam) =>
         {
             family = fam;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.Equal(4, family);
     }
 
     [Fact]
     public void lookup_WithStringFamilyIPv4_WorksAsExpected()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         int family = 0;
 
         dns.lookup("localhost", new LookupOptions { family = "IPv4" }, (err, addr, fam) =>
         {
             family = fam;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         Assert.Equal(4, family);
     }
 
     [Fact]
     public void lookup_WithStringFamilyIPv6_WorksAsExpected()
     {
-        var resetEvent = new ManualResetEventSlim(false);
         int family = 0;
 
         dns.lookup("localhost", new LookupOptions { family = "IPv6" }, (err, addr, fam) =>
         {
             family = fam;
-            resetEvent.Set();
         });
 
-        resetEvent.Wait(5000);
+        JsEventLoop.Run();
         // May not have IPv6 support on all systems
         Assert.True(family == 0 || family == 6);
     }

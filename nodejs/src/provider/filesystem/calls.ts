@@ -304,13 +304,6 @@ function unknownParameter(name: string): ProviderParameterDeclaration {
   };
 }
 
-function optionalUnknownParameter(name: string): ProviderParameterDeclaration {
-  return {
-    ...unknownParameter(name),
-    optional: true,
-  };
-}
-
 function fsCall(row: NodeFsCallTargetMetadataRow): NodeFsCallTargetMember {
   return nodejsModuleCallTargetMetadata({
     ...row,
@@ -369,51 +362,6 @@ const nodeFsUnsupportedCalls = [
       callbackParameter("node:fs.writeFile(System.String,System.Object,System.Object,Function)", "callback"),
     ],
     returnType: voidProviderType,
-  },
-  {
-    exportName: "watch",
-    signatureId: "node:fs.watch(System.String,Function)",
-    targetIdentityId: "unsupported:Tsonic.CSharp.Node.fs.watch(System.String,Function)",
-    displayName: "unsupported NodeJS fs.watch",
-    parameters: [
-      { name: "filename", type: stringProviderType },
-      callbackParameter("node:fs.watch(System.String,Function)", "listener"),
-    ],
-    returnType: unknownProviderType,
-  },
-  {
-    exportName: "watch",
-    signatureId: "node:fs.watch(System.String,System.Object,Function)",
-    targetIdentityId: "unsupported:Tsonic.CSharp.Node.fs.watch(System.String,System.Object,Function)",
-    displayName: "unsupported NodeJS fs.watch",
-    parameters: [
-      { name: "filename", type: stringProviderType },
-      unknownParameter("options"),
-      callbackParameter("node:fs.watch(System.String,System.Object,Function)", "listener"),
-    ],
-    returnType: unknownProviderType,
-  },
-  {
-    exportName: "watchFile",
-    signatureId: "node:fs.watchFile(System.String,Function)",
-    targetIdentityId: "unsupported:Tsonic.CSharp.Node.fs.watchFile(System.String,Function)",
-    displayName: "unsupported NodeJS fs.watchFile",
-    parameters: [
-      { name: "filename", type: stringProviderType },
-      callbackParameter("node:fs.watchFile(System.String,Function)", "listener"),
-    ],
-    returnType: voidProviderType,
-  },
-  {
-    exportName: "createReadStream",
-    signatureId: "node:fs.createReadStream(System.String,System.Object)",
-    targetIdentityId: "unsupported:Tsonic.CSharp.Node.fs.createReadStream(System.String,System.Object)",
-    displayName: "unsupported NodeJS fs.createReadStream",
-    parameters: [
-      { name: "path", type: stringProviderType },
-      optionalUnknownParameter("options"),
-    ],
-    returnType: unknownProviderType,
   },
 ] satisfies readonly {
   readonly exportName: string;

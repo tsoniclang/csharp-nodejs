@@ -9,22 +9,22 @@ public class Zlib_gunzipSyncTests
     [Fact]
     public void gunzipSync_ShouldDecompressData()
     {
-        var original = Encoding.UTF8.GetBytes("Hello, World!");
+        var original = Buffer.from("Hello, World!");
         var compressed = zlib.gzipSync(original);
         var decompressed = zlib.gunzipSync(compressed);
 
-        Assert.Equal(original, decompressed);
+        Assert.Equal(original.toString(), decompressed.toString());
     }
 
     [Fact]
     public void gunzipSync_ShouldRestoreOriginalText()
     {
         var originalText = "The quick brown fox jumps over the lazy dog";
-        var original = Encoding.UTF8.GetBytes(originalText);
+        var original = Buffer.from(originalText);
 
         var compressed = zlib.gzipSync(original);
         var decompressed = zlib.gunzipSync(compressed);
-        var resultText = Encoding.UTF8.GetString(decompressed);
+        var resultText = decompressed.toString();
 
         Assert.Equal(originalText, resultText);
     }
@@ -38,7 +38,7 @@ public class Zlib_gunzipSyncTests
     [Fact]
     public void gunzipSync_WithInvalidData_ShouldThrow()
     {
-        var invalidData = Encoding.UTF8.GetBytes("This is not compressed");
+        var invalidData = Buffer.from("This is not compressed");
 
         Assert.Throws<System.IO.InvalidDataException>(() => zlib.gunzipSync(invalidData));
     }
@@ -46,18 +46,18 @@ public class Zlib_gunzipSyncTests
     [Fact]
     public void gunzipSync_EmptyCompressedData_ShouldDecompress()
     {
-        var empty = Array.Empty<byte>();
+        var empty = Buffer.alloc(0);
         var compressed = zlib.gzipSync(empty);
         var decompressed = zlib.gunzipSync(compressed);
 
-        Assert.Equal(empty, decompressed);
+        Assert.Equal(0, decompressed.length);
     }
 
     [Fact]
     public void gunzipSync_LargeData_ShouldDecompress()
     {
-        var original = new byte[100000];
-        for (int i = 0; i < original.Length; i++)
+        var original = Buffer.alloc(100000);
+        for (int i = 0; i < original.length; i++)
         {
             original[i] = (byte)(i % 256);
         }
@@ -65,6 +65,8 @@ public class Zlib_gunzipSyncTests
         var compressed = zlib.gzipSync(original);
         var decompressed = zlib.gunzipSync(compressed);
 
-        Assert.Equal(original, decompressed);
+        Assert.Equal(original.length, decompressed.length);
+        for (var index = 0; index < original.length; index++)
+            Assert.Equal(original[index], decompressed[index]);
     }
 }

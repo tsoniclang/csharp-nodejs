@@ -10,7 +10,7 @@ public class HttpsTests
     [Fact]
     public void Request_NormalizesOptionsToHttps()
     {
-        var request = https.request(new RequestOptions
+        var request = https.request(new HttpsRequestOptions
         {
             hostname = "example.com",
             port = 80,
@@ -41,12 +41,18 @@ public class HttpsTests
     [Fact]
     public void CreateServer_ReturnsHttpCompatibleServer()
     {
+        using var certificate = TlsTestCertificate.Create();
         var called = false;
-        var server = https.createServer((_, res) =>
-        {
-            called = true;
-            res.end("ok");
-        });
+        var server = https.createServer(
+            new HttpsServerOptions
+            {
+                pfx = TlsTestCertificate.PfxValue(certificate)
+            },
+            (_, res) =>
+            {
+                called = true;
+                res.end("ok");
+            });
 
         Assert.False(server.listening);
         Assert.NotNull(server);
@@ -56,6 +62,6 @@ public class HttpsTests
     [Fact]
     public void Request_RejectsNullOptions()
     {
-        Assert.Throws<ArgumentNullException>(() => https.request((RequestOptions)null!));
+        Assert.Throws<ArgumentNullException>(() => https.request((HttpsRequestOptions)null!));
     }
 }

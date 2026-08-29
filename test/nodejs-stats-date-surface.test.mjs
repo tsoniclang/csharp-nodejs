@@ -48,6 +48,7 @@ test("Node Stats Date facts compose with JS Date and nullish operations", () => 
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { statSync } from "node:fs";
 

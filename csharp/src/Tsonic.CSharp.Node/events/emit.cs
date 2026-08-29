@@ -1,7 +1,14 @@
 namespace Tsonic.CSharp.Node;
 
+using System.Linq;
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    /// <summary>Synchronously dispatches an event to its registered listeners.</summary>
+    public bool emit(TsValue eventName, params TsValue[] args) =>
+        emitCore(EventKey(eventName), args.Cast<object?>().ToArray());
+
     /// <summary>
     /// Synchronously calls each of the listeners registered for the event named eventName,
     /// in the order they were registered, passing the supplied arguments to each.
@@ -11,47 +18,40 @@ public partial class EventEmitter
     /// <returns>True if the event had listeners, false otherwise.</returns>
     public bool emit(string eventName, params object?[] args)
     {
-        if (!_events.ContainsKey(eventName) || _events[eventName].Count == 0)
+        return emitCore(EventKey(eventName), args);
+    }
+
+    private bool emitCore(object eventName, object?[] args)
+    {
+        List<EventListener>? listeners;
+        lock (_eventLock)
         {
-            // Special handling for 'error' event
-            if (eventName == "error")
+            if (!_events.TryGetValue(eventName, out var registered) || registered.Count == 0)
+            {
+                listeners = null;
+            }
+            else
+            {
+                listeners = registered.ToList();
+                foreach (var listener in listeners.Where(listener => listener.Once))
+                    removeStoredListener(eventName, listener);
+            }
+        }
+
+        if (listeners == null)
+        {
+            if (IsEvent(eventName, "error"))
             {
                 var error = args.Length > 0 ? args[0] : null;
-                if (error is Exception ex)
-                {
-                    throw ex;
-                }
+                if (error is Exception exception)
+                    throw exception;
                 throw new Exception($"Uncaught, unspecified 'error' event. ({error})");
             }
             return false;
         }
 
-        // Create a copy to avoid modification during iteration
-        var listeners = _events[eventName].ToList();
-
         foreach (var listener in listeners)
-        {
-            try
-            {
-                if (listener.Once)
-                {
-                    removeStoredListener(eventName, listener);
-                }
-                listener.Invoke(args);
-            }
-            catch (Exception ex)
-            {
-                // If an error listener throws, emit it as an error event
-                if (eventName != "error")
-                {
-                    emit("error", ex);
-                }
-                else
-                {
-                    throw;
-                }
-            }
-        }
+            listener.Invoke(args);
 
         return true;
     }

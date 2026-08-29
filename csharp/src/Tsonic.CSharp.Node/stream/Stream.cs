@@ -27,43 +27,95 @@ public class Stream : EventEmitter
             throw new InvalidOperationException("pipe() destination must be a Writable stream");
         }
 
-        // Set up data forwarding
-        readable.on("data", (Action<object?>)(chunk =>
+        var pumping = false;
+        var pumpRequested = false;
+        var completed = false;
+        Action? pump = null;
+        Action? onReadable = null;
+        Action? onEnd = null;
+        Action? onDrain = null;
+
+        void Complete()
         {
+            if (completed)
+                return;
+            completed = true;
+            if (onReadable is not null)
+                readable.off("readable", onReadable);
+            if (onEnd is not null)
+                readable.off("end", onEnd);
+            if (onDrain is not null)
+                destination.off("drain", onDrain);
+            if (!end)
+                return;
             if (destination is Duplex duplex)
             {
-                duplex.write(chunk);
+                duplex.end();
             }
             else if (destination is Writable writable)
             {
-                writable.write(chunk);
+                writable.end();
             }
-        }));
-
-        // Handle end event
-        if (end)
-        {
-            readable.on("end", (Action)(() =>
-            {
-                if (destination is Duplex duplex)
-                {
-                    duplex.end();
-                }
-                else if (destination is Writable writable)
-                {
-                    writable.end();
-                }
-            }));
         }
 
-        // Handle errors
-        readable.on("error", (Action<Exception>)(err =>
+        pump = () =>
         {
-            destination.emit("error", err);
-        }));
+            if (completed)
+                return;
+            if (pumping)
+            {
+                pumpRequested = true;
+                return;
+            }
 
-        // Start flowing
-        readable.resume();
+            pumping = true;
+            try
+            {
+                do
+                {
+                    pumpRequested = false;
+                    while (!completed)
+                    {
+                        var chunk = readable.read();
+                        if (chunk is null)
+                        {
+                            if (readable.readableEnded)
+                                Complete();
+                            break;
+                        }
+
+                        var accepted = destination switch
+                        {
+                            Duplex duplex => duplex.write(chunk),
+                            Writable writable => writable.write(chunk),
+                            _ => false,
+                        };
+                        if (!accepted)
+                        {
+                            readable.pause();
+                            onDrain = () =>
+                            {
+                                onDrain = null;
+                                pump!();
+                            };
+                            destination.once("drain", onDrain);
+                            break;
+                        }
+                    }
+                }
+                while (pumpRequested && !completed);
+            }
+            finally
+            {
+                pumping = false;
+            }
+        };
+
+        onReadable = () => pump();
+        onEnd = Complete;
+        readable.on("readable", onReadable);
+        readable.once("end", onEnd);
+        pump();
 
         return destination;
     }

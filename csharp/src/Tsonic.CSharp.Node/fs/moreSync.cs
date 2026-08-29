@@ -1,120 +1,12 @@
-using System.Text;
-
 namespace Tsonic.CSharp.Node;
 
 #pragma warning disable CS1591
 
-public sealed class ReadVResult
-{
-    public int bytesRead { get; set; }
-    public byte[][] buffers { get; set; } = [];
-}
-
-public sealed class WriteVResult
-{
-    public int bytesWritten { get; set; }
-    public byte[][] buffers { get; set; } = [];
-}
-
-public sealed class DisposableTempDir
-{
-    public string path { get; set; } = string.Empty;
-    public bool removed { get; private set; }
-
-    public void remove()
-    {
-        if (Directory.Exists(path))
-            Directory.Delete(path, recursive: true);
-        removed = true;
-    }
-}
-
-public sealed class FsWatchEvent
-{
-    public string eventType { get; set; } = string.Empty;
-    public string? filename { get; set; }
-}
-
-public sealed class FsWatcher : EventEmitter
-{
-    private readonly FileSystemWatcher? _watcher;
-
-    internal FsWatcher(FileSystemWatcher? watcher)
-    {
-        _watcher = watcher;
-    }
-
-    public bool closed { get; private set; }
-
-    public void close()
-    {
-        if (closed)
-            return;
-        closed = true;
-        _watcher?.Dispose();
-        emit("close");
-    }
-
-    public void @ref() { }
-    public void unref() { }
-    public void poll() { }
-}
-
-public sealed class StatWatcher : EventEmitter
-{
-    public void @ref() { }
-    public void unref() { }
-}
-
-public sealed class FsStreamOptions
-{
-    public string flags { get; set; } = "r";
-    public string? encoding { get; set; }
-    public int? fd { get; set; }
-    public bool autoClose { get; set; } = true;
-    public bool emitClose { get; set; } = true;
-    public long? start { get; set; }
-    public long? end { get; set; }
-    public int highWaterMark { get; set; } = 64 * 1024;
-    public bool flush { get; set; }
-    public object? signal { get; set; }
-}
-
-public sealed class ReadStream : Readable
-{
-    public ReadStream(string path)
-    {
-        this.path = path;
-        pending = false;
-        if (File.Exists(path))
-        {
-            var bytes = File.ReadAllBytes(path);
-            bytesRead = bytes.Length;
-            push(bytes);
-            push(null);
-        }
-    }
-
-    public string path { get; }
-    public bool pending { get; private set; }
-    public long bytesRead { get; private set; }
-}
-
-public sealed class WriteStream : Writable
-{
-    public WriteStream(string path)
-    {
-        this.path = path;
-        pending = false;
-    }
-
-    public string path { get; }
-    public bool pending { get; private set; }
-    public long bytesWritten { get; private set; }
-}
-
 public static partial class fs
 {
+    private static readonly object StatWatchersLock = new();
+    private static readonly Dictionary<string, HashSet<StatWatcher>> StatWatchers = new(StringComparer.Ordinal);
+
     public static bool exists(string path) => File.Exists(path) || Directory.Exists(path);
     public static Task<bool> exists(string path, Action<bool> callback)
     {
@@ -311,28 +203,93 @@ public static partial class fs
     public static Task<Dir> opendir(string path) => Task.FromResult(opendirSync(path));
     public static string[] globSync(string pattern) => Directory.GetFiles(Environment.CurrentDirectory, pattern, SearchOption.AllDirectories);
     public static Task<string[]> glob(string pattern) => Task.FromResult(globSync(pattern));
-    public static FsWatcher watch(string path, Action<string, string?>? listener = null)
+    public static FsWatcher watch(string path, Action<string, string?>? listener = null) =>
+        watch(path, new WatchOptions(), listener);
+
+    public static FsWatcher watch(
+        string path,
+        WatchOptions options,
+        Action<string, string?>? listener = null)
     {
+        ArgumentNullException.ThrowIfNull(options);
         var directory = Directory.Exists(path) ? path : Path.GetDirectoryName(Path.GetFullPath(path)) ?? Environment.CurrentDirectory;
-        var filter = Directory.Exists(path) ? "*.*" : Path.GetFileName(path);
-        var watcher = new FileSystemWatcher(directory, filter);
-        if (listener != null)
+        var filter = Directory.Exists(path) ? "*" : Path.GetFileName(path);
+        var watcher = new FileSystemWatcher(directory, filter)
         {
-            watcher.Changed += (_, e) => listener("change", e.Name);
-            watcher.Created += (_, e) => listener("rename", e.Name);
-            watcher.Deleted += (_, e) => listener("rename", e.Name);
-            watcher.Renamed += (_, e) => listener("rename", e.Name);
+            IncludeSubdirectories = options.recursive ?? false
+        };
+        var result = new FsWatcher(watcher);
+        void Publish(string eventType, string? filename)
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+            {
+                if (result.closed)
+                    return;
+                listener?.Invoke(eventType, filename);
+                result.publish(eventType, filename);
+            });
         }
+        watcher.Changed += (_, e) => Publish("change", e.Name);
+        watcher.Created += (_, e) => Publish("rename", e.Name);
+        watcher.Deleted += (_, e) => Publish("rename", e.Name);
+        watcher.Renamed += (_, e) => Publish("rename", e.Name);
+        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+        {
+            if (!result.closed)
+                result.emit("error", e.GetException());
+        });
         watcher.EnableRaisingEvents = true;
-        return new FsWatcher(watcher);
+        if (options.persistent == false)
+            result.unref();
+        return result;
     }
     public static StatWatcher watchFile(string path, Action<Stats, Stats>? listener = null)
     {
-        _ = path; _ = listener;
-        return new StatWatcher();
+        var fullPath = Path.GetFullPath(path);
+        StatWatcher? result = null;
+        result = new StatWatcher(
+            fullPath,
+            listener,
+            TimeSpan.FromMilliseconds(5007),
+            () => RemoveStatWatcher(result!));
+        lock (StatWatchersLock)
+        {
+            if (!StatWatchers.TryGetValue(fullPath, out var entries))
+            {
+                entries = [];
+                StatWatchers.Add(fullPath, entries);
+            }
+            entries.Add(result);
+        }
+        return result;
     }
-    public static ReadStream createReadStream(string path, FsStreamOptions? options = null) { _ = options; return new ReadStream(path); }
-    public static WriteStream createWriteStream(string path, FsStreamOptions? options = null) { _ = options; return new WriteStream(path); }
+    public static void unwatchFile(string path, Action<Stats, Stats>? listener = null)
+    {
+        var fullPath = Path.GetFullPath(path);
+        StatWatcher[] matches;
+        lock (StatWatchersLock)
+        {
+            matches = StatWatchers.TryGetValue(fullPath, out var entries)
+                ? entries.Where(entry => listener is null || Equals(entry.listener, listener)).ToArray()
+                : [];
+        }
+        foreach (var watcher in matches)
+            watcher.close();
+    }
+    public static ReadStream createReadStream(string path, ReadStreamOptions? options = null) => new(path, options);
+    public static WriteStream createWriteStream(string path, WriteStreamOptions? options = null) => new(path, options);
+
+    private static void RemoveStatWatcher(StatWatcher watcher)
+    {
+        lock (StatWatchersLock)
+        {
+            if (!StatWatchers.TryGetValue(watcher.path, out var entries))
+                return;
+            entries.Remove(watcher);
+            if (entries.Count == 0)
+                StatWatchers.Remove(watcher.path);
+        }
+    }
 
     private static FileStream EnsureFd(int fd) => FileDescriptorManager.Get(fd) ?? throw new ArgumentException($"Bad file descriptor: {fd}", nameof(fd));
 
@@ -350,26 +307,4 @@ public static partial class fs
             return Task.FromException(ex);
         }
     }
-}
-
-public sealed class Dir
-{
-    private readonly Queue<Dirent> _entries;
-    public Dir(string path)
-    {
-        this.path = path;
-        _entries = new Queue<Dirent>(fs.readdirDirentsSync(path));
-    }
-
-    public string path { get; }
-    public bool closed { get; private set; }
-    public Dirent? read()
-    {
-        if (closed)
-            throw new ObjectDisposedException(nameof(Dir));
-        return _entries.Count == 0 ? null : _entries.Dequeue();
-    }
-
-    public Dirent[] entries() => _entries.ToArray();
-    public void close() => closed = true;
 }

@@ -60,10 +60,17 @@ public partial class Interface : EventEmitter
         {
             _dataListener = (data) =>
             {
-                if (!_paused && data != null)
+                if (_paused || data == null)
                 {
-                    processInput(data.ToString() ?? "");
+                    return;
                 }
+
+                processInput(data switch
+                {
+                    Buffer buffer => buffer.toString("utf8"),
+                    string text => text,
+                    _ => throw new InvalidOperationException("Readline input chunks must be Buffer or string values."),
+                });
             };
 
             _endListener = () =>
@@ -189,6 +196,15 @@ public partial class Interface : EventEmitter
             // Simulate keypress (simplified)
             processInput(key.ToString() ?? "");
         }
+    }
+
+    /// <summary>Writes text to the readline output stream.</summary>
+    public void write(string data)
+    {
+        if (_closed)
+            throw new InvalidOperationException("Cannot write on closed interface");
+
+        _output?.write(data);
     }
 
     /// <summary>

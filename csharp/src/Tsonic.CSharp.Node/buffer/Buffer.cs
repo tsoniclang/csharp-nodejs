@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Linq;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -8,7 +9,7 @@ namespace Tsonic.CSharp.Node;
 /// Buffer objects are used to represent a fixed-length sequence of bytes.
 /// This class provides a C# implementation of Node.js Buffer API.
 /// </summary>
-public partial class Buffer
+public partial class Buffer : ITsClosedValueCarrier
 {
     private readonly byte[] _data;
 

@@ -46,6 +46,44 @@ import {
   nodeHttpModuleSpecifier,
 } from "./http.js";
 import {
+  nodeHttpsExports,
+  nodeHttpsModuleSpecifier,
+} from "./https.js";
+import {
+  nodeEventsExports,
+  nodeEventsModuleSpecifier,
+} from "./events.js";
+import {
+  nodeStreamExports,
+  nodeStreamModuleSpecifier,
+} from "./stream.js";
+import {
+  nodeZlibExports,
+  nodeZlibModuleSpecifier,
+} from "./zlib.js";
+import {
+  nodeDnsExports,
+  nodeDnsModuleSpecifier,
+  nodeDnsPromisesExports,
+  nodeDnsPromisesModuleSpecifier,
+} from "./dns.js";
+import {
+  nodeNetExports,
+  nodeNetModuleSpecifier,
+} from "./net.js";
+import {
+  nodeTlsExports,
+  nodeTlsModuleSpecifier,
+} from "./tls.js";
+import {
+  nodeReadlineExports,
+  nodeReadlineModuleSpecifier,
+} from "./readline.js";
+import {
+  nodeWorkerThreadsExports,
+  nodeWorkerThreadsModuleSpecifier,
+} from "./worker-threads.js";
+import {
   nodeOsExports,
   nodeOsModuleSpecifier,
 } from "./os.js";
@@ -82,6 +120,16 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeFsModuleSpecifier, nodeFsExports()],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
   [nodeHttpModuleSpecifier, nodeHttpExports()],
+  [nodeHttpsModuleSpecifier, nodeHttpsExports()],
+  [nodeEventsModuleSpecifier, nodeEventsExports()],
+  [nodeStreamModuleSpecifier, nodeStreamExports()],
+  [nodeZlibModuleSpecifier, nodeZlibExports()],
+  [nodeDnsModuleSpecifier, nodeDnsExports()],
+  [nodeDnsPromisesModuleSpecifier, nodeDnsPromisesExports()],
+  [nodeNetModuleSpecifier, nodeNetExports()],
+  [nodeTlsModuleSpecifier, nodeTlsExports()],
+  [nodeReadlineModuleSpecifier, nodeReadlineExports()],
+  [nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],
@@ -276,7 +324,10 @@ function nodejsProviderImportsForExports(
   exports: readonly ProviderExportDeclaration[],
 ): readonly ProviderImportDeclaration[] {
   const importsByModule = new Map<string, Map<string, ProviderRequestedExport>>();
-  const addImport = (type: ProviderTypeExpression): void => {
+  const addImport = (
+    type: ProviderTypeExpression,
+    kind: "type" | "value",
+  ): void => {
     if (type.kind !== "provider-ref") {
       return;
     }
@@ -288,28 +339,40 @@ function nodejsProviderImportsForExports(
       return;
     }
     const moduleImports = importsByModule.get(canonicalSpecifier) ?? new Map<string, ProviderRequestedExport>();
+    const key = `${type.exportName}\u0000${type.localName ?? ""}`;
+    const existing = moduleImports.get(key);
     const request = {
       exportedName: type.exportName,
       ...(type.localName !== undefined ? { localName: type.localName } : {}),
-      kind: "type",
+      kind: existing?.kind === "value" || kind === "value" ? "value" : "type",
     } satisfies ProviderRequestedExport;
-    moduleImports.set(`${request.exportedName}\u0000${request.localName ?? ""}`, request);
+    moduleImports.set(key, request);
     importsByModule.set(canonicalSpecifier, moduleImports);
   };
   for (const declaration of exports) {
-    visitProviderExportTypes(declaration, addImport);
+    visitProviderExportTypes(declaration, (type) => addImport(type, "type"));
+    if (declaration.kind === "class") {
+      for (const heritage of declaration.heritage ?? []) {
+        if (heritage.kind === "extends") {
+          addImport(heritage.type, "value");
+        }
+      }
+    }
   }
   return [...importsByModule.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([importModuleSpecifier, requestedExports]) => ({
-      moduleSpecifier: importModuleSpecifier,
-      namedImports: [...requestedExports.values()].sort((left, right) =>
+    .map(([importModuleSpecifier, requestedExports]) => {
+      const namedImports = [...requestedExports.values()].sort((left, right) =>
         left.exportedName === right.exportedName
           ? (left.localName ?? "").localeCompare(right.localName ?? "")
           : left.exportedName.localeCompare(right.exportedName)
-      ),
-      typeOnly: true,
-    }));
+      );
+      return {
+        moduleSpecifier: importModuleSpecifier,
+        namedImports,
+        typeOnly: namedImports.every((requested) => requested.kind === "type"),
+      };
+    });
 }
 
 function visitProviderExportTypes(

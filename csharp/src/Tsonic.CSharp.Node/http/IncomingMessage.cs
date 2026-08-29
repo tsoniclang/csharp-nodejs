@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +20,7 @@ public partial class IncomingMessage : EventEmitter
 {
     private readonly HttpRequest? _serverRequest;
     private readonly HttpResponseMessage? _clientResponse;
-    private readonly string? _body;
+    private readonly byte[]? _body;
     private bool _isServerSide;
     private bool _clientBodyEmitted;
     private Timer? _timeoutTimer;
@@ -39,7 +40,7 @@ public partial class IncomingMessage : EventEmitter
     }
 
     // Client-side constructor
-    internal IncomingMessage(HttpResponseMessage response, string body)
+    internal IncomingMessage(HttpResponseMessage response, byte[] body)
     {
         _clientResponse = response;
         _body = body;
@@ -136,9 +137,11 @@ public partial class IncomingMessage : EventEmitter
             _timeoutTimer = new Timer(_ =>
             {
                 if (!complete)
-                {
-                    emit("timeout");
-                }
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                    {
+                        if (!complete)
+                            emit("timeout");
+                    });
             }, null, msecs, System.Threading.Timeout.Infinite);
         }
         return this;
@@ -165,7 +168,7 @@ public partial class IncomingMessage : EventEmitter
         else if (_body != null)
         {
             EmitBufferedClientBody();
-            return _body;
+            return Encoding.UTF8.GetString(_body);
         }
 
         return "";
@@ -175,9 +178,31 @@ public partial class IncomingMessage : EventEmitter
     /// Event handler for 'data' event.
     /// Note: In Node.js, this is an event. Here we provide a helper to read chunks.
     /// </summary>
-    public void onData(Action<string> callback)
+    public void onData(Action<Buffer> callback)
     {
         on("data", callback);
+    }
+
+    /// <summary>Reads the complete message body into a binary buffer.</summary>
+    public async Task<Buffer> readAllBuffer()
+    {
+        if (_isServerSide && _serverRequest != null)
+        {
+            using var output = new MemoryStream();
+            await _serverRequest.Body.CopyToAsync(output);
+            complete = true;
+            _timeoutTimer?.Dispose();
+            emit("end");
+            return Buffer.from(output.ToArray());
+        }
+
+        if (_body != null)
+        {
+            EmitBufferedClientBody();
+            return Buffer.from(_body);
+        }
+
+        return Buffer.alloc(0);
     }
 
     /// <summary>
@@ -205,9 +230,9 @@ public partial class IncomingMessage : EventEmitter
 
         _clientBodyEmitted = true;
 
-        if (!string.IsNullOrEmpty(_body))
+        if (_body is { Length: > 0 })
         {
-            emit("data", _body);
+            emit("data", Buffer.from(_body));
         }
 
         complete = true;

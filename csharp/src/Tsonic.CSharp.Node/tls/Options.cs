@@ -1,4 +1,5 @@
 using System;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -168,12 +169,12 @@ public class SecureContextOptions
     /// <summary>
     /// Optionally override the trusted CA certificates.
     /// </summary>
-    public object? ca { get; set; }
+    public TsValue ca { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Cert chains in PEM format.
     /// </summary>
-    public object? cert { get; set; }
+    public TsValue cert { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Cipher suite specification.
@@ -183,7 +184,7 @@ public class SecureContextOptions
     /// <summary>
     /// Private keys in PEM format.
     /// </summary>
-    public object? key { get; set; }
+    public TsValue key { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Shared passphrase for private key and/or PFX.
@@ -193,7 +194,7 @@ public class SecureContextOptions
     /// <summary>
     /// PFX or PKCS12 encoded private key and certificate chain.
     /// </summary>
-    public object? pfx { get; set; }
+    public TsValue pfx { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Maximum TLS version to allow.
@@ -260,17 +261,17 @@ public class TLSSocketOptions : CommonConnectionOptions
     /// <summary>
     /// CA certificates.
     /// </summary>
-    public object? ca { get; set; }
+    public TsValue ca { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Certificate chain.
     /// </summary>
-    public object? cert { get; set; }
+    public TsValue cert { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Private key.
     /// </summary>
-    public object? key { get; set; }
+    public TsValue key { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Passphrase.
@@ -301,17 +302,17 @@ public class ConnectionOptions : CommonConnectionOptions
     /// <summary>
     /// CA certificates.
     /// </summary>
-    public object? ca { get; set; }
+    public TsValue ca { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Certificate chain.
     /// </summary>
-    public object? cert { get; set; }
+    public TsValue cert { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Private key.
     /// </summary>
-    public object? key { get; set; }
+    public TsValue key { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Passphrase.
@@ -329,6 +330,15 @@ public class ConnectionOptions : CommonConnectionOptions
 /// </summary>
 public class TlsOptions : CommonConnectionOptions
 {
+    /// <summary>PFX or PKCS12 encoded private key and certificate chain.</summary>
+    public TsValue pfx { get; set; } = TsValue.undefined();
+
+    /// <summary>Minimum TLS version to allow.</summary>
+    public string? minVersion { get; set; }
+
+    /// <summary>Maximum TLS version to allow.</summary>
+    public string? maxVersion { get; set; }
+
     /// <summary>
     /// Handshake timeout in milliseconds.
     /// </summary>
@@ -342,17 +352,17 @@ public class TlsOptions : CommonConnectionOptions
     /// <summary>
     /// CA certificates.
     /// </summary>
-    public object? ca { get; set; }
+    public TsValue ca { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Certificate chain.
     /// </summary>
-    public object? cert { get; set; }
+    public TsValue cert { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Private key.
     /// </summary>
-    public object? key { get; set; }
+    public TsValue key { get; set; } = TsValue.undefined();
 
     /// <summary>
     /// Passphrase.

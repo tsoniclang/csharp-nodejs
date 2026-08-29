@@ -1,7 +1,13 @@
 namespace Tsonic.CSharp.Node;
 
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    /// <summary>Removes every listener registered for the selected event.</summary>
+    public EventEmitter removeAllListeners(TsValue eventName) =>
+        removeAllListenersCore(EventKey(eventName));
+
     /// <summary>
     /// Removes all listeners, or those of the specified eventName.
     /// </summary>
@@ -11,28 +17,33 @@ public partial class EventEmitter
     {
         if (eventName == null)
         {
-            // Remove all listeners for all events
-            var eventNames = _events.Keys.ToList();
+            object[] eventNames;
+            lock (_eventLock)
+                eventNames = _events.Keys.ToArray();
             foreach (var name in eventNames)
-            {
-                removeAllListeners(name);
-            }
-            _events.Clear();
+                removeAllListenersCore(name);
         }
         else
         {
-            // Remove all listeners for specific event
-            if (_events.ContainsKey(eventName))
-            {
-                var listeners = _events[eventName].ToList();
-                foreach (var listener in listeners)
-                {
-                    emit("removeListener", eventName, listener.Original);
-                }
-                _events.Remove(eventName);
-            }
+            removeAllListenersCore(EventKey(eventName));
         }
 
+        return this;
+    }
+
+    private EventEmitter removeAllListenersCore(object eventName)
+    {
+        EventListener[] listeners;
+        lock (_eventLock)
+        {
+            if (!_events.TryGetValue(eventName, out var registered))
+                return this;
+            listeners = registered.ToArray();
+            _events.Remove(eventName);
+        }
+        if (!IsEvent(eventName, "removeListener"))
+            foreach (var listener in listeners.Reverse())
+                emit("removeListener", EventValue(eventName), listener.Original);
         return this;
     }
 }

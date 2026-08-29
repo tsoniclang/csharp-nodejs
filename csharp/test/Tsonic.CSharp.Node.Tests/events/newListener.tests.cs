@@ -1,3 +1,4 @@
+using Tsonic.CSharp.Runtime;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -10,9 +11,9 @@ public class newListenerTests
         var emitter = new EventEmitter();
         string? eventName = null;
 
-        emitter.on("newListener", (Action<object?, object?>)((name, listener) =>
+        emitter.on("newListener", (Action<TsValue, Delegate>)((name, listener) =>
         {
-            eventName = name as string;
+            eventName = TsValue.CastDynamic<string>(name);
         }));
 
         emitter.on("test", () => { });

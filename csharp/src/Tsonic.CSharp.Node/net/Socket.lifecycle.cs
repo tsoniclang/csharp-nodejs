@@ -25,17 +25,25 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public new Socket destroy(Exception? error = null)
     {
-        if (_destroyed) return this;
+        lock (_writeLoopLock)
+        {
+            if (_destroyed) return this;
+            _destroyed = true;
+            _writeQueue.CompleteAdding();
+        }
 
-        _destroyed = true;
         _stream?.Close();
         _client?.Close();
+        var releaseSocketReference = Interlocked.Exchange(ref _referenced, 0) != 0;
 
-        emit("close", error != null);
-        if (error != null)
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
-            emit("error", error);
-        }
+            if (error != null)
+                emit("error", error);
+            emit("close", error != null);
+        });
+        if (releaseSocketReference)
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
 
         return this;
     }
@@ -165,7 +173,7 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public Socket unref()
     {
-        // Not applicable in .NET managed context
+        ReleaseKeepAlive();
         return this;
     }
 
@@ -175,7 +183,8 @@ public partial class Socket : Stream
     /// <returns>The socket itself</returns>
     public Socket @ref()
     {
-        // Not applicable in .NET managed context
+        if (_client?.Connected == true)
+            AcquireKeepAlive();
         return this;
     }
 

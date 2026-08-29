@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -8,23 +8,18 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Duplex : Readable
 {
-    private readonly Queue<WriteRequest> _writeBuffer = new Queue<WriteRequest>();
-    private bool _writableEnded = false;
-    private bool _writing = false;
-    private bool _corked = false;
-
-    private class WriteRequest
-    {
-        public object? Chunk { get; set; }
-        public string? Encoding { get; set; }
-        public Action? Callback { get; set; }
-    }
+    private readonly WritableState _writableState;
 
     /// <summary>
     /// Creates a new Duplex stream.
     /// </summary>
     public Duplex()
     {
+        _writableState = new WritableState(
+            (chunk, encoding, callback) => _write(chunk, encoding, callback),
+            callback => _final(callback),
+            eventName => emit(eventName));
+        _writableState.SetFinishCallbackRegistrar(callback => once("finish", callback));
     }
 
     // Writable interface
@@ -32,22 +27,22 @@ public class Duplex : Readable
     /// <summary>
     /// Is true if it is safe to call write().
     /// </summary>
-    public bool writable => !_writableEnded && !destroyed;
+    public bool writable => _writableState.Writable;
 
     /// <summary>
     /// Is true after writable.end() has been called.
     /// </summary>
-    public bool writableEnded => _writableEnded;
+    public bool writableEnded => _writableState.Ended;
 
     /// <summary>
     /// Number of bytes (or objects) in the write queue ready to be written.
     /// </summary>
-    public int writableLength => _writeBuffer.Count;
+    public long writableLength => _writableState.BufferedSize;
 
     /// <summary>
     /// Is true if the stream's buffer has been corked.
     /// </summary>
-    public bool writableCorked => _corked;
+    public bool writableCorked => _writableState.Corked;
 
     /// <summary>
     /// Writes data to the stream.
@@ -58,27 +53,12 @@ public class Duplex : Readable
     /// <returns>False if the stream wishes for the calling code to wait for the 'drain' event to be emitted before continuing to write.</returns>
     public bool write(object? chunk, string? encoding = null, Action? callback = null)
     {
-        if (_writableEnded)
-        {
-            throw new InvalidOperationException("write after end");
-        }
-
-        var request = new WriteRequest
-        {
-            Chunk = chunk,
-            Encoding = encoding,
-            Callback = callback
-        };
-
-        _writeBuffer.Enqueue(request);
-
-        if (!_corked)
-        {
-            ProcessWrites();
-        }
-
-        return true;
+        return _writableState.Write(chunk, encoding, callback);
     }
+
+    /// <summary>Writes a closed TypeScript value to the writable side of the stream.</summary>
+    public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
+        write(chunk.unwrap(), encoding, callback);
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.
@@ -88,35 +68,19 @@ public class Duplex : Readable
     /// <param name="callback">Optional callback for when the stream has finished.</param>
     public void end(object? chunk = null, string? encoding = null, Action? callback = null)
     {
-        if (chunk != null)
-        {
-            write(chunk, encoding);
-        }
-
-        if (callback != null)
-        {
-            once("finish", callback);
-        }
-
-        _writableEnded = true;
-
-        if (!_corked)
-        {
-            ProcessWrites();
-        }
-
-        if (_writeBuffer.Count == 0)
-        {
-            emit("finish");
-        }
+        _writableState.End(chunk, encoding, callback);
     }
+
+    /// <summary>Finishes the writable side after writing a final closed TypeScript value.</summary>
+    public void end(TsValue chunk, string? encoding = null, Action? callback = null) =>
+        end(chunk.unwrap(), encoding, callback);
 
     /// <summary>
     /// Forces all written data to be buffered in memory. The buffered data will be flushed when uncork() is called.
     /// </summary>
     public void cork()
     {
-        _corked = true;
+        _writableState.Cork();
     }
 
     /// <summary>
@@ -124,8 +88,7 @@ public class Duplex : Readable
     /// </summary>
     public void uncork()
     {
-        _corked = false;
-        ProcessWrites();
+        _writableState.Uncork();
     }
 
     /// <summary>
@@ -134,32 +97,8 @@ public class Duplex : Readable
     /// <param name="error">Optional error to emit.</param>
     public override void destroy(Exception? error = null)
     {
-        _writeBuffer.Clear();
+        _writableState.Destroy();
         base.destroy(error);
-    }
-
-    private void ProcessWrites()
-    {
-        if (_writing || _writeBuffer.Count == 0)
-            return;
-
-        _writing = true;
-
-        while (_writeBuffer.Count > 0)
-        {
-            var request = _writeBuffer.Dequeue();
-            _write(request.Chunk, request.Encoding, () =>
-            {
-                request.Callback?.Invoke();
-            });
-        }
-
-        _writing = false;
-
-        if (_writableEnded && _writeBuffer.Count == 0)
-        {
-            emit("finish");
-        }
     }
 
     /// <summary>
@@ -171,6 +110,12 @@ public class Duplex : Readable
     protected virtual void _write(object? chunk, string? encoding, Action callback)
     {
         // To be implemented by subclasses
+        callback();
+    }
+
+    /// <summary>Finalizes the writable side of the duplex stream.</summary>
+    protected virtual void _final(Action callback)
+    {
         callback();
     }
 }

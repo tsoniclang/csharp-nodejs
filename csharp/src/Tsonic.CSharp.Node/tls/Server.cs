@@ -64,8 +64,8 @@ public class TLSServer : Server
 
     private void OnConnection(Socket socket)
     {
-        // Wrap the TCP socket with TLS
-        Task.Run(async () =>
+        socket.ReserveTransportRead();
+        BackgroundDispatch.RunHandleOwnedAsync(async () =>
         {
             try
             {
@@ -84,8 +84,11 @@ public class TLSServer : Server
                 var serverCertificate = _secureContext?.Certificate;
                 if (serverCertificate == null)
                 {
-                    emit("tlsClientError", new Exception("Server certificate not configured"), socket);
-                    socket.destroy();
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+                    {
+                        emit("tlsClientError", new Exception("Server certificate not configured"), socket);
+                        socket.destroy();
+                    });
                     return;
                 }
 
@@ -103,12 +106,15 @@ public class TLSServer : Server
                 var tlsSocket = CreateTLSSocket(socket, sslStream);
 
                 // Emit secureConnection event
-                emit("secureConnection", tlsSocket);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("secureConnection", tlsSocket));
             }
             catch (Exception ex)
             {
-                emit("tlsClientError", ex, socket);
-                socket.destroy();
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+                {
+                    emit("tlsClientError", ex, socket);
+                    socket.destroy();
+                });
             }
         });
     }

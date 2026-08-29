@@ -22,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 21);
+  assert.equal(relations.length, 64);
   assert.equal(
     new Set(relations.map((relation) =>
       `${relation.source.providerModuleId}:${relation.source.exportName}`
@@ -62,7 +62,11 @@ test("Node HTTP and timer modules expose exact provider-owned declarations", () 
       "IncomingMessage",
       "ServerResponse",
       "Server",
+      "ClientRequest",
+      "RequestOptions",
       "createServer",
+      "request",
+      "get",
     ],
   );
   assert.deepEqual(
@@ -103,6 +107,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import * as http from "node:http";
       import type { IncomingMessage, ServerResponse } from "node:http";

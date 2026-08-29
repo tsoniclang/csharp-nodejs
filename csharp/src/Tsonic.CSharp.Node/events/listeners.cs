@@ -1,7 +1,12 @@
 namespace Tsonic.CSharp.Node;
 
+using Tsonic.CSharp.Runtime;
+
 public partial class EventEmitter
 {
+    /// <summary>Returns the listeners registered for the selected event.</summary>
+    public Delegate[] listeners(TsValue eventName) => listenersCore(EventKey(eventName));
+
     /// <summary>
     /// Returns a copy of the array of listeners for the event named eventName.
     /// </summary>
@@ -9,9 +14,14 @@ public partial class EventEmitter
     /// <returns>Array of listener functions.</returns>
     public Delegate[] listeners(string eventName)
     {
-        if (!_events.ContainsKey(eventName))
-            return Array.Empty<Delegate>();
+        return listenersCore(EventKey(eventName));
+    }
 
-        return ListenerDelegates(_events[eventName]);
+    private Delegate[] listenersCore(object eventName)
+    {
+        lock (_eventLock)
+            return _events.TryGetValue(eventName, out var listeners)
+                ? ListenerDelegates(listeners)
+                : Array.Empty<Delegate>();
     }
 }

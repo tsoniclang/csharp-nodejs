@@ -38,11 +38,18 @@ test("ServerResponse.end declares the exact Buffer overload", () => {
   }]);
   assert.deepEqual(
     model.imports,
-    [{
-      moduleSpecifier: "node:buffer",
-      namedImports: [{ exportedName: "Buffer", kind: "type" }],
-      typeOnly: true,
-    }],
+    [
+      {
+        moduleSpecifier: "node:buffer",
+        namedImports: [{ exportedName: "Buffer", kind: "type" }],
+        typeOnly: true,
+      },
+      {
+        moduleSpecifier: "node:stream",
+        namedImports: [{ exportedName: "Writable", kind: "value" }],
+        typeOnly: false,
+      },
+    ],
   );
 });
 
@@ -125,6 +132,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
   const compiled = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import process from "node:process";
       import { readFileSync } from "node:fs";
@@ -164,6 +172,7 @@ test("named process imports and writes to readonly default members stay rejected
   const namedImport = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import { process } from "node:process";
       export const code = process;
@@ -177,6 +186,7 @@ test("named process imports and writes to readonly default members stay rejected
   const readonlyWrite = compileCsharpSource({
     surface: "js",
     capabilities: [createTsonicPlugin()],
+    targetOptions: { outputType: "Exe" },
     sourceText: `
       import process from "node:process";
       process.argv = [];

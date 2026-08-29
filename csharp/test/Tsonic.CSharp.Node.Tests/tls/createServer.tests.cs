@@ -68,7 +68,10 @@ public class Tls_createServerTests : IDisposable
     [Fact]
     public void createServer_WithOptions_ReturnsServer()
     {
-        var options = new TlsOptions { cert = _serverCert };
+        var options = new TlsOptions
+        {
+            pfx = TlsTestCertificate.PfxValue(_serverCert!)
+        };
         var server = tls.createServer(options);
         Assert.NotNull(server);
     }

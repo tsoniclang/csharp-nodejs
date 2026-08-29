@@ -3,6 +3,7 @@ import type {
 } from "@tsonic/tsts";
 import {
   csharpQualifiedTypeRenderShape,
+  csharpJsEventLoopBinaryExecutionDriver,
   csharpProviderPolicyContribution,
   csharpSourcePrimitiveTargetType,
   csharpTargetNamedType,
@@ -50,6 +51,7 @@ export function createCsharpNodejsProviderPolicyContribution() {
     csharpNodejsProviderPackageProviderIdentity.version,
     nodejsProviderTargetRelations(),
     nodejsProviderTargetRejections(),
+    csharpJsEventLoopBinaryExecutionDriver,
   );
 }
 
@@ -158,6 +160,8 @@ function nodejsProviderTargetRelation(
       bindingTypeArgumentSource:
         providerBindingTypeArgumentSource(targetMember),
       methodTypeParameters: [],
+      invocationTypeParameters: [],
+      selectedTypeParameterCount: 0,
     };
   }
   if (source.kind === "member") {

@@ -28,11 +28,18 @@ public partial class Socket : Stream
     private bool _allowHalfOpen = false;
 
     // Write queue for FIFO ordering (like Node.js)
-    private readonly BlockingCollection<WriteRequest> _writeQueue = new BlockingCollection<WriteRequest>();
+    private const int MaximumPendingWrites = 16 * 1024;
+    private readonly BlockingCollection<WriteRequest> _writeQueue =
+        new(new ConcurrentQueue<WriteRequest>(), MaximumPendingWrites);
     private Task? _writeLoopTask;
     private bool _writeLoopStarted = false;
     private readonly object _writeLoopLock = new object();
     private readonly ManualResetEventSlim _writeQueueEmpty = new ManualResetEventSlim(true);
+    private const long WriteHighWaterMark = 64 * 1024;
+    private long _queuedWriteBytes;
+    private int _needsDrain;
+    private int _referenced;
+    private bool _transportReadReserved;
 
     private record WriteRequest(byte[] Data, Action<Exception?>? Callback);
 
@@ -121,6 +128,7 @@ public partial class Socket : Stream
     {
         _client = client;
         _stream = client.GetStream();
+        AcquireKeepAlive();
         UpdateAddressInfo();
         // Don't start reading immediately - let the connection callback register handlers first
         // StartReading will be called after emitting the connection event
@@ -143,7 +151,7 @@ public partial class Socket : Stream
         _connecting = true;
         var hostname = host ?? "localhost";
 
-        BackgroundDispatch.RunAsync(async () =>
+        BackgroundDispatch.RunReferencedAsync(async () =>
         {
             try
             {
@@ -151,15 +159,20 @@ public partial class Socket : Stream
                 await _client.ConnectAsync(hostname, port);
                 _stream = _client.GetStream();
                 _connecting = false;
+                AcquireKeepAlive();
                 UpdateAddressInfo();
-                emit("connect");
-                emit("ready");
-                StartReading();
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                {
+                    emit("connect");
+                    emit("ready");
+                    if (!_transportReadReserved)
+                        StartReading();
+                });
             }
             catch (Exception ex)
             {
                 _connecting = false;
-                emit("error", ex);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
             }
         });
 
@@ -187,6 +200,25 @@ public partial class Socket : Stream
     {
         // IPC connections not fully supported in .NET cross-platform
         throw new NotSupportedException("IPC connections via path not supported");
+    }
+
+    private void AcquireKeepAlive()
+    {
+        if (!_destroyed && Interlocked.Exchange(ref _referenced, 1) == 0)
+            Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
+    }
+
+    private void ReleaseKeepAlive()
+    {
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
+    }
+
+    internal void ReserveTransportRead()
+    {
+        if (_reading)
+            throw new InvalidOperationException("Socket transport reading has already started.");
+        _transportReadReserved = true;
     }
 
 }

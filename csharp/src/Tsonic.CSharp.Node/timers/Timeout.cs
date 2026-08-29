@@ -59,6 +59,16 @@ public class Timeout : IDisposable
             }
         }
 
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(InvokeCallback);
+    }
+
+    private void InvokeCallback()
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+                return;
+        }
         try
         {
             _callback();
@@ -66,9 +76,7 @@ public class Timeout : IDisposable
         finally
         {
             if (_period == System.Threading.Timeout.Infinite)
-            {
                 Dispose();
-            }
         }
     }
 

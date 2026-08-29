@@ -1,6 +1,3 @@
-using System.Threading;
-using Tsonic.CSharp.Js;
-
 namespace Tsonic.CSharp.Node;
 
 /// <summary>
@@ -81,22 +78,6 @@ public static class timers
     /// <param name="callback">The function to call.</param>
     public static void queueMicrotask(Action callback)
     {
-        ProcessKeepAlive.Acquire();
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                callback();
-            }
-            finally
-            {
-                ProcessKeepAlive.Release();
-            }
-        })
-        {
-            IsBackground = true,
-            Name = "Tsonic.CSharp.Node.Microtask",
-        };
-        thread.Start();
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
     }
 }

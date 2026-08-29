@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -25,8 +27,9 @@ public partial class EventEmitter
         public bool Once { get; }
     }
 
-    private readonly Dictionary<string, List<EventListener>> _events = new();
-    private int _maxListeners = 10;
+    private readonly Dictionary<object, List<EventListener>> _events = new();
+    private readonly object _eventLock = new();
+    private int _maxListeners = _defaultMaxListeners;
     private static int _defaultMaxListeners = 10;
 
     /// <summary>
@@ -49,8 +52,7 @@ public partial class EventEmitter
     {
         if (emitter == null)
             throw new ArgumentNullException(nameof(emitter));
-        if (string.IsNullOrEmpty(eventName))
-            throw new ArgumentException("Event name cannot be null or empty", nameof(eventName));
+        ArgumentNullException.ThrowIfNull(eventName);
 
         var tcs = new TaskCompletionSource<object?[]>();
 
@@ -67,36 +69,55 @@ public partial class EventEmitter
         return tcs.Task;
     }
 
-    private EventEmitter addEventListenerCore(string eventName, EventListener listener, bool prepend)
+    /// <summary>Returns a task that completes with the next selected event payload.</summary>
+    public static Task<object?[]> once(EventEmitter emitter, TsValue eventName)
     {
-        if (!_events.ContainsKey(eventName))
+        ArgumentNullException.ThrowIfNull(emitter);
+        var completion = new TaskCompletionSource<object?[]>();
+        Action<object?[]> listener = arguments => completion.TrySetResult(arguments);
+        emitter.once(eventName, listener);
+        return completion.Task;
+    }
+
+    private EventEmitter addEventListenerCore(object eventName, EventListener listener, bool prepend)
+    {
+        if (!IsEvent(eventName, "newListener"))
         {
-            _events[eventName] = new List<EventListener>();
+            emit("newListener", EventValue(eventName), listener.Original);
         }
 
-        if (prepend)
+        int count;
+        lock (_eventLock)
         {
-            _events[eventName].Insert(0, listener);
-        }
-        else
-        {
-            _events[eventName].Add(listener);
+            if (!_events.TryGetValue(eventName, out var listeners))
+            {
+                listeners = new List<EventListener>();
+                _events[eventName] = listeners;
+            }
+
+            if (prepend)
+                listeners.Insert(0, listener);
+            else
+                listeners.Add(listener);
+            count = listeners.Count;
         }
 
-        if (eventName != "newListener")
-        {
-            emit("newListener", eventName, listener.Original);
-        }
-
-        if (_events[eventName].Count > _maxListeners && _maxListeners > 0)
+        if (count > _maxListeners && _maxListeners > 0)
         {
             Console.Error.WriteLine(
                 $"Warning: Possible EventEmitter memory leak detected. " +
-                $"{_events[eventName].Count} {eventName} listeners added. " +
+                $"{count} {eventName} listeners added. " +
                 $"Use emitter.setMaxListeners() to increase limit");
         }
 
+        OnListenerAdded(eventName);
+
         return this;
+    }
+
+    /// <summary>Allows a specialized emitter to apply its documented listener lifecycle.</summary>
+    protected virtual void OnListenerAdded(object eventName)
+    {
     }
 
     private static EventListener CreateEventListener(Delegate listener, bool once)
@@ -133,15 +154,36 @@ public partial class EventEmitter
         return listeners.Select(listener => listener.Original).ToArray();
     }
 
-    private void removeStoredListener(string eventName, EventListener listener)
+    private void removeStoredListener(object eventName, EventListener listener)
     {
-        if (!_events.TryGetValue(eventName, out var listeners))
-            return;
-
-        listeners.Remove(listener);
-        if (listeners.Count == 0)
+        lock (_eventLock)
         {
-            _events.Remove(eventName);
+            if (!_events.TryGetValue(eventName, out var listeners))
+                return;
+
+            listeners.Remove(listener);
+            if (listeners.Count == 0)
+                _events.Remove(eventName);
         }
     }
+
+    private static object EventKey(string eventName)
+    {
+        ArgumentNullException.ThrowIfNull(eventName);
+        return eventName;
+    }
+
+    private static object EventKey(TsValue eventName)
+    {
+        if (TsValue.IsDynamicInstanceOf<string>(eventName))
+            return TsValue.CastDynamic<string>(eventName);
+        if (TsValue.IsDynamicInstanceOf<Symbol>(eventName))
+            return TsValue.CastDynamic<Symbol>(eventName);
+        throw new TypeError("An EventEmitter event name must be a string or Symbol.");
+    }
+
+    private static TsValue EventValue(object eventName) => TsValue.from(eventName);
+
+    private static bool IsEvent(object eventName, string name) =>
+        eventName is string text && string.Equals(text, name, StringComparison.Ordinal);
 }

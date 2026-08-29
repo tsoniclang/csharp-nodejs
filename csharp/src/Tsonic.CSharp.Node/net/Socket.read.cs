@@ -24,10 +24,10 @@ public partial class Socket : Stream
     /// </summary>
     internal void StartReading()
     {
-        if (_reading || _stream == null) return;
+        if (_reading || _stream == null || _transportReadReserved) return;
         _reading = true;
 
-        BackgroundDispatch.RunAsync(async () =>
+        BackgroundDispatch.RunHandleOwnedAsync(async () =>
         {
             var buffer = new byte[65536]; // 64KB buffer
             try
@@ -60,12 +60,9 @@ public partial class Socket : Stream
 
                     if (bytesReadCount == 0)
                     {
-                        // End of stream - connection closed by remote
-                        emit("end");
+                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("end"));
                         if (!_allowHalfOpen)
-                        {
-                            end();
-                        }
+                            end(() => destroy());
                         break;
                     }
 
@@ -76,23 +73,17 @@ public partial class Socket : Stream
                     System.Array.Copy(buffer, 0, data, 0, bytesReadCount);
                     var nodeBuffer = Buffer.from(data);
 
-                    emit("data", nodeBuffer);
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("data", nodeBuffer));
                 }
             }
             catch (Exception ex)
             {
                 if (!_destroyed)
-                {
-                    emit("error", ex);
-                }
+                    destroy(ex);
             }
             finally
             {
                 _reading = false;
-                if (!_destroyed)
-                {
-                    emit("close", false);
-                }
             }
         });
     }

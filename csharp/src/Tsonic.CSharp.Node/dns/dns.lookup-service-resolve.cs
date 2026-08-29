@@ -25,7 +25,7 @@ public static partial class dns
     /// <param name="callback">Callback function (err, hostname, service)</param>
     public static void lookupService(string address, int port, Action<Exception?, string, string> callback)
     {
-        BackgroundDispatch.Run(() =>
+        BackgroundDispatch.RunReferenced(() =>
         {
             try
             {

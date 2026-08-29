@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -11,38 +12,20 @@ namespace Tsonic.CSharp.Node;
 public class DnsPromises
 {
     public Task<LookupAddress> lookup(string hostname, LookupOptions? options = null)
+        => BackgroundDispatch.RunReferenced(() => dns.LookupCore(hostname, options));
+
+    public Task<JSArray<LookupAddress>> lookupAll(string hostname, LookupOptions? options = null)
     {
-        var tcs = new TaskCompletionSource<LookupAddress>();
-        dns.lookup(hostname, options, (Exception? err, string address, int family) =>
+        var lookupOptions = new LookupOptions
         {
-            if (err != null)
-            {
-                tcs.TrySetException(err);
-                return;
-            }
+            family = options?.family,
+            hints = options?.hints,
+            all = true,
+            order = options?.order,
+            verbatim = options?.verbatim,
+        };
 
-            tcs.TrySetResult(new LookupAddress { address = address, family = family });
-        });
-        return tcs.Task;
-    }
-
-    public Task<LookupAddress[]> lookupAll(string hostname, LookupOptions? options = null)
-    {
-        var lookupOptions = options ?? new LookupOptions();
-        lookupOptions.all = true;
-
-        var tcs = new TaskCompletionSource<LookupAddress[]>();
-        dns.lookup(hostname, lookupOptions, (Exception? err, LookupAddress[] addresses) =>
-        {
-            if (err != null)
-            {
-                tcs.TrySetException(err);
-                return;
-            }
-
-            tcs.TrySetResult(addresses);
-        });
-        return tcs.Task;
+        return BackgroundDispatch.RunReferenced(() => dns.LookupAllCore(hostname, lookupOptions));
     }
 
     public Task<LookupServiceResult> lookupService(string address, int port)

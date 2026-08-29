@@ -17,21 +17,6 @@ public class ZlibOptions
     public int? chunkSize { get; set; }
 
     /// <summary>
-    /// Window size (8-15). Larger values use more memory but may improve compression.
-    /// </summary>
-    public int? windowBits { get; set; }
-
-    /// <summary>
-    /// Memory level (1-9). Higher values use more memory for better compression.
-    /// </summary>
-    public int? memLevel { get; set; }
-
-    /// <summary>
-    /// Compression strategy.
-    /// </summary>
-    public int? strategy { get; set; }
-
-    /// <summary>
     /// Maximum output length to prevent excessive memory usage.
     /// </summary>
     public int? maxOutputLength { get; set; }

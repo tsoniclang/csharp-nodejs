@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Tsonic.CSharp.Node.Http;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class HttpServerTests
 {
     [Fact]
@@ -34,6 +34,7 @@ public class HttpServerTests
         });
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -68,6 +69,7 @@ public class HttpServerTests
         });
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -104,6 +106,7 @@ public class HttpServerTests
         });
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -138,6 +141,7 @@ public class HttpServerTests
         });
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -170,6 +174,7 @@ public class HttpServerTests
 
         // Act
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -190,6 +195,7 @@ public class HttpServerTests
         var server = http.createServer((req, res) => res.end("OK"));
 
         server.listen(port, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -212,6 +218,7 @@ public class HttpServerTests
         var server = http.createServer((req, res) => res.end("OK"));
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -229,21 +236,22 @@ public class HttpServerTests
     }
 
     [Fact]
-    public void Server_Listen_Callback_SeesBoundAddress()
+    public async Task Server_Listen_Callback_SeesBoundAddress()
     {
         Tsonic.CSharp.Node.Http.AddressInfo? callbackAddress = null;
-        var callback = false;
+        var callback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var server = http.createServer((req, res) => res.end("OK"));
 
         server.listen(0, "127.0.0.1", null, () =>
         {
-            callback = true;
             callbackAddress = server.address();
+            callback.TrySetResult();
         });
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
-            Assert.True(callback);
+            await callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.NotNull(callbackAddress);
             Assert.True(callbackAddress.port > 0);
             Assert.Equal("127.0.0.1", callbackAddress.address);
@@ -262,6 +270,7 @@ public class HttpServerTests
         var server = http.createServer((req, res) => res.end("OK"));
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         // Act - Close server
         server.close();
@@ -287,6 +296,7 @@ public class HttpServerTests
         });
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -315,14 +325,15 @@ public class HttpServerTests
         });
 
         server.listen(port, (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
             http.get($"http://127.0.0.1:{port}/", (res) =>
             {
-                res.on("data", (string chunk) =>
+                res.on("data", (Buffer chunk) =>
                 {
-                    chunks.Add(chunk);
+                    chunks.Add(chunk.toString());
                 });
                 res.on("end", () =>
                 {
@@ -343,14 +354,15 @@ public class HttpServerTests
     public async Task IncomingMessage_SetTimeout_EmitsTimeoutBeforeCompletion()
     {
         var timeout = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var server = http.createServer((req, res) =>
+        var server = http.createServer(async (req, res) =>
         {
             req.setTimeout(20, () => timeout.TrySetResult());
-            Thread.Sleep(80);
+            await Task.Delay(80);
             res.end("OK");
         });
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {
@@ -373,14 +385,15 @@ public class HttpServerTests
     public async Task ServerResponse_SetTimeout_EmitsTimeoutBeforeCompletion()
     {
         var timeout = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var server = http.createServer((req, res) =>
+        var server = http.createServer(async (req, res) =>
         {
             res.setTimeout(20, () => timeout.TrySetResult());
-            Thread.Sleep(80);
+            await Task.Delay(80);
             res.end("OK");
         });
 
         server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
 
         try
         {

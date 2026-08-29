@@ -27,12 +27,14 @@ public partial class Server : EventEmitter
     private IWebHost? _host;
     private AddressInfo? _boundAddress;
     private readonly Action<IncomingMessage, ServerResponse>? _requestListener;
+    private readonly Action<Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions>? _configureListener;
     private int _maxHeadersCount = 2000;
     private int _timeout = 0; // 0 means no timeout (Node.js default)
     private int _headersTimeout = 60000; // 60 seconds (Node.js default)
     private int _requestTimeout = 300000; // 300 seconds (5 minutes, Node.js default)
     private int _keepAliveTimeout = 5000; // 5 seconds (Node.js default)
     private bool _listening = false;
+    private int _referenced;
 
     private static IPAddress ResolveHostname(string hostname)
     {
@@ -60,8 +62,16 @@ public partial class Server : EventEmitter
     /// </summary>
     /// <param name="requestListener">Optional request handler function.</param>
     public Server(Action<IncomingMessage, ServerResponse>? requestListener = null)
+        : this(requestListener, null)
+    {
+    }
+
+    internal Server(
+        Action<IncomingMessage, ServerResponse>? requestListener,
+        Action<Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions>? configureListener)
     {
         _requestListener = requestListener;
+        _configureListener = configureListener;
 
         // If request listener provided, register it as event listener
         if (requestListener != null)
@@ -162,6 +172,7 @@ public partial class Server : EventEmitter
                     options.ListenAnyIP(listenPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
+                        _configureListener?.Invoke(listenOptions);
                     });
                 }
                 else
@@ -170,6 +181,7 @@ public partial class Server : EventEmitter
                     options.Listen(resolvedHostname!, listenPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
+                        _configureListener?.Invoke(listenOptions);
                     });
                 }
 
@@ -188,8 +200,7 @@ public partial class Server : EventEmitter
                     var req = new IncomingMessage(context.Request);
                     var res = new ServerResponse(context.Response);
 
-                    // Emit 'request' event - registered listeners will handle the request
-                    emit("request", req, res);
+                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("request", req, res));
 
                     await res.Completion.WaitAsync(context.RequestAborted);
                     await context.Response.CompleteAsync();
@@ -198,27 +209,32 @@ public partial class Server : EventEmitter
             .Build();
 
         _host = host;
-        ProcessKeepAlive.Acquire();
 
         try
         {
             _host.Start();
             _listening = true;
+            if (Interlocked.Exchange(ref _referenced, 1) == 0)
+                ProcessKeepAlive.Acquire();
             _boundAddress = ResolveBoundAddress() ?? new AddressInfo
             {
                 address = resolvedHostname?.ToString() ?? IPAddress.Loopback.ToString(),
                 family = (resolvedHostname ?? IPAddress.Loopback).AddressFamily == AddressFamily.InterNetwork ? "IPv4" : "IPv6",
                 port = listenPort
             };
-            emit("listening");
-            callback?.Invoke();
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("listening");
+                callback?.Invoke();
+            });
             return this;
         }
         catch
         {
             _host.Dispose();
             _host = null;
-            ProcessKeepAlive.Release();
+            if (Interlocked.Exchange(ref _referenced, 0) != 0)
+                ProcessKeepAlive.Release();
             throw;
         }
     }
@@ -251,7 +267,8 @@ public partial class Server : EventEmitter
     {
         if (_host == null)
         {
-            callback?.Invoke();
+            if (callback != null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
             return this;
         }
 
@@ -270,11 +287,38 @@ public partial class Server : EventEmitter
             _boundAddress = null;
             _host = null;
             _listening = false;
-            ProcessKeepAlive.Release();
-            emit("close");
-            callback?.Invoke();
+            var releaseServerReference = Interlocked.Exchange(ref _referenced, 0) != 0;
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("close");
+                callback?.Invoke();
+            });
+            if (releaseServerReference)
+                ProcessKeepAlive.Release();
         }
 
+        return this;
+    }
+
+    /// <summary>
+    /// Allows the process to exit when this server is the only active handle.
+    /// </summary>
+    /// <returns>The server instance for chaining.</returns>
+    public Server unref()
+    {
+        if (Interlocked.Exchange(ref _referenced, 0) != 0)
+            ProcessKeepAlive.Release();
+        return this;
+    }
+
+    /// <summary>
+    /// Restores this listening server as a process-liveness handle.
+    /// </summary>
+    /// <returns>The server instance for chaining.</returns>
+    public Server @ref()
+    {
+        if (_listening && Interlocked.Exchange(ref _referenced, 1) == 0)
+            ProcessKeepAlive.Acquire();
         return this;
     }
 

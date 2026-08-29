@@ -1,9 +1,11 @@
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class ZlibExtendedTests
 {
     [Fact]
@@ -16,42 +18,44 @@ public class ZlibExtendedTests
     }
 
     [Fact]
-    public async Task AsyncGzip_RoundTrips()
+    public void AsyncGzip_RoundTrips()
     {
-        var input = Encoding.UTF8.GetBytes("async gzip");
-        var compressed = await zlib.gzip(input);
-        var output = await zlib.gunzip(compressed);
+        Buffer? compressed = null;
+        Buffer? output = null;
+        Exception? failure = null;
 
-        Assert.Equal("async gzip", Encoding.UTF8.GetString(output));
+        zlib.gzip(Buffer.from("async gzip"), (error, result) =>
+        {
+            failure = error;
+            compressed = result;
+        });
+        JsEventLoop.Run();
+        Assert.Null(failure);
+        Assert.NotNull(compressed);
+
+        zlib.gunzip(compressed!, (error, result) =>
+        {
+            failure = error;
+            output = result;
+        });
+        JsEventLoop.Run();
+
+        Assert.Null(failure);
+        Assert.Equal("async gzip", output!.toString());
     }
 
     [Fact]
     public void CreateGzipTransform_RoundTrips()
     {
-        var input = Encoding.UTF8.GetBytes("transform gzip");
         var gzip = zlib.createGzip();
         var gunzip = zlib.createGunzip();
+        var chunks = new List<Buffer>();
+        gunzip.on<Buffer>("data", chunks.Add);
+        gzip.pipe(gunzip);
 
-        var output = gunzip.transform(gzip.transform(input));
+        gzip.end(Buffer.from("transform gzip"));
+        JsEventLoop.Run();
 
-        Assert.Equal("transform gzip", Encoding.UTF8.GetString(output));
-    }
-
-    [Fact]
-    public void ZstdOperations_FailClosedWithoutManagedZstdCarrier()
-    {
-        var input = Encoding.UTF8.GetBytes("zstd");
-
-        Assert.Throws<NotSupportedException>(() => zlib.zstdCompressSync(input));
-        Assert.Throws<NotSupportedException>(() => zlib.zstdDecompressSync(input));
-        Assert.Throws<NotSupportedException>(() => zlib.createZstdCompress().transform(input));
-    }
-
-    [Fact]
-    public void GzipStringHelper_RoundTrips()
-    {
-        var compressed = zlib.gzipStringSync("string gzip");
-
-        Assert.Equal("string gzip", zlib.gunzipStringSync(compressed));
+        Assert.Equal("transform gzip", string.Concat(chunks.Select(chunk => chunk.toString())));
     }
 }
