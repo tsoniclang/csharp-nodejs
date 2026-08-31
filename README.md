@@ -1,5 +1,22 @@
-# Tsonic C# Node Runtime
+# `@tsonic/csharp-nodejs`
 
-C# implementation of the Node.js surface for the Tsonic C# target.
+C# Node capability for Tsonic. It owns exact `node:*` provider declarations,
+C# operation relations, runtime references, and the `Tsonic.CSharp.Node`
+runtime implementation.
 
-This repository contains the CLR implementation for Node modules and globals such as `node:fs`, `node:path`, `node:process`, `node:buffer`, streams, crypto, zlib, and related APIs. It is selected only when a Tsonic project uses the Node surface with the C# target.
+Canonical product documentation:
+
+- [Node capability](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/node-capability.md)
+- [C# Node support](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/targets/csharp/node-capability.md)
+- [C# support inventory](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/targets/csharp/support-inventory.md)
+
+## Development
+
+```sh
+npm install
+npm run build
+npm test
+```
+
+`npm test` uses Tsonic's bounded parallel gate and includes provider-contract,
+emitted-C#, and .NET runtime proofs.
