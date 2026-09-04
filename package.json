@@ -1,7 +1,12 @@
 {
   "name": "@tsonic/csharp-nodejs",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "C# NodeJS target capability package for Tsonic",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsoniclang/csharp-nodejs.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,13 +29,13 @@
     "test:parallel": "node ../tsonic/test/scripts/run-parallel.mjs --scope csharp-nodejs"
   },
   "peerDependencies": {
-    "@tsonic/target-api": "0.0.1",
-    "@tsonic/target-csharp": "0.0.1",
-    "@tsonic/tsts": "0.0.0"
+    "@tsonic/target-api": "0.1.0",
+    "@tsonic/target-csharp": "0.1.0",
+    "@tsonic/tsts": "0.1.0"
   },
   "dependencies": {
-    "@tsonic/csharp-js": "0.0.1",
-    "@tsonic/csharp-runtime": "0.0.1"
+    "@tsonic/csharp-js": "0.1.0",
+    "@tsonic/csharp-runtime": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "25.9.1",
@@ -41,6 +46,6 @@
     "@tsonic/tsts": "file:../tsonic/packages/tsts"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   }
 }
