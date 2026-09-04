@@ -24,10 +24,12 @@ import {
   nodeFsStreamExportDeclarations,
 } from "./streams.js";
 
-export function nodeFsExports(): readonly ProviderExportDeclaration[] {
+export function nodeFsExports(options: {
+  readonly includeJsSurfaceMembers: boolean;
+}): readonly ProviderExportDeclaration[] {
   const exports = [
     ...nodeFsOptionExportDeclarations(),
-    nodeFsStatsExportDeclaration(),
+    nodeFsStatsExportDeclaration(options.includeJsSurfaceMembers),
     ...nodeFsStreamExportDeclarations(),
     ...nodeFsCallExportDeclarations(),
   ];

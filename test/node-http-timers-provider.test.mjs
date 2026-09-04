@@ -50,7 +50,7 @@ test("every canonical Node provider target type has one exact C# render binding"
 });
 
 test("Node HTTP and timer modules expose exact provider-owned declarations", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider();
+  const provider = createCsharpNodejsProviderPackageBindingProvider({ includeJsSurfaceMembers: true });
   const httpModel = declarationModel(provider, "node:http");
   const timersModel = declarationModel(provider, "node:timers");
 

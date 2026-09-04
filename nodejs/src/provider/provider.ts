@@ -117,7 +117,7 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeBufferModuleSpecifier, nodeBufferExports()],
   [nodeChildProcessModuleSpecifier, nodeChildProcessExports()],
   [nodePathModuleSpecifier, nodePathExports()],
-  [nodeFsModuleSpecifier, nodeFsExports()],
+  [nodeFsModuleSpecifier, nodeFsExports({ includeJsSurfaceMembers: true })],
   [nodeFsPromisesModuleSpecifier, nodeFsPromisesExports()],
   [nodeHttpModuleSpecifier, nodeHttpExports()],
   [nodeHttpsModuleSpecifier, nodeHttpsExports()],
@@ -144,7 +144,9 @@ export function nodejsCanonicalProviderExports(
   return canonicalModules.get(moduleSpecifier);
 }
 
-export function createCsharpNodejsProviderPackageBindingProvider():
+export function createCsharpNodejsProviderPackageBindingProvider(options: {
+  readonly includeJsSurfaceMembers: boolean;
+}):
   SourceDeclarationProvider {
   return {
     identity: csharpNodejsProviderPackageProviderIdentity,
@@ -170,7 +172,11 @@ export function createCsharpNodejsProviderPackageBindingProvider():
       _request: ProviderDeclarationRequest,
     ): ProviderDeclarationModel | ExtensionDiagnostic {
       const canonicalSpecifier = canonicalNodejsModuleSpecifier(module.moduleSpecifier);
-      const exports = canonicalSpecifier === undefined ? undefined : canonicalModules.get(canonicalSpecifier);
+      const exports = canonicalSpecifier === undefined
+        ? undefined
+        : canonicalSpecifier === nodeFsModuleSpecifier
+          ? nodeFsExports(options)
+          : canonicalModules.get(canonicalSpecifier);
       const publicExports = canonicalSpecifier === undefined || exports === undefined
         ? undefined
         : exports.map((declaration) => rebaseNodejsProviderExport(

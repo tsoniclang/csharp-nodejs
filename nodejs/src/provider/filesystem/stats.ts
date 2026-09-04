@@ -38,13 +38,17 @@ import {
   statsTargetType,
 } from "./types.js";
 
-export function nodeFsStatsExportDeclaration(): ProviderExportDeclaration {
+export function nodeFsStatsExportDeclaration(
+  includeJsSurfaceMembers: boolean,
+): ProviderExportDeclaration {
   return {
     id: `node:fs.${nodeFsStatsExportName}`,
     name: nodeFsStatsExportName,
     kind: "class",
     members: [
-      ...nodeFsStatsPropertyTargetMetadataRows.map(providerMemberForNodeFsStatsProperty),
+      ...nodeFsStatsPropertyTargetMetadataRows
+        .filter(({ sourceSurface }) => sourceSurface === "base" || includeJsSurfaceMembers)
+        .map(providerMemberForNodeFsStatsProperty),
       ...nodeFsStatsCallTargetMetadataRows.map(providerMemberForNodeFsStatsCall),
     ],
   };
@@ -63,6 +67,7 @@ interface NodeFsStatsPropertyTargetMetadataRow {
   readonly memberId: string;
   readonly providerType: ProviderTypeExpression;
   readonly member: CsharpTargetMember;
+  readonly sourceSurface: "base" | "js";
 }
 
 interface NodeFsStatsCallTargetMetadataRow {
@@ -77,6 +82,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "size",
     memberId: nodeFsStatsSizeMemberId,
+    sourceSurface: "base",
     providerType: numberProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.size",
@@ -91,6 +97,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "atime",
     memberId: nodeFsStatsAtimeMemberId,
+    sourceSurface: "js",
     providerType: dateProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.atime",
@@ -105,6 +112,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "atimeMs",
     memberId: nodeFsStatsAtimeMsMemberId,
+    sourceSurface: "base",
     providerType: numberProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.atimeMs",
@@ -119,6 +127,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "mtime",
     memberId: nodeFsStatsMtimeMemberId,
+    sourceSurface: "js",
     providerType: dateProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.mtime",
@@ -133,6 +142,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "mtimeMs",
     memberId: nodeFsStatsMtimeMsMemberId,
+    sourceSurface: "base",
     providerType: numberProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.mtimeMs",
@@ -147,6 +157,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "ctime",
     memberId: nodeFsStatsCtimeMemberId,
+    sourceSurface: "js",
     providerType: dateProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.ctime",
@@ -161,6 +172,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "ctimeMs",
     memberId: nodeFsStatsCtimeMsMemberId,
+    sourceSurface: "base",
     providerType: numberProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.ctimeMs",
@@ -175,6 +187,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "birthtime",
     memberId: nodeFsStatsBirthtimeMemberId,
+    sourceSurface: "js",
     providerType: dateProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.birthtime",
@@ -189,6 +202,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
   {
     memberName: "birthtimeMs",
     memberId: nodeFsStatsBirthtimeMsMemberId,
+    sourceSurface: "base",
     providerType: numberProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.birthtimeMs",
