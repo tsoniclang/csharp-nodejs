@@ -30,7 +30,7 @@ export const nodejsProviderPackageModuleOwnership:
     }));
 
 export function createCsharpNodejsProviderPackageExtension(
-  _context: TargetCapabilityContext,
+  context: TargetCapabilityContext,
 ): CompilerExtension {
   return {
     identity: {
@@ -39,7 +39,9 @@ export function createCsharpNodejsProviderPackageExtension(
     },
     initialize(extensionContext): void {
       extensionContext.registerSourceDeclarationProvider(
-        createCsharpNodejsProviderPackageBindingProvider(),
+        createCsharpNodejsProviderPackageBindingProvider({
+          includeJsSurfaceMembers: context.selectedSurfaceIds.includes("js"),
+        }),
       );
     },
   };

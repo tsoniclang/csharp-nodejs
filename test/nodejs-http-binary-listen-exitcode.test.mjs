@@ -16,7 +16,7 @@ import {
 } from "../dist/provider/target-relations.js";
 
 test("ServerResponse.end declares the exact Buffer overload", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider();
+  const provider = createCsharpNodejsProviderPackageBindingProvider({ includeJsSurfaceMembers: true });
   const model = declarationModel(provider, "node:http");
   const end = classMember(model, "ServerResponse", "end");
   assert.deepEqual(
@@ -54,7 +54,7 @@ test("ServerResponse.end declares the exact Buffer overload", () => {
 });
 
 test("Server.listen declares the exact hostname overload", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider();
+  const provider = createCsharpNodejsProviderPackageBindingProvider({ includeJsSurfaceMembers: true });
   const model = declarationModel(provider, "node:http");
   const listen = classMember(model, "Server", "listen");
   assert.deepEqual(
@@ -76,7 +76,7 @@ test("Server.listen declares the exact hostname overload", () => {
 });
 
 test("only the default node:process object exitCode property is writable", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider();
+  const provider = createCsharpNodejsProviderPackageBindingProvider({ includeJsSurfaceMembers: true });
   const model = declarationModel(provider, "node:process");
   const defaultObject = model.exports.find((entry) => entry.exportKind === "default");
   assert.equal(defaultObject?.name, "NodeProcessModule");
