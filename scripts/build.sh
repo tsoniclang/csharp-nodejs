@@ -11,7 +11,7 @@ if [[ "${TSONIC_BUILD_LOCK_HELD:-0}" != "1" ]]; then
 fi
 
 if [[ "${TSONIC_SKIP_DEPENDENCY_BUILDS:-0}" != "1" ]]; then
-  for package_dir in packages/source-core packages/target-api; do
+  for package_dir in packages/target-api packages/source-core; do
     (cd "$TSONIC_ROOT/$package_dir" && npm run build)
   done
   (cd "$CSHARP_TARGET_ROOT" && npm run build)
