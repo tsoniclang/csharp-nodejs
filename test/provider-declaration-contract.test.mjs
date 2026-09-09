@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../dist/provider/module-specifiers.js";
+} from "../dist/provider/modules/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../dist/provider/provider.js";
+} from "../dist/provider/modules/catalog.js";
 import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";

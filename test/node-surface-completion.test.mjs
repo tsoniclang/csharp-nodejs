@@ -11,10 +11,10 @@ import {
 } from "../dist/index.js";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../dist/provider/module-specifiers.js";
+} from "../dist/provider/modules/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../dist/provider/provider.js";
+} from "../dist/provider/modules/catalog.js";
 import {
   nodejsProviderTargetRejections,
   nodejsProviderTargetRelations,

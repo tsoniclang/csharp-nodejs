@@ -22,7 +22,7 @@ import {
 } from "../dist/provider/target-relations.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../dist/provider/provider.js";
+} from "../dist/provider/modules/catalog.js";
 
 test("Node provider relations form one contradiction-free exact catalog", () => {
   const relations = nodejsProviderTargetRelations();
