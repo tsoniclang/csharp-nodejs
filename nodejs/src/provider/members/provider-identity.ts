@@ -4,7 +4,7 @@ import type {
 import {
   canonicalNodejsModuleSpecifier,
   isSupportedNodejsModuleSpecifier,
-} from "../module-specifiers.js";
+} from "../modules/specifiers.js";
 
 export function isNodejsProviderModule(moduleSpecifier: string | undefined): boolean {
   return isSupportedNodejsModuleSpecifier(moduleSpecifier);

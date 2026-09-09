@@ -9,16 +9,14 @@ import {
   createTsonicPlugin,
 } from "../dist/index.js";
 import {
-  createCsharpNodejsProviderPackageBindingProvider,
-} from "../dist/provider/provider.js";
+  nodejsSourceProvider,
+} from "./helpers/provider-package.mjs";
 import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";
 
 test("Node fs Stats Date declarations use the selected source global", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider({
-    includeJsSurfaceMembers: true,
-  });
+  const provider = nodejsSourceProvider(["js"]);
   const resolution = provider.resolveModule("node:fs", {});
   assert.equal(resolution.kind, "virtual");
   const model = provider.getDeclarationModel(resolution, {
@@ -47,9 +45,7 @@ test("Node fs Stats Date declarations use the selected source global", () => {
 });
 
 test("Node fs omits JS Date members from the native source profile", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider({
-    includeJsSurfaceMembers: false,
-  });
+  const provider = nodejsSourceProvider([]);
   const resolution = provider.resolveModule("node:fs", {});
   assert.equal(resolution.kind, "virtual");
   const model = provider.getDeclarationModel(resolution, {

@@ -10,8 +10,8 @@ import {
   createTsonicPlugin,
 } from "../dist/index.js";
 import {
-  createCsharpNodejsProviderPackageBindingProvider,
-} from "../dist/provider/provider.js";
+  nodejsSourceProvider,
+} from "./helpers/provider-package.mjs";
 import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";
@@ -50,7 +50,7 @@ test("every canonical Node provider target type has one exact C# render binding"
 });
 
 test("Node HTTP and timer modules expose exact provider-owned declarations", () => {
-  const provider = createCsharpNodejsProviderPackageBindingProvider({ includeJsSurfaceMembers: true });
+  const provider = nodejsSourceProvider(["js"]);
   const httpModel = declarationModel(provider, "node:http");
   const timersModel = declarationModel(provider, "node:timers");
 

@@ -5,25 +5,25 @@ import {
   nodeAssertCallTargetMembers,
   nodeAssertModuleSpecifier,
   nodeAssertUnsupportedTargetIdentities,
-} from "../assert.js";
+} from "../modules/assert.js";
 import {
   nodeBufferClassCallTargetMembers,
   nodeBufferClassPropertyTargetMembers,
   nodeBufferModuleCallTargetMembers,
   nodeBufferModuleSpecifier,
   nodeBufferUnsupportedTargetIdentities,
-} from "../buffer.js";
+} from "../modules/buffer/index.js";
 import {
   nodeCryptoClassCallTargetMembers,
   nodeCryptoCallTargetMembers,
   nodeCryptoModuleSpecifier,
   nodeCryptoUnsupportedTargetIdentities,
-} from "../crypto.js";
+} from "../modules/crypto.js";
 import {
   nodeChildProcessCallTargetMembers,
   nodeChildProcessClassPropertyTargetMembers,
   nodeChildProcessModuleSpecifier,
-} from "../child-process.js";
+} from "../modules/child-process.js";
 import {
   nodeFsCallTargetMembers,
   nodeFsClassCallTargetMembers,
@@ -36,24 +36,24 @@ import {
   nodeFsStreamCallTargetMembers,
   nodeFsStreamClassCallTargetMembers,
   nodeFsStreamClassPropertyTargetMembers,
-} from "../filesystem/index.js";
+} from "../modules/filesystem/index.js";
 import {
   nodeOsCallTargetMembers,
   nodeOsModuleSpecifier,
   nodeOsPropertyTargetMembers,
   nodeOsUnsupportedTargetIdentities,
-} from "../os.js";
+} from "../modules/os.js";
 import {
   nodeHttpCallTargetMembers,
   nodeHttpClassCallTargetMembers,
   nodeHttpClassPropertyTargetMembers,
   nodeHttpModuleSpecifier,
-} from "../http.js";
+} from "../modules/http/index.js";
 import {
   nodeHttpsCallTargetMembers,
   nodeHttpsClassPropertyTargetMembers,
   nodeHttpsModuleSpecifier,
-} from "../https.js";
+} from "../modules/https.js";
 import {
   nodePathCallTargetMembers,
   nodePathClassPropertyTargetMembers,
@@ -61,48 +61,48 @@ import {
   nodePathPathModuleClassCallTargetMembers,
   nodePathPathModulePropertyTargetMembers,
   nodePathPropertyTargetMembers,
-} from "../path.js";
+} from "../modules/path/index.js";
 import {
   nodeProcessClassPropertyTargetMembers,
   nodeProcessCallTargetMembers,
   nodeProcessModuleSpecifier,
   nodeProcessPropertyTargetMembers,
   nodeProcessUnsupportedTargetIdentities,
-} from "../process.js";
+} from "../modules/process.js";
 import {
   nodeTimersCallTargetMembers,
   nodeTimersModuleSpecifier,
-} from "../timers.js";
+} from "../modules/timers.js";
 import {
   nodeUtilCallTargetMembers,
   nodeUtilModuleSpecifier,
   nodeUtilUnsupportedTargetIdentities,
-} from "../util.js";
+} from "../modules/util/declarations.js";
 import {
   nodeUtilTextDecoderClassCallTargetMembers,
   nodeUtilTextDecoderClassPropertyTargetMembers,
-} from "../text-decoder.js";
+} from "../modules/util/text-decoder.js";
 import {
   nodeUrlCallTargetMembers,
   nodeUrlClassCallTargetMembers,
   nodeUrlClassPropertyTargetMembers,
   nodeUrlModuleSpecifier,
   nodeUrlUnsupportedTargetIdentities,
-} from "../url.js";
+} from "../modules/url/index.js";
 import {
   nodeEventsClassCallTargetMembers,
   nodeEventsModuleSpecifier,
-} from "../events.js";
+} from "../modules/events.js";
 import {
   nodeStreamClassCallTargetMembers,
   nodeStreamClassPropertyTargetMembers,
   nodeStreamModuleSpecifier,
-} from "../stream.js";
+} from "../modules/stream.js";
 import {
   nodeZlibCallTargetMembers,
   nodeZlibClassPropertyTargetMembers,
   nodeZlibModuleSpecifier,
-} from "../zlib.js";
+} from "../modules/zlib.js";
 import {
   nodeDnsCallTargetMembers,
   nodeDnsClassPropertyTargetMembers,
@@ -110,31 +110,31 @@ import {
   nodeDnsPromisesCallTargetMembers,
   nodeDnsPromisesModuleSpecifier,
   nodeDnsPropertyTargetMembers,
-} from "../dns.js";
+} from "../modules/dns.js";
 import {
   nodeNetCallTargetMembers,
   nodeNetClassCallTargetMembers,
   nodeNetClassPropertyTargetMembers,
   nodeNetModuleSpecifier,
-} from "../net.js";
+} from "../modules/net.js";
 import {
   nodeTlsCallTargetMembers,
   nodeTlsClassPropertyTargetMembers,
   nodeTlsModuleSpecifier,
-} from "../tls.js";
+} from "../modules/tls.js";
 import {
   nodeReadlineCallTargetMembers,
   nodeReadlineClassCallTargetMembers,
   nodeReadlineClassPropertyTargetMembers,
   nodeReadlineModuleSpecifier,
-} from "../readline.js";
+} from "../modules/readline.js";
 import {
   nodeWorkerThreadsClassCallTargetMembers,
   nodeWorkerThreadsClassPropertyTargetMembers,
   nodeWorkerThreadsModuleCallTargetMembers,
   nodeWorkerThreadsModulePropertyTargetMembers,
   nodeWorkerThreadsModuleSpecifier,
-} from "../worker-threads.js";
+} from "../modules/worker-threads.js";
 import {
   nodejsExportDeclarationIdentity,
   nodejsExportMemberDeclarationIdentity,
@@ -143,7 +143,7 @@ import {
 } from "../identity.js";
 import {
   nodejsDefaultModuleMemberDeclarationIdentities,
-} from "../module-defaults.js";
+} from "../modules/defaults.js";
 import type {
   NodejsProviderDeclarationIdentity,
 } from "../identity.js";

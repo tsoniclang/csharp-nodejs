@@ -36,14 +36,14 @@ import type {
 } from "./members/provider-records.js";
 import {
   nodejsPublicModuleSpecifiers,
-} from "./module-specifiers.js";
+} from "./modules/specifiers.js";
 import {
   nodejsProviderTargetBinding,
   nodejsProviderTargetTypeRows,
-} from "./target-bindings.js";
+} from "./modules/target-bindings.js";
 import {
   nodejsCanonicalProviderExports,
-} from "./provider.js";
+} from "./modules/catalog.js";
 
 export function createCsharpNodejsProviderPolicyContribution() {
   return csharpProviderPolicyContribution(
