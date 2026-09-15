@@ -1,4 +1,5 @@
 import type { ProviderExportDeclaration } from "@tsonic/tsts";
+import { nodeV8Exports, nodeV8ModuleSpecifier } from "./v8.js";
 import type { CsharpProviderModuleDefinition } from "@tsonic/target-csharp/provider";
 import {
   nodeAssertExports,
@@ -109,6 +110,7 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
+  [nodeV8ModuleSpecifier, nodeV8Exports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],
   [nodeTimersModuleSpecifier, nodeTimersExports()],
   [nodeUtilModuleSpecifier, nodeUtilExports()],

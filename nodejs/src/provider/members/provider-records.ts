@@ -1,6 +1,7 @@
 import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp/provider";
+import { nodeV8CallTargetMembers, nodeV8ModuleSpecifier } from "../modules/v8.js";
 import {
   nodeAssertCallTargetMembers,
   nodeAssertModuleSpecifier,
@@ -215,6 +216,7 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...moduleCallRecords(nodeCryptoModuleSpecifier, nodeCryptoCallTargetMembers()),
     ...classCallRecords(nodeCryptoModuleSpecifier, nodeCryptoClassCallTargetMembers()),
     ...moduleCallRecords(nodeOsModuleSpecifier, nodeOsCallTargetMembers()),
+    ...moduleCallRecords(nodeV8ModuleSpecifier, nodeV8CallTargetMembers()),
     ...modulePropertyRecords(nodeOsModuleSpecifier, nodeOsPropertyTargetMembers()),
     ...moduleCallRecords(nodeProcessModuleSpecifier, nodeProcessCallTargetMembers()),
     ...modulePropertyRecords(nodeProcessModuleSpecifier, nodeProcessPropertyTargetMembers()),

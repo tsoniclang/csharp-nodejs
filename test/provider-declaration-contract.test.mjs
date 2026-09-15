@@ -10,6 +10,25 @@ import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";
 
+test("native V8 flags retain one exact string-to-void runtime boundary", () => {
+  const declarations = nodejsCanonicalProviderExports("node:v8");
+  assert.deepEqual(declarations.map((entry) => entry.name), ["setFlagsFromString"]);
+  assert.deepEqual(declarations[0].signatures, [{
+    id: "node:v8.setFlagsFromString(System.String)",
+    parameters: [{ name: "flags", type: { kind: "string" } }],
+    returnType: { kind: "void" },
+  }]);
+  const relations = nodejsProviderTargetRelations().filter((relation) =>
+    relation.kind === "signature" &&
+    relation.source.signatureId === "node:v8.setFlagsFromString(System.String)"
+  );
+  assert.equal(relations.length, 2);
+  assert.deepEqual(relations.map((relation) => relation.source.moduleSpecifier).sort(), ["node:v8", "v8"]);
+  for (const relation of relations) {
+    assert.equal(relation.targetMember.id, "Tsonic.CSharp.Node.v8.setFlagsFromString(System.String)");
+  }
+});
+
 test("every Node provider signature has legal parameter omission order", () => {
   const violations = [];
 
