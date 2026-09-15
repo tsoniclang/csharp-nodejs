@@ -72,6 +72,7 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:path", exportName: "PathModule", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "PathModule" },
   { moduleSpecifier: "node:process", exportName: "ProcessEnv", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ProcessEnv" },
   { moduleSpecifier: "node:process", exportName: "MemoryUsage", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "MemoryUsage" },
+  { moduleSpecifier: "node:v8", exportName: "HeapInfo", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "HeapInfo" },
   { moduleSpecifier: "node:process", exportName: "ProcessVersions", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ProcessVersions" },
   { moduleSpecifier: "node:timers", exportName: "Timeout", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Timeout" },
   { moduleSpecifier: "node:util", exportName: "TextDecoder", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TextDecoder" },
