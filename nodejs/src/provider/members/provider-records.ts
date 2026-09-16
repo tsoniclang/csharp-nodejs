@@ -166,7 +166,7 @@ export interface NodejsUnsupportedTargetMetadataRecord {
   readonly identity: NodejsUnsupportedTargetIdentity;
 }
 
-export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMemberMetadataRecord[] {
+export function nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers = true): readonly NodejsTargetMemberMetadataRecord[] {
   return [
     ...classCallRecords(nodeEventsModuleSpecifier, nodeEventsClassCallTargetMembers()),
     ...classCallRecords(nodeStreamModuleSpecifier, nodeStreamClassCallTargetMembers()),
@@ -190,8 +190,8 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classCallRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassCallTargetMembers()),
     ...classPropertyRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeBufferModuleSpecifier, nodeBufferModuleCallTargetMembers()),
-    ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers()),
-    ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers(includeJsSurfaceMembers)),
+    ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembers)),
     ...classCallRecords(nodeBufferModuleSpecifier, nodeBufferClassCallTargetMembers()),
     ...classPropertyRecords(nodeBufferModuleSpecifier, nodeBufferClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeAssertModuleSpecifier, nodeAssertCallTargetMembers()),

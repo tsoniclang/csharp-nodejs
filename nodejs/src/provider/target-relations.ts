@@ -45,21 +45,21 @@ import {
   nodejsCanonicalProviderExports,
 } from "./modules/catalog.js";
 
-export function createCsharpNodejsProviderPolicyContribution() {
+export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
   return csharpProviderPolicyContribution(
     csharpNodejsProviderPackageProviderIdentity.id,
     csharpNodejsProviderPackageProviderIdentity.version,
-    nodejsProviderTargetRelations(),
+    nodejsProviderTargetRelations(includeJsSurfaceMembers),
     nodejsProviderTargetRejections(),
     csharpJsEventLoopBinaryExecutionDriver,
   );
 }
 
-export function nodejsProviderTargetRelations():
+export function nodejsProviderTargetRelations(includeJsSurfaceMembers = true):
   readonly CsharpProviderTargetRelation[] {
   return Object.freeze([
-    ...nodejsProviderTypeRelations(),
-    ...nodejsProviderMemberRelations(),
+    ...nodejsProviderTypeRelations(includeJsSurfaceMembers),
+    ...nodejsProviderMemberRelations(includeJsSurfaceMembers),
   ]);
 }
 
@@ -77,12 +77,13 @@ export function nodejsProviderTargetRejections():
   );
 }
 
-function nodejsProviderTypeRelations():
+function nodejsProviderTypeRelations(includeJsSurfaceMembers: boolean):
   readonly CsharpProviderTargetRelation[] {
   return nodejsProviderTargetTypeRows.flatMap((row) => {
     const binding = nodejsProviderTargetBinding(
       row.moduleSpecifier,
       row.exportName,
+      includeJsSurfaceMembers,
     );
     if (binding === undefined) {
       throw new Error(
@@ -122,9 +123,9 @@ function nodejsProviderTypeRelations():
   });
 }
 
-function nodejsProviderMemberRelations():
+function nodejsProviderMemberRelations(includeJsSurfaceMembers: boolean):
   readonly CsharpProviderTargetRelation[] {
-  return nodejsTargetMemberMetadataRecords().flatMap((record) =>
+  return nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers).flatMap((record) =>
     record.declarationIdentities.flatMap((identity) =>
       nodejsPublicModuleSpecifiers(identity.providerModuleId).map(
         (moduleSpecifier) =>
@@ -132,6 +133,7 @@ function nodejsProviderMemberRelations():
             identity,
             moduleSpecifier,
             record.member,
+            includeJsSurfaceMembers,
           ),
       ),
     ));
@@ -141,9 +143,10 @@ function nodejsProviderTargetRelation(
   identity: NodejsProviderDeclarationIdentity,
   moduleSpecifier: string,
   targetMember: CsharpTargetMember,
+  includeJsSurfaceMembers: boolean,
 ): CsharpProviderTargetRelation {
   const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
-  const targetBinding = targetBindingForMember(identity, targetMember);
+  const targetBinding = targetBindingForMember(identity, targetMember, includeJsSurfaceMembers);
   if (source.kind === "signature") {
     return {
       kind: "signature",
@@ -153,7 +156,7 @@ function nodejsProviderTargetRelation(
       receiver: targetReceiver(identity, targetMember),
       parameters: providerParameterRelations(
         identity,
-        providerSignatureParameters(identity),
+        providerSignatureParameters(identity, includeJsSurfaceMembers),
         targetMember,
       ),
       bindingTypeParameters: [],
@@ -282,8 +285,9 @@ function providerBindingTypeArgumentSource(
 
 function providerSignatureParameters(
   identity: NodejsProviderDeclarationIdentity,
+  includeJsSurfaceMembers: boolean,
 ): readonly ProviderParameterDeclaration[] {
-  const exports = nodejsCanonicalProviderExports(identity.providerModuleId);
+  const exports = nodejsCanonicalProviderExports(identity.providerModuleId, includeJsSurfaceMembers);
   const declaration = exports?.find((candidate) =>
     candidate.id === identity.exportId);
   const signature = identity.memberId === undefined
@@ -357,12 +361,14 @@ function providerMemberIdentity(
 function targetBindingForMember(
   identity: NodejsProviderDeclarationIdentity,
   member: CsharpTargetMember,
+  includeJsSurfaceMembers: boolean,
 ): CsharpTargetBindingFact {
   const exportedBinding = identity.exportName === undefined
     ? undefined
     : nodejsProviderTargetBinding(
         identity.providerModuleId,
         identity.exportName,
+        includeJsSurfaceMembers,
       );
   if (exportedBinding !== undefined) {
     return exportedBinding;

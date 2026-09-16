@@ -62,8 +62,8 @@ public class ChildProcessSpawnSyncTests
         var result = child_process.spawnSyncResult(command, args);
 
         Assert.Equal(0, result.status);
-        Assert.Contains("closed", result.stdout.toString("utf8"));
-        Assert.Equal(string.Empty, result.stderr.toString("utf8"));
+        Assert.Contains("closed", Assert.IsType<Buffer>(result.stdout).toString("utf8"));
+        Assert.Equal(string.Empty, Assert.IsType<Buffer>(result.stderr).toString("utf8"));
     }
 
     [Fact]
@@ -74,7 +74,14 @@ public class ChildProcessSpawnSyncTests
             System.Array.Empty<string>());
 
         Assert.Null(result.status);
-        Assert.NotEmpty(result.stderr.toString("utf8"));
+        Assert.Null(result.pid);
+        Assert.Null(result.stdout);
+        Assert.Null(result.stderr);
+        Assert.Null(result.signal);
+        var error = Assert.IsType<SpawnSyncError>(result.error);
+        Assert.Equal("ENOENT", error.code);
+        Assert.NotEmpty(error.message);
+        Assert.Null(error.StackTrace);
     }
 
     [Fact]
@@ -88,7 +95,7 @@ public class ChildProcessSpawnSyncTests
         var result = child_process.spawnSyncResult(command, args);
 
         Assert.Equal(0, result.status);
-        Assert.Contains("surface", result.stdout.toString("utf8"));
+        Assert.Contains("surface", Assert.IsType<Buffer>(result.stdout).toString("utf8"));
     }
 
     [Fact]
@@ -99,7 +106,7 @@ public class ChildProcessSpawnSyncTests
         var exception = Assert.Throws<ArgumentException>(() =>
             child_process.spawnSyncResult("unused", args));
 
-        Assert.Contains("empty element at index 1", exception.Message);
+        Assert.Contains("null at index 1", exception.Message);
     }
 
     [Fact]

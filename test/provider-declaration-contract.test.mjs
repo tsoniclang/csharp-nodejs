@@ -79,11 +79,12 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
   const spawnSync = childProcess.find((entry) =>
     entry.name === "spawnSync" && entry.exportKind !== "default"
   );
-  assert.deepEqual(spawnSync?.signatures, [{
-    id: "node:child_process.spawnSync(System.String,System.String[])",
+  assert.deepEqual(spawnSync?.signatures, [false, true].map(options => ({
+    id: `node:child_process.spawnSync(System.String,System.String[]${options ? ",SpawnSyncOptionsWithBufferEncoding" : ""})`,
     parameters: [
       { name: "command", type: { kind: "string" } },
       { name: "args", type: { kind: "array", elementType: { kind: "string" } } },
+      ...(options ? [{ name: "options", type: { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding" } }] : []),
     ],
     returnType: {
       kind: "provider-ref",
@@ -95,7 +96,7 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
         exportName: "Buffer",
       }],
     },
-  }]);
+  })));
   const spawnSyncReturns = childProcess.find((entry) =>
     entry.name === "SpawnSyncReturns" && entry.exportKind !== "default"
   );
@@ -103,12 +104,15 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
   assert.deepEqual(
     spawnSyncReturns?.members?.map((member) => [member.name, member.type]),
     [
-      ["stdout", { kind: "type-parameter", name: "T" }],
-      ["stderr", { kind: "type-parameter", name: "T" }],
+      ["stdout", { kind: "union", types: [{ kind: "type-parameter", name: "T" }, { kind: "literal", value: null }] }],
+      ["stderr", { kind: "union", types: [{ kind: "type-parameter", name: "T" }, { kind: "literal", value: null }] }],
       ["status", {
         kind: "union",
         types: [{ kind: "number" }, { kind: "literal", value: null }],
       }],
+      ["pid", { kind: "number" }],
+      ["signal", { kind: "union", types: [{ kind: "provider-ref", moduleSpecifier: "node:process", exportName: "Signals" }, { kind: "literal", value: null }] }],
+      ["error", { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncError" }],
     ],
   );
   const spawnRelations = nodejsProviderTargetRelations().filter((relation) =>

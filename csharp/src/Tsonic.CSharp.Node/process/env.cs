@@ -8,16 +8,20 @@ namespace Tsonic.CSharp.Node;
 /// On Windows, environment variables are case-insensitive.
 /// On Unix-like systems, they are case-sensitive.
 /// </summary>
-public class ProcessEnv : IDictionary<string, string?>
+public class ProcessEnv : IDictionary<string, string?>, IReadOnlyDictionary<string, string?>
 {
     private readonly Dictionary<string, string?> _env;
     private readonly StringComparer _comparer;
+    private readonly bool _processEnvironment;
 
     /// <summary>
-    /// Initializes a new instance of the ProcessEnv class with environment variables.
+    /// Initializes an empty, independent environment record.
     /// </summary>
-    public ProcessEnv()
+    public ProcessEnv() : this(false) { }
+
+    internal ProcessEnv(bool processEnvironment)
     {
+        _processEnvironment = processEnvironment;
         // Use case-insensitive comparison on Windows, case-sensitive on Unix
         _comparer = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? StringComparer.OrdinalIgnoreCase
@@ -26,6 +30,7 @@ public class ProcessEnv : IDictionary<string, string?>
         _env = new Dictionary<string, string?>(_comparer);
 
         // Load environment variables
+        if (!processEnvironment) return;
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
         {
             if (entry.Key is string key && entry.Value is string value)
@@ -48,12 +53,12 @@ public class ProcessEnv : IDictionary<string, string?>
             if (value == null)
             {
                 _env.Remove(key);
-                Environment.SetEnvironmentVariable(key, null);
+                if (_processEnvironment) Environment.SetEnvironmentVariable(key, null);
             }
             else
             {
                 _env[key] = value;
-                Environment.SetEnvironmentVariable(key, value);
+                if (_processEnvironment) Environment.SetEnvironmentVariable(key, value);
             }
         }
     }
@@ -67,6 +72,9 @@ public class ProcessEnv : IDictionary<string, string?>
     /// Gets a collection containing the environment variable values.
     /// </summary>
     public ICollection<string?> Values => _env.Values;
+
+    IEnumerable<string> IReadOnlyDictionary<string, string?>.Keys => _env.Keys;
+    IEnumerable<string?> IReadOnlyDictionary<string, string?>.Values => _env.Values;
 
     /// <summary>
     /// Gets the number of environment variables.
@@ -86,7 +94,7 @@ public class ProcessEnv : IDictionary<string, string?>
     public void Add(string key, string? value)
     {
         _env.Add(key, value);
-        if (value != null)
+        if (_processEnvironment && value != null)
         {
             Environment.SetEnvironmentVariable(key, value);
         }
@@ -107,7 +115,7 @@ public class ProcessEnv : IDictionary<string, string?>
     public bool Remove(string key)
     {
         var removed = _env.Remove(key);
-        if (removed)
+        if (_processEnvironment && removed)
         {
             Environment.SetEnvironmentVariable(key, null);
         }
@@ -133,7 +141,7 @@ public class ProcessEnv : IDictionary<string, string?>
     /// </summary>
     public void Clear()
     {
-        foreach (var key in _env.Keys.ToList())
+        if (_processEnvironment) foreach (var key in _env.Keys)
         {
             Environment.SetEnvironmentVariable(key, null);
         }
@@ -165,7 +173,7 @@ public class ProcessEnv : IDictionary<string, string?>
     public bool Remove(KeyValuePair<string, string?> item)
     {
         var removed = ((ICollection<KeyValuePair<string, string?>>)_env).Remove(item);
-        if (removed)
+        if (_processEnvironment && removed)
         {
             Environment.SetEnvironmentVariable(item.Key, null);
         }
@@ -183,7 +191,7 @@ public class ProcessEnv : IDictionary<string, string?>
 
 public static partial class process
 {
-    private static readonly ProcessEnv _env = new ProcessEnv();
+    private static readonly ProcessEnv _env = new ProcessEnv(true);
 
     /// <summary>
     /// The process.env property returns an object containing the user environment.

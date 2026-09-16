@@ -20,7 +20,7 @@ export function createCsharpNodejsProviderPackage() {
     moduleDiagnostic: nodejsProviderModuleDiagnostic,
     resolutionEvidence: [{ message: "C# NodeJS provider package supplied virtual module." }],
     declarationEvidence: [{ message: "C# NodeJS provider package virtual declaration model." }],
-    policy: createCsharpNodejsProviderPolicyContribution(),
+    createPolicy: selectedSurfaceIds => createCsharpNodejsProviderPolicyContribution(selectedSurfaceIds.includes("js")),
     runtime: nodejsRuntimeContributions(),
   });
 }

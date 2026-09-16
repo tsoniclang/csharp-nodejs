@@ -43,6 +43,8 @@ public partial class Buffer : ITsClosedValueCarrier
     /// </summary>
     internal byte[] InternalData => _data;
 
+    internal static Buffer TakeOwnership(byte[] data) => new(data);
+
     /// <summary>
     /// The size (in bytes) of pre-allocated internal Buffer instances used for pooling.
     /// This value may be modified.

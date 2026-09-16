@@ -133,7 +133,7 @@ public static partial class child_process
             try
             {
                 var result = execFileSync(file, args, options);
-                var stdout = result is string str ? str : Encoding.UTF8.GetString((byte[])result);
+                var stdout = result is null ? "" : result is string str ? str : Encoding.UTF8.GetString((byte[])result);
                 callback(null, stdout, "");
             }
             catch (Exception ex)

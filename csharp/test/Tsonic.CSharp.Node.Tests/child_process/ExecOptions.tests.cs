@@ -44,17 +44,12 @@ public class ChildProcessExecOptionsTests
     }
 
     [Fact]
-    public void ExecOptions_WithTimeout_SetsSignal()
+    public void SpawnOptions_WithTimeout_CannotInventSignalEvidence()
     {
-        var command = IsWindows ? "timeout" : "sleep";
-        var args = IsWindows ? new[] { "/t", "10" } : new[] { "10" };
-        var options = new ExecOptions { timeout = 100 }; // 100ms timeout
-        var result = child_process.spawnSync(command, args, options);
-
-        Assert.NotNull(result.signal);
-        Assert.Equal("SIGTERM", result.signal);
-        Assert.NotNull(result.error);
-        Assert.IsType<TimeoutException>(result.error);
+        var options = new ExecOptions { timeout = 100 };
+        var error = Assert.Throws<PlatformNotSupportedException>(() =>
+            child_process.spawnSync("must-not-be-started", [], options));
+        Assert.Contains("termination evidence", error.Message);
     }
 
     [Fact]

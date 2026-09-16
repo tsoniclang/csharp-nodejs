@@ -87,6 +87,16 @@ export const nodeProcessProcessVersionsExportName = "ProcessVersions";
 
 export function nodeProcessExports(): readonly ProviderExportDeclaration[] {
   const exports = [
+    {
+      id: "node:process.Signals", name: "Signals", kind: "type" as const,
+      type: { kind: "union" as const, types: [
+        "SIGABRT", "SIGALRM", "SIGBUS", "SIGCHLD", "SIGCONT", "SIGFPE", "SIGHUP", "SIGILL",
+        "SIGINT", "SIGIO", "SIGIOT", "SIGKILL", "SIGPIPE", "SIGPOLL", "SIGPROF", "SIGPWR",
+        "SIGQUIT", "SIGSEGV", "SIGSTKFLT", "SIGSTOP", "SIGSYS", "SIGTERM", "SIGTRAP",
+        "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGUNUSED", "SIGURG", "SIGUSR1", "SIGUSR2",
+        "SIGVTALRM", "SIGWINCH", "SIGXCPU", "SIGXFSZ", "SIGBREAK", "SIGLOST", "SIGINFO",
+      ].map(value => ({ kind: "literal" as const, value })) },
+    },
     nodeProcessEnvExportDeclaration(),
     nodeProcessMemoryUsageExportDeclaration(),
     nodeProcessVersionsExportDeclaration(),
