@@ -14,14 +14,14 @@ internal sealed class JsEventLoopTestHost : IDisposable
     private JsEventLoopTestHost(Action cleanup)
     {
         _cleanup = cleanup;
+        using var started = new ManualResetEventSlim();
+        JsEventLoop.EnqueueReferenced(started.Set);
         _eventLoop = Task.Factory.StartNew(
             JsEventLoop.Run,
             CancellationToken.None,
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
 
-        using var started = new ManualResetEventSlim();
-        JsEventLoop.EnqueueReferenced(started.Set);
         if (!started.Wait(ShutdownTimeout))
             throw new TimeoutException("The test JavaScript event loop did not start.");
     }

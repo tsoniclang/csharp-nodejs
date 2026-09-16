@@ -14,6 +14,15 @@ public class TimersTests
     }
 
     [Fact]
+    public void EventLoopHost_StartsWithoutPendingTimers()
+    {
+        for (var index = 0; index < 32; index++)
+        {
+            using var eventLoop = JsEventLoopTestHost.Start(static () => { });
+        }
+    }
+
+    [Fact]
     public void setTimeout_ShouldExecuteCallback()
     {
         var resetEvent = new ManualResetEventSlim(false);
