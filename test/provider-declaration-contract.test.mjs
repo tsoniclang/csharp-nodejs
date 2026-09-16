@@ -115,21 +115,23 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
       ["error", { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncError" }],
     ],
   );
-  const spawnRelations = nodejsProviderTargetRelations().filter((relation) =>
-    relation.kind === "signature" &&
-    relation.source.signatureId ===
-      "node:child_process.spawnSync(System.String,System.String[])"
-  );
-  assert.equal(spawnRelations.length, 4);
-  for (const moduleSpecifier of ["child_process", "node:child_process"]) {
-    const targetArgumentTypes = spawnRelations
-      .filter((relation) => relation.source.moduleSpecifier === moduleSpecifier)
-      .map((relation) => relation.targetMember.parameters[1].type)
-      .sort((left, right) => left.kind.localeCompare(right.kind));
-    assert.equal(targetArgumentTypes.length, 2);
-    assert.equal(targetArgumentTypes[0].kind, "array");
-    assert.equal(targetArgumentTypes[1].kind, "target-named");
-    assert.equal(targetArgumentTypes[1].id, "Tsonic.CSharp.Js.JSArray`1");
+  for (const includeJsSurfaceMembers of [false, true]) {
+    const spawnRelations = nodejsProviderTargetRelations(includeJsSurfaceMembers).filter((relation) =>
+      relation.kind === "signature" &&
+      relation.source.signatureId ===
+        "node:child_process.spawnSync(System.String,System.String[])"
+    );
+    assert.equal(spawnRelations.length, 2);
+    for (const moduleSpecifier of ["child_process", "node:child_process"]) {
+      const targetArgumentTypes = spawnRelations
+        .filter((relation) => relation.source.moduleSpecifier === moduleSpecifier)
+        .map((relation) => relation.targetMember.parameters[1].type);
+      assert.equal(targetArgumentTypes.length, 1);
+      assert.equal(targetArgumentTypes[0].kind, includeJsSurfaceMembers ? "target-named" : "array");
+      if (includeJsSurfaceMembers) {
+        assert.equal(targetArgumentTypes[0].id, "Tsonic.CSharp.Js.JSArray`1");
+      }
+    }
   }
 
   const fs = nodejsCanonicalProviderExports("node:fs") ?? [];
