@@ -22,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 64);
+  assert.equal(relations.length, 65);
   assert.equal(
     new Set(relations.map((relation) =>
       `${relation.source.providerModuleId}:${relation.source.exportName}`

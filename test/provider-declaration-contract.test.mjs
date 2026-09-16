@@ -12,7 +12,7 @@ import {
 
 test("native V8 flags retain one exact string-to-void runtime boundary", () => {
   const declarations = nodejsCanonicalProviderExports("node:v8");
-  assert.deepEqual(declarations.map((entry) => entry.name), ["setFlagsFromString"]);
+  assert.deepEqual(declarations.map((entry) => entry.name), ["setFlagsFromString", "getHeapStatistics", "HeapInfo"]);
   assert.deepEqual(declarations[0].signatures, [{
     id: "node:v8.setFlagsFromString(System.String)",
     parameters: [{ name: "flags", type: { kind: "string" } }],
