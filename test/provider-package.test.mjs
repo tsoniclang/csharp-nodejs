@@ -82,22 +82,20 @@ test("native and JS provider sessions remain isolated without changing native ru
   }
   const nativeRuntime = plugin.runtimeContributions({ selectedSurfaceIds: [] });
   assert.equal(plugin.runtimeContributions({ selectedSurfaceIds: ["js"] }), nativeRuntime);
-  assert.deepEqual(nativeRuntime.references, [
-    {
-      kind: "assembly", include: "Tsonic.CSharp.Node",
-      attributes: { HintPath: new URL("../runtimes/net10.0/Tsonic.CSharp.Node.dll", import.meta.url).pathname },
-    },
-    {
-      kind: "assembly", include: "Tsonic.CSharp.Js",
-      attributes: { HintPath: fileURLToPath(new URL("runtimes/net10.0/Tsonic.CSharp.Js.dll", import.meta.resolve("@tsonic/csharp-js/package.json"))) },
-    },
-    { kind: "package", include: "BouncyCastle.Cryptography", version: "2.4.0" },
-    { kind: "framework", include: "Microsoft.AspNetCore.App" },
-  ]);
-  for (const reference of nativeRuntime.references.filter((entry) => entry.kind === "assembly")) {
-    assert.equal(existsSync(reference.attributes.HintPath), true, reference.include);
-    assert.doesNotMatch(reference.attributes.HintPath, /\/dist\/runtimes\//u);
+  assert.equal(nativeRuntime.references.length, 3);
+  const byPath = new Map(nativeRuntime.references.map(reference => [reference.include, reference]));
+  for (const reference of nativeRuntime.references) {
+    assert.equal(reference.kind, "csharp-source-project");
+    assert.equal(existsSync(reference.include), true);
+    assert.equal(existsSync(reference.attributes.DirectoryBuildPropsPath), true);
+    assert.equal(Object.isFrozen(reference.attributes), true);
+    for (const [name, dependency] of Object.entries(reference.attributes)) {
+      if (name === "DirectoryBuildPropsPath") continue;
+      assert.equal(byPath.has(dependency), true, dependency);
+    }
   }
+  const nodeProject = fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.csproj"));
+  assert.equal(byPath.has(nodeProject), true);
 });
 
 test("unowned lookalikes and mismatched canonical module IDs keep exact Node diagnostics", () => {

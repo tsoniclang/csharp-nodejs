@@ -4,6 +4,11 @@ C# Node capability for Tsonic. It owns exact `node:*` provider declarations,
 C# operation relations, runtime references, and the `Tsonic.CSharp.Node`
 runtime implementation.
 
+The npm package ships C# source, not precompiled runtime DLLs. Its
+`@tsonic/csharp-nodejs/runtime.csproj` export identifies the native project.
+MSBuild restores its native dependencies and builds it with the JS/core
+runtimes for the application's selected framework.
+
 Canonical product documentation:
 
 - [Node capability](https://github.com/tsoniclang/tsonic/blob/main/docs/reference/node-capability.md)

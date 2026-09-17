@@ -12,8 +12,10 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "csharp",
-    "runtimes",
+    "Directory.Build.props",
+    "csharp/src",
+    "!csharp/src/**/bin/**",
+    "!csharp/src/**/obj/**",
     "README.md",
     "LICENSE"
   ],
@@ -22,7 +24,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./runtime.csproj": "./csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj",
+    "./runtime.props": "./Directory.Build.props"
   },
   "tsonic": {
     "kind": "plugin",
