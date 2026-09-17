@@ -39,7 +39,11 @@ public static partial class child_process
         foreach (var pair in env)
         {
             if (pair.Value != null)
+            {
+                if (pair.Key.Length == 0 || pair.Key.Contains('=') || pair.Key.Contains('\0') || pair.Value.Contains('\0'))
+                    throw new ArgumentException("A child environment requires nonempty names without '=' or NUL, and values without NUL.");
                 startInfo.Environment[pair.Key] = pair.Value;
+            }
         }
     }
 }

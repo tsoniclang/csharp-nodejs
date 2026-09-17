@@ -11,7 +11,7 @@ public class SpawnSyncReturns<T>
     /// <summary>
     /// The process ID of the spawned child process.
     /// </summary>
-    public int pid { get; set; }
+    public int? pid { get; set; }
 
     /// <summary>
     /// Array containing the results from stdio output.
@@ -21,12 +21,12 @@ public class SpawnSyncReturns<T>
     /// <summary>
     /// The contents of stdout.
     /// </summary>
-    public T stdout { get; set; } = default!;
+    public T? stdout { get; set; }
 
     /// <summary>
     /// The contents of stderr.
     /// </summary>
-    public T stderr { get; set; } = default!;
+    public T? stderr { get; set; }
 
     /// <summary>
     /// The exit code of the subprocess, or null if the subprocess terminated due to a signal.
@@ -41,5 +41,5 @@ public class SpawnSyncReturns<T>
     /// <summary>
     /// Error object if the child process failed or timed out.
     /// </summary>
-    public Exception? error { get; set; }
+    public SpawnSyncError? error { get; set; }
 }

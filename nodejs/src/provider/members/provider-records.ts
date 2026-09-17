@@ -1,6 +1,7 @@
 import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp/provider";
+import { nodeV8CallTargetMembers, nodeV8ModuleSpecifier, nodeV8PropertyTargetMembers } from "../modules/v8.js";
 import {
   nodeAssertCallTargetMembers,
   nodeAssertModuleSpecifier,
@@ -165,7 +166,7 @@ export interface NodejsUnsupportedTargetMetadataRecord {
   readonly identity: NodejsUnsupportedTargetIdentity;
 }
 
-export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMemberMetadataRecord[] {
+export function nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers = true): readonly NodejsTargetMemberMetadataRecord[] {
   return [
     ...classCallRecords(nodeEventsModuleSpecifier, nodeEventsClassCallTargetMembers()),
     ...classCallRecords(nodeStreamModuleSpecifier, nodeStreamClassCallTargetMembers()),
@@ -189,8 +190,8 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...classCallRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassCallTargetMembers()),
     ...classPropertyRecords(nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeBufferModuleSpecifier, nodeBufferModuleCallTargetMembers()),
-    ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers()),
-    ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers()),
+    ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers(includeJsSurfaceMembers)),
+    ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembers)),
     ...classCallRecords(nodeBufferModuleSpecifier, nodeBufferClassCallTargetMembers()),
     ...classPropertyRecords(nodeBufferModuleSpecifier, nodeBufferClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeAssertModuleSpecifier, nodeAssertCallTargetMembers()),
@@ -215,6 +216,8 @@ export function nodejsTargetMemberMetadataRecords(): readonly NodejsTargetMember
     ...moduleCallRecords(nodeCryptoModuleSpecifier, nodeCryptoCallTargetMembers()),
     ...classCallRecords(nodeCryptoModuleSpecifier, nodeCryptoClassCallTargetMembers()),
     ...moduleCallRecords(nodeOsModuleSpecifier, nodeOsCallTargetMembers()),
+    ...moduleCallRecords(nodeV8ModuleSpecifier, nodeV8CallTargetMembers()),
+    ...classPropertyRecords(nodeV8ModuleSpecifier, nodeV8PropertyTargetMembers()),
     ...modulePropertyRecords(nodeOsModuleSpecifier, nodeOsPropertyTargetMembers()),
     ...moduleCallRecords(nodeProcessModuleSpecifier, nodeProcessCallTargetMembers()),
     ...modulePropertyRecords(nodeProcessModuleSpecifier, nodeProcessPropertyTargetMembers()),

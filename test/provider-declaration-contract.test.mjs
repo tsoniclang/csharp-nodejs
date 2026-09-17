@@ -10,6 +10,25 @@ import {
   nodejsProviderTargetRelations,
 } from "../dist/provider/target-relations.js";
 
+test("native V8 flags retain one exact string-to-void runtime boundary", () => {
+  const declarations = nodejsCanonicalProviderExports("node:v8");
+  assert.deepEqual(declarations.map((entry) => entry.name), ["setFlagsFromString", "getHeapStatistics", "HeapInfo"]);
+  assert.deepEqual(declarations[0].signatures, [{
+    id: "node:v8.setFlagsFromString(System.String)",
+    parameters: [{ name: "flags", type: { kind: "string" } }],
+    returnType: { kind: "void" },
+  }]);
+  const relations = nodejsProviderTargetRelations().filter((relation) =>
+    relation.kind === "signature" &&
+    relation.source.signatureId === "node:v8.setFlagsFromString(System.String)"
+  );
+  assert.equal(relations.length, 2);
+  assert.deepEqual(relations.map((relation) => relation.source.moduleSpecifier).sort(), ["node:v8", "v8"]);
+  for (const relation of relations) {
+    assert.equal(relation.targetMember.id, "Tsonic.CSharp.Node.v8.setFlagsFromString(System.String)");
+  }
+});
+
 test("every Node provider signature has legal parameter omission order", () => {
   const violations = [];
 
@@ -60,11 +79,12 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
   const spawnSync = childProcess.find((entry) =>
     entry.name === "spawnSync" && entry.exportKind !== "default"
   );
-  assert.deepEqual(spawnSync?.signatures, [{
-    id: "node:child_process.spawnSync(System.String,System.String[])",
+  assert.deepEqual(spawnSync?.signatures, [false, true].map(options => ({
+    id: `node:child_process.spawnSync(System.String,System.String[]${options ? ",SpawnSyncOptionsWithBufferEncoding" : ""})`,
     parameters: [
       { name: "command", type: { kind: "string" } },
       { name: "args", type: { kind: "array", elementType: { kind: "string" } } },
+      ...(options ? [{ name: "options", type: { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding" } }] : []),
     ],
     returnType: {
       kind: "provider-ref",
@@ -76,7 +96,7 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
         exportName: "Buffer",
       }],
     },
-  }]);
+  })));
   const spawnSyncReturns = childProcess.find((entry) =>
     entry.name === "SpawnSyncReturns" && entry.exportKind !== "default"
   );
@@ -84,29 +104,34 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
   assert.deepEqual(
     spawnSyncReturns?.members?.map((member) => [member.name, member.type]),
     [
-      ["stdout", { kind: "type-parameter", name: "T" }],
-      ["stderr", { kind: "type-parameter", name: "T" }],
+      ["stdout", { kind: "union", types: [{ kind: "type-parameter", name: "T" }, { kind: "literal", value: null }] }],
+      ["stderr", { kind: "union", types: [{ kind: "type-parameter", name: "T" }, { kind: "literal", value: null }] }],
       ["status", {
         kind: "union",
         types: [{ kind: "number" }, { kind: "literal", value: null }],
       }],
+      ["pid", { kind: "number" }],
+      ["signal", { kind: "union", types: [{ kind: "provider-ref", moduleSpecifier: "node:process", exportName: "Signals" }, { kind: "literal", value: null }] }],
+      ["error", { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncError" }],
     ],
   );
-  const spawnRelations = nodejsProviderTargetRelations().filter((relation) =>
-    relation.kind === "signature" &&
-    relation.source.signatureId ===
-      "node:child_process.spawnSync(System.String,System.String[])"
-  );
-  assert.equal(spawnRelations.length, 4);
-  for (const moduleSpecifier of ["child_process", "node:child_process"]) {
-    const targetArgumentTypes = spawnRelations
-      .filter((relation) => relation.source.moduleSpecifier === moduleSpecifier)
-      .map((relation) => relation.targetMember.parameters[1].type)
-      .sort((left, right) => left.kind.localeCompare(right.kind));
-    assert.equal(targetArgumentTypes.length, 2);
-    assert.equal(targetArgumentTypes[0].kind, "array");
-    assert.equal(targetArgumentTypes[1].kind, "target-named");
-    assert.equal(targetArgumentTypes[1].id, "Tsonic.CSharp.Js.JSArray`1");
+  for (const includeJsSurfaceMembers of [false, true]) {
+    const spawnRelations = nodejsProviderTargetRelations(includeJsSurfaceMembers).filter((relation) =>
+      relation.kind === "signature" &&
+      relation.source.signatureId ===
+        "node:child_process.spawnSync(System.String,System.String[])"
+    );
+    assert.equal(spawnRelations.length, 2);
+    for (const moduleSpecifier of ["child_process", "node:child_process"]) {
+      const targetArgumentTypes = spawnRelations
+        .filter((relation) => relation.source.moduleSpecifier === moduleSpecifier)
+        .map((relation) => relation.targetMember.parameters[1].type);
+      assert.equal(targetArgumentTypes.length, 1);
+      assert.equal(targetArgumentTypes[0].kind, includeJsSurfaceMembers ? "target-named" : "array");
+      if (includeJsSurfaceMembers) {
+        assert.equal(targetArgumentTypes[0].id, "Tsonic.CSharp.Js.JSArray`1");
+      }
+    }
   }
 
   const fs = nodejsCanonicalProviderExports("node:fs") ?? [];

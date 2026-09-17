@@ -1,4 +1,5 @@
 import type { ProviderExportDeclaration } from "@tsonic/tsts";
+import { nodeV8Exports, nodeV8ModuleSpecifier } from "./v8.js";
 import type { CsharpProviderModuleDefinition } from "@tsonic/target-csharp/provider";
 import {
   nodeAssertExports,
@@ -109,6 +110,7 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeWorkerThreadsModuleSpecifier, nodeWorkerThreadsExports()],
   [nodeCryptoModuleSpecifier, nodeCryptoExports()],
   [nodeOsModuleSpecifier, nodeOsExports()],
+  [nodeV8ModuleSpecifier, nodeV8Exports()],
   [nodeProcessModuleSpecifier, nodeProcessExports()],
   [nodeTimersModuleSpecifier, nodeTimersExports()],
   [nodeUtilModuleSpecifier, nodeUtilExports()],
@@ -117,17 +119,18 @@ const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
 
 export function nodejsCanonicalProviderExports(
   moduleSpecifier: string,
+  includeJsSurfaceMembers = true,
 ): readonly ProviderExportDeclaration[] | undefined {
+  if (moduleSpecifier === nodeFsModuleSpecifier) return nodeFsExports({ includeJsSurfaceMembers });
+  if (moduleSpecifier === nodeChildProcessModuleSpecifier) return nodeChildProcessExports(includeJsSurfaceMembers);
   return canonicalModules.get(moduleSpecifier);
 }
 
 export const nodejsProviderModules: readonly CsharpProviderModuleDefinition[] =
-  [...canonicalModules].map(([moduleSpecifier, exports]): CsharpProviderModuleDefinition => ({
+  [...canonicalModules.keys()].map((moduleSpecifier): CsharpProviderModuleDefinition => ({
     moduleSpecifier,
     providerModuleId: moduleSpecifier,
     getExports(selectedSurfaceIds) {
-      return moduleSpecifier === nodeFsModuleSpecifier
-        ? nodeFsExports({ includeJsSurfaceMembers: selectedSurfaceIds.includes("js") })
-        : exports;
+      return nodejsCanonicalProviderExports(moduleSpecifier, selectedSurfaceIds.includes("js"))!;
     },
   }));

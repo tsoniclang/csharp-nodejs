@@ -37,7 +37,7 @@ test("every Node alias preserves canonical declarations, default containers, mod
   assert.deepEqual(provider.identity, csharpNodejsProviderPackageProviderIdentity);
   assert.equal(Object.isFrozen(provider.identity), true);
   assert.equal(provider.declarationMaterialization, "complete");
-  const policy = plugin.createTargetContributions({})[0];
+  const policy = plugin.createTargetContributions({ selectedSurfaceIds: ["js"] })[0];
   assert.deepEqual(policy, createCsharpNodejsProviderPolicyContribution());
   for (const { moduleSpecifier, canonicalModuleSpecifier } of nodejsProviderModuleSpecifiers()) {
     assert.deepEqual(provider.ownsModule(moduleSpecifier, {}), { kind: "owned" });
@@ -65,7 +65,7 @@ test("every Node alias preserves canonical declarations, default containers, mod
       source: { ...relation.source, moduleSpecifier },
     })), moduleSpecifier);
   }
-  assert.equal(plugin.createTargetContributions({})[0], policy);
+  assert.equal(plugin.createTargetContributions({ selectedSurfaceIds: ["js"] })[0], policy);
 });
 
 test("native and JS provider sessions remain isolated without changing native runtime requirements", () => {

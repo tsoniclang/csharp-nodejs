@@ -17,6 +17,7 @@ test("C# Node contributes through the standard target capability hook", () => {
     targetPack: { id: "csharp", displayName: "C#" },
     selectedCapabilities: [plugin],
     selectedSurfaces: [],
+    selectedSurfaceIds: [],
     capability: plugin,
   });
   assert.equal(contributions.length, 1);
@@ -24,7 +25,7 @@ test("C# Node contributes through the standard target capability hook", () => {
     contributions[0].kind,
     csharpProviderPolicyContributionKind,
   );
-  assert.equal(contributions[0].relations.length, 1748);
+  assert.equal(contributions[0].relations.length, 1818);
   assert.equal(contributions[0].rejections.length, 166);
 });
 

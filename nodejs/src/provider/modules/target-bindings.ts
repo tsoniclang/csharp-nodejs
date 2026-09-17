@@ -4,7 +4,9 @@ import {
 } from "@tsonic/target-csharp/provider";
 import type {
   CsharpTargetBindingFact,
+  CsharpTargetNamedTypeRef,
 } from "@tsonic/target-csharp/provider";
+import { nodeChildProcessOptionsTarget } from "./child-process.js";
 
 export interface NodejsProviderTargetTypeRow {
   readonly moduleSpecifier: string;
@@ -13,9 +15,12 @@ export interface NodejsProviderTargetTypeRow {
   readonly namespace: string;
   readonly targetName: string;
   readonly objectLiteralConstruction?: "object-initializer";
+  readonly targetType?: (includeJsSurfaceMembers: boolean) => CsharpTargetNamedTypeRef;
 }
 
 export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
+  { moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncOptions", targetType: js => nodeChildProcessOptionsTarget(js).type, objectLiteralConstruction: "object-initializer" },
+  { moduleSpecifier: "node:child_process", exportName: "SpawnSyncError", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncError" },
   { moduleSpecifier: "node:events", exportName: "EventEmitter", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "EventEmitter" },
   { moduleSpecifier: "node:stream", exportName: "Stream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Stream" },
   { moduleSpecifier: "node:stream", exportName: "Readable", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Readable" },
@@ -70,8 +75,9 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:https", exportName: "RequestOptions", kind: "class", namespace: "Tsonic.CSharp.Node.Https", targetName: "HttpsRequestOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:path", exportName: "ParsedPath", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ParsedPath" },
   { moduleSpecifier: "node:path", exportName: "PathModule", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "PathModule" },
-  { moduleSpecifier: "node:process", exportName: "ProcessEnv", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ProcessEnv" },
+  { moduleSpecifier: "node:process", exportName: "ProcessEnv", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ProcessEnv", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:process", exportName: "MemoryUsage", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "MemoryUsage" },
+  { moduleSpecifier: "node:v8", exportName: "HeapInfo", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "HeapInfo" },
   { moduleSpecifier: "node:process", exportName: "ProcessVersions", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ProcessVersions" },
   { moduleSpecifier: "node:timers", exportName: "Timeout", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Timeout" },
   { moduleSpecifier: "node:util", exportName: "TextDecoder", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TextDecoder" },
@@ -97,17 +103,25 @@ const bindingByProviderExport = new Map(
         csharpQualifiedTypeRenderShape(row.namespace, row.targetName),
       ),
     }) satisfies CsharpTargetBindingFact;
-    return [providerExportKey(row.moduleSpecifier, row.exportName), binding] as const;
+    return [providerExportKey(row.moduleSpecifier, row.exportName), {
+      binding, targetType: row.targetType,
+    }] as const;
   }),
 );
 
 export function nodejsProviderTargetBinding(
   moduleSpecifier: string,
   exportName: string,
+  includeJsSurfaceMembers = true,
 ): CsharpTargetBindingFact | undefined {
-  return bindingByProviderExport.get(
+  const entry = bindingByProviderExport.get(
     providerExportKey(moduleSpecifier, exportName),
   );
+  if (entry === undefined) return undefined;
+  const targetType = entry.targetType?.(includeJsSurfaceMembers);
+  return targetType === undefined ? entry.binding : {
+    ...entry.binding, id: targetType.id, csharpType: targetType,
+  };
 }
 
 function providerExportKey(moduleSpecifier: string, exportName: string): string {

@@ -1,4 +1,5 @@
 import type { CsharpProviderModuleSpecifier } from "@tsonic/target-csharp/provider";
+import { nodeV8ModuleSpecifier } from "./v8.js";
 import {
   nodeAssertModuleSpecifier,
 } from "./assert.js";
@@ -66,6 +67,8 @@ import {
 } from "./worker-threads.js";
 
 const canonicalBySpecifier = new Map<string, string>([
+  ["v8", nodeV8ModuleSpecifier],
+  [nodeV8ModuleSpecifier, nodeV8ModuleSpecifier],
   ["assert", nodeAssertModuleSpecifier],
   [nodeAssertModuleSpecifier, nodeAssertModuleSpecifier],
   ["assert/strict", nodeAssertModuleSpecifier],
