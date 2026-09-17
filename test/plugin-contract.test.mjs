@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { createTsonicPlugin } from "../dist/index.js";
 import {
   csharpProviderPolicyContributionKind,
+  csharpCoreRuntimeSource,
+  csharpJsRuntimeSource,
 } from "../../tsonic-csharp/dist/public/provider.js";
 
 test("C# Node contributes through the standard target capability hook", () => {
@@ -29,23 +32,20 @@ test("C# Node contributes through the standard target capability hook", () => {
   assert.equal(contributions[0].rejections.length, 166);
 });
 
-test("C# Node owns its JS runtime assembly dependency without selecting the JS source surface", () => {
+test("C# Node owns its runtime source closure without selecting the JS source surface", () => {
   const plugin = createTsonicPlugin();
   const references = plugin.runtimeContributions({}).references;
 
   assert.deepEqual(
-    references
-      .filter((reference) => reference.kind === "assembly")
-      .map((reference) => reference.include),
-    ["Tsonic.CSharp.Node", "Tsonic.CSharp.Js"],
+    references.map((reference) => reference.include),
+    [csharpCoreRuntimeSource.projectPath, csharpJsRuntimeSource.projectPath,
+      fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.csproj"))],
   );
-  assert.match(
-    references[1].attributes.HintPath,
-    /\/csharp-js\/runtimes\/net10\.0\/Tsonic\.CSharp\.Js\.dll$/u,
-  );
-  assert.equal(existsSync(references[1].attributes.HintPath), true);
-  assert.equal(
-    references.some((reference) => reference.kind === "assembly" && reference.include === "Tsonic.CSharp.Runtime"),
-    false,
-  );
+  for (const reference of references) {
+    assert.equal(reference.kind, "csharp-source-project");
+    assert.equal(existsSync(reference.include), true);
+  }
+  assert.equal(references[1].attributes.TsonicCsharpRuntimeProject, references[0].include);
+  assert.equal(references[2].attributes.TsonicCsharpJsProject, references[1].include);
+  assert.equal(references[2].attributes.TsonicCsharpRuntimeProject, references[0].include);
 });
