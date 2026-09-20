@@ -48,9 +48,9 @@ public class ZlibTransform : Transform
             return;
         }
 
-        var bytes = chunk switch
+        ReadOnlyMemory<byte> bytes = chunk switch
         {
-            Buffer buffer => buffer.InternalData,
+            Buffer buffer => buffer.InternalMemory,
             byte[] value => value,
             _ => throw new ArgumentException("Zlib transforms accept Buffer or byte[] chunks.", nameof(chunk)),
         };
@@ -96,7 +96,7 @@ public class ZlibTransform : Transform
         {
             try
             {
-                accepted = push(Buffer.from(bytes));
+                accepted = push(Buffer.TakeOwnership(bytes));
             }
             catch (Exception error)
             {
@@ -230,14 +230,14 @@ public class ZlibTransform : Transform
 
     private sealed class CodecInputStream : System.IO.Stream
     {
-        private sealed record Chunk(byte[]? Data, Action<Exception?>? Consumed);
+        private sealed record Chunk(ReadOnlyMemory<byte>? Data, Action<Exception?>? Consumed);
 
         private readonly BlockingCollection<Chunk> _chunks = new();
         private Chunk? _current;
         private int _offset;
         private int _completed;
 
-        public void Enqueue(byte[] bytes, Action<Exception?> consumed)
+        public void Enqueue(ReadOnlyMemory<byte> bytes, Action<Exception?> consumed)
         {
             if (Volatile.Read(ref _completed) != 0)
                 throw new InvalidOperationException("Cannot write after the codec input has completed.");
@@ -274,11 +274,11 @@ public class ZlibTransform : Transform
             }
 
             var current = _current;
-            var available = current.Data!.Length - _offset;
+            var available = current.Data!.Value.Length - _offset;
             var copied = Math.Min(count, available);
-            Array.Copy(current.Data, _offset, buffer, offset, copied);
+            current.Data!.Value.Span.Slice(_offset, copied).CopyTo(buffer.AsSpan(offset));
             _offset += copied;
-            if (_offset == current.Data.Length)
+            if (_offset == current.Data.Value.Length)
             {
                 _current = null;
                 if (current.Consumed is not null)

@@ -37,7 +37,7 @@ public partial class TLSSocket : Socket
     private int _tlsNeedsDrain;
     private const long TlsWriteHighWaterMark = 64 * 1024;
 
-    private sealed record TlsWriteRequest(byte[]? Data, Action<Exception?>? Callback, Action? EndCallback);
+    private sealed record TlsWriteRequest(ReadOnlyMemory<byte>? Data, Action<Exception?>? Callback, Action? EndCallback);
 
     /// <summary>
     /// True if the peer certificate was signed by one of the CAs.

@@ -48,14 +48,9 @@ public partial class Buffer
     /// <param name="start">Start offset.</param>
     /// <param name="end">End offset.</param>
     /// <returns>Hex string.</returns>
-    private static string BytesToHex(byte[] bytes, int start, int end)
+    private static string BytesToHex(ReadOnlySpan<byte> bytes, int start, int end)
     {
-        var sb = new StringBuilder((end - start) * 2);
-        for (int i = start; i < end; i++)
-        {
-            sb.Append(bytes[i].ToString("x2"));
-        }
-        return sb.ToString();
+        return Convert.ToHexStringLower(bytes.Slice(start, end - start));
     }
 
     /// <summary>

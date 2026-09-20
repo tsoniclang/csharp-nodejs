@@ -27,7 +27,7 @@ public partial class Buffer
     /// </summary>
     public ushort readUInt16LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt16LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt16LittleEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public partial class Buffer
     /// </summary>
     public short readInt16LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt16LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt16LittleEndian(_data.Slice(offset));
     }
 
     // 16-bit reads (Big Endian)
@@ -49,7 +49,7 @@ public partial class Buffer
     /// </summary>
     public ushort readUInt16BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt16BigEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public partial class Buffer
     /// </summary>
     public short readInt16BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt16BigEndian(_data.Slice(offset));
     }
 
     // 32-bit reads (Little Endian)
@@ -71,7 +71,7 @@ public partial class Buffer
     /// </summary>
     public uint readUInt32LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt32LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt32LittleEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public partial class Buffer
     /// </summary>
     public int readInt32LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt32LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt32LittleEndian(_data.Slice(offset));
     }
 
     // 32-bit reads (Big Endian)
@@ -93,7 +93,7 @@ public partial class Buffer
     /// </summary>
     public uint readUInt32BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt32BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt32BigEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public partial class Buffer
     /// </summary>
     public int readInt32BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt32BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt32BigEndian(_data.Slice(offset));
     }
 
     // 64-bit reads (Little Endian)
@@ -115,7 +115,7 @@ public partial class Buffer
     /// </summary>
     public ulong readBigUInt64LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt64LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt64LittleEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public partial class Buffer
     /// </summary>
     public long readBigInt64LE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt64LittleEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt64LittleEndian(_data.Slice(offset));
     }
 
     // 64-bit reads (Big Endian)
@@ -137,7 +137,7 @@ public partial class Buffer
     /// </summary>
     public ulong readBigUInt64BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadUInt64BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadUInt64BigEndian(_data.Slice(offset));
     }
 
     /// <summary>
@@ -150,7 +150,7 @@ public partial class Buffer
     /// </summary>
     public long readBigInt64BE(int offset = 0)
     {
-        return BinaryPrimitives.ReadInt64BigEndian(_data.AsSpan(offset));
+        return BinaryPrimitives.ReadInt64BigEndian(_data.Slice(offset));
     }
 
     // Floating point reads (Little Endian)

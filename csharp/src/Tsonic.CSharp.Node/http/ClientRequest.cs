@@ -22,6 +22,9 @@ public partial class ClientRequest : EventEmitter
     private readonly MemoryStream _requestBody = new();
     private bool _aborted = false;
     private bool _ended = false;
+    private readonly System.Threading.CancellationTokenSource _cancellation = new();
+    private IncomingMessage? _response;
+    private int _released;
 
     internal ClientRequest(HttpClient httpClient, RequestOptions options, Action<IncomingMessage>? callback, bool ownsHttpClient = false)
     {
@@ -154,8 +157,8 @@ public partial class ClientRequest : EventEmitter
         if (_ended)
             throw new InvalidOperationException("Cannot write after request has been sent");
 
-        var bytes = Buffer.from(chunk, encoding ?? "utf8").InternalData;
-        _requestBody.Write(bytes, 0, bytes.Length);
+        var bytes = Buffer.from(chunk, encoding ?? "utf8").InternalMemory;
+        _requestBody.Write(bytes.Span);
         if (callback != null)
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
         return true;
@@ -167,8 +170,8 @@ public partial class ClientRequest : EventEmitter
         if (_ended)
             throw new InvalidOperationException("Cannot write after request has been sent");
 
-        var bytes = chunk.InternalData;
-        _requestBody.Write(bytes, 0, bytes.Length);
+        var bytes = chunk.InternalMemory;
+        _requestBody.Write(bytes.Span);
         if (callback != null)
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
         return true;
@@ -193,33 +196,38 @@ public partial class ClientRequest : EventEmitter
 
         _ended = true;
         ProcessKeepAlive.Acquire();
-
+        var transferred = false;
         try
         {
             // Set request body if present
             if (_requestBody.Length > 0)
             {
-                _request.Content = new ByteArrayContent(_requestBody.ToArray());
+                _requestBody.Position = 0;
+                _request.Content = new StreamContent(_requestBody);
             }
 
             // Apply timeout if specified
             if (_options.timeout.HasValue)
             {
-                using var cts = new System.Threading.CancellationTokenSource(_options.timeout.Value);
-                var response = await _httpClient.SendAsync(_request, cts.Token);
-                await HandleResponse(response);
+                _cancellation.CancelAfter(_options.timeout.Value);
             }
-            else
+            var response = await _httpClient.SendAsync(_request, HttpCompletionOption.ResponseHeadersRead, _cancellation.Token);
+            _response = new IncomingMessage(response, _cancellation.Token, ReleaseRequest);
+            transferred = true;
+            var incomingMessage = _response;
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
             {
-                var response = await _httpClient.SendAsync(_request);
-                await HandleResponse(response);
-            }
+                try { emit("response", incomingMessage); }
+                catch { incomingMessage.destroy(); throw; }
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(incomingMessage.StartClientBody);
+            });
 
             if (callback != null)
                 Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
         }
         catch (TaskCanceledException)
         {
+            _response?.destroy();
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
             {
                 emit("timeout");
@@ -228,12 +236,12 @@ public partial class ClientRequest : EventEmitter
         }
         catch (Exception ex)
         {
+            _response?.destroy();
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
         }
         finally
         {
-            if (_ownsHttpClient)
-                _httpClient.Dispose();
+            if (!transferred) ReleaseRequest();
             ProcessKeepAlive.Release();
         }
     }
@@ -248,16 +256,17 @@ public partial class ClientRequest : EventEmitter
         return end(callback: callback);
     }
 
-    private async Task HandleResponse(HttpResponseMessage response)
+    private void ReleaseRequest()
     {
-        var body = await response.Content.ReadAsByteArrayAsync();
-        var incomingMessage = new IncomingMessage(response, body);
-
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        lock (_cancellation)
         {
-            emit("response", incomingMessage);
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(incomingMessage.EmitBufferedClientBody);
-        });
+            if (_released != 0) return;
+            _released = 1;
+            _request.Dispose();
+            _requestBody.Dispose();
+            _cancellation.Dispose();
+            if (_ownsHttpClient) _httpClient.Dispose();
+        }
     }
 
     /// <summary>
@@ -265,11 +274,13 @@ public partial class ClientRequest : EventEmitter
     /// </summary>
     public void abort()
     {
-        if (_aborted)
-            return;
-
-        _aborted = true;
-        _request.Dispose();
+        lock (_cancellation)
+        {
+            if (_aborted || _released != 0) return;
+            _aborted = true;
+            _cancellation.Cancel();
+        }
+        _response?.destroy();
         emit("abort");
     }
 

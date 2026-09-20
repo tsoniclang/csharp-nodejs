@@ -56,7 +56,7 @@ public static partial class crypto
         if (key == null)
             throw new ArgumentNullException(nameof(key));
 
-        return new Hmac(algorithm, key.InternalData);
+        return new Hmac(algorithm, key.InternalMemory.Span);
     }
 
     /// <summary>
@@ -185,8 +185,7 @@ public static partial class crypto
     public static byte[] randomFillSync(byte[] buffer, int offset = 0, int? size = null)
     {
         var actualSize = size ?? (buffer.Length - offset);
-        var bytes = randomBytes(actualSize);
-        Array.Copy(bytes, 0, buffer, offset, actualSize);
+        RandomNumberGenerator.Fill(buffer.AsSpan(offset, actualSize));
         return buffer;
     }
 
@@ -202,7 +201,7 @@ public static partial class crypto
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
-        randomFillSync(buffer.InternalData, offset, size);
+        RandomNumberGenerator.Fill(buffer.InternalMemory.Span.Slice(offset, size ?? (buffer.length - offset)));
         return buffer;
     }
 

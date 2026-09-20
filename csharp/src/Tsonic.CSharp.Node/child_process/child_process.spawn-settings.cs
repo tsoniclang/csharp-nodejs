@@ -20,7 +20,7 @@ public static partial class child_process
         public static SpawnSettings From(NativeSpawnOptions? options)
         {
             var descriptors = options?.stdio;
-            return From(options, options?.input?.InternalData ?? ReadOnlyMemory<byte>.Empty, options?.input is not null,
+            return From(options, options?.input?.InternalMemory ?? ReadOnlyMemory<byte>.Empty, options?.input is not null,
                 descriptors?.Length ?? 0,
                 descriptors is { Length: > 0 } ? descriptors[0] : null,
                 descriptors is { Length: > 1 } ? descriptors[1] : null,
@@ -31,7 +31,7 @@ public static partial class child_process
         {
             var input = options?.input;
             var bytes = input is null || input.Is3() ? ReadOnlyMemory<byte>.Empty
-                : input.Is1() ? input.As1().AsMemory() : input.As2().InternalData;
+                : input.Is1() ? input.As1().AsMemory() : input.As2().InternalMemory;
             var descriptors = options?.stdio;
             return From(options, bytes, input is not null && !input.Is3(), descriptors?.length ?? 0,
                 descriptors is not null && descriptors.length > 0 ? descriptors[0] : null,

@@ -17,7 +17,7 @@ public partial class Buffer
         if (offset < 0 || offset >= this.length)
             return 0;
 
-        var maxLength = length ?? (this.length - offset);
+        var maxLength = Math.Min(length ?? (this.length - offset), this.length - offset);
         if (maxLength <= 0)
             return 0;
 
@@ -36,7 +36,7 @@ public partial class Buffer
             var enc = GetEncoding(encoding);
             var bytes = enc.GetBytes(str);
             var bytesToWrite = Math.Min(bytes.Length, maxLength);
-            Array.Copy(bytes, 0, _data, offset, bytesToWrite);
+            bytes.AsSpan(0, bytesToWrite).CopyTo(_data.Slice(offset));
             return bytesToWrite;
         }
     }
@@ -69,7 +69,7 @@ public partial class Buffer
 
         var bytes = Convert.FromBase64String(base64);
         var bytesToWrite = Math.Min(bytes.Length, maxLength);
-        Array.Copy(bytes, 0, _data, offset, bytesToWrite);
+        bytes.AsSpan(0, bytesToWrite).CopyTo(_data.Slice(offset));
         return bytesToWrite;
     }
 }

@@ -26,6 +26,12 @@ public partial class TLSSocket : Socket
     /// </summary>
     public new bool write(byte[] data, Action<Exception?>? callback = null)
     {
+        ArgumentNullException.ThrowIfNull(data);
+        return WriteTlsMemory(data, callback);
+    }
+
+    private bool WriteTlsMemory(ReadOnlyMemory<byte> data, Action<Exception?>? callback)
+    {
         if (destroyed)
         {
             if (callback != null)
@@ -43,7 +49,7 @@ public partial class TLSSocket : Socket
 
     /// <summary>Writes a binary buffer to the TLS stream.</summary>
     public new bool write(Buffer data, Action<Exception?>? callback = null) =>
-        write(data.InternalData, callback);
+        WriteTlsMemory(data.InternalMemory, callback);
 
     /// <summary>
     /// Writes string data to the TLS stream.
@@ -66,9 +72,11 @@ public partial class TLSSocket : Socket
     }
 
     /// <summary>Finishes the TLS stream after writing a final byte array.</summary>
-    public new TLSSocket end(byte[] data, Action? callback = null)
+    public new TLSSocket end(byte[] data, Action? callback = null) => EndTlsMemory(data, callback);
+
+    private TLSSocket EndTlsMemory(ReadOnlyMemory<byte> data, Action? callback)
     {
-        write(data, error =>
+        WriteTlsMemory(data, error =>
         {
             if (error is null)
                 end(callback);
@@ -78,7 +86,7 @@ public partial class TLSSocket : Socket
 
     /// <summary>Finishes the TLS stream after writing a final binary buffer.</summary>
     public new TLSSocket end(Buffer data, Action? callback = null) =>
-        end(data.InternalData, callback);
+        EndTlsMemory(data.InternalMemory, callback);
 
     /// <summary>Finishes the TLS stream after writing final encoded text.</summary>
     public new TLSSocket end(string data, string? encoding = null, Action? callback = null)
@@ -124,7 +132,7 @@ public partial class TLSSocket : Socket
 
                     try
                     {
-                        await _sslStream.WriteAsync(request.Data, 0, request.Data.Length);
+                        await _sslStream.WriteAsync(request.Data.Value);
                         await _sslStream.FlushAsync();
                         if (request.Callback != null)
                             Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(null));
@@ -137,7 +145,7 @@ public partial class TLSSocket : Socket
                     }
                     finally
                     {
-                        var remaining = Interlocked.Add(ref _tlsQueuedWriteBytes, -request.Data.Length);
+                        var remaining = Interlocked.Add(ref _tlsQueuedWriteBytes, -request.Data.Value.Length);
                         if (remaining < TlsWriteHighWaterMark && Interlocked.Exchange(ref _tlsNeedsDrain, 0) == 1)
                             Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drain"));
                     }

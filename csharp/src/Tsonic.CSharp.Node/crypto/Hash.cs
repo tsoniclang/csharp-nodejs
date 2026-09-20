@@ -1,6 +1,8 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Utilities;
 using Org.BouncyCastle.Crypto.Digests;
 
 namespace Tsonic.CSharp.Node;
@@ -10,30 +12,57 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Hash : Transform
 {
-    private readonly string _algorithmName;
-    private readonly HashAlgorithm? _algorithm;
-    private readonly Org.BouncyCastle.Crypto.Digests.ShakeDigest? _shakeDigest;
-    private readonly List<byte[]> _updates = new();
-    private readonly bool _isShake;
-    private bool _finalized = false;
+    private readonly IncrementalHash? _native;
+    private readonly IDigest? _digest;
+    private bool _finalized;
 
     internal Hash(string algorithm)
     {
-        _algorithmName = algorithm;
-        var alg = algorithm.ToLowerInvariant();
-
-        // Check if it's a SHAKE algorithm (XOF)
-        if (alg == "shake128" || alg == "shake256")
+        var name = algorithm.ToLowerInvariant();
+        var nativeName = name switch
         {
-            _isShake = true;
-            _shakeDigest = alg == "shake128"
-                ? new ShakeDigest(128)
-                : new ShakeDigest(256);
-        }
+            "md5" => HashAlgorithmName.MD5,
+            "sha1" or "sha-1" => HashAlgorithmName.SHA1,
+            "sha256" or "sha-256" => HashAlgorithmName.SHA256,
+            "sha384" or "sha-384" => HashAlgorithmName.SHA384,
+            "sha512" or "sha-512" => HashAlgorithmName.SHA512,
+            _ => default
+        };
+        if (nativeName.Name is not null)
+            _native = IncrementalHash.CreateHash(nativeName);
         else
-        {
-            _algorithm = CreateHashAlgorithm(algorithm);
-        }
+            _digest = name switch
+            {
+                "sha512-224" => new Sha512tDigest(224),
+                "sha512-256" => new Sha512tDigest(256),
+                "sha3-224" => new Sha3Digest(224),
+                "sha3-256" => new Sha3Digest(256),
+                "sha3-384" => new Sha3Digest(384),
+                "sha3-512" => new Sha3Digest(512),
+                "shake128" => new ShakeDigest(128),
+                "shake256" => new ShakeDigest(256),
+                "ripemd160" or "rmd160" => new RipeMD160Digest(),
+                "blake2b512" => new Blake2bDigest(512),
+                "blake2s256" => new Blake2sDigest(256),
+                _ => throw new ArgumentException($"Unknown hash algorithm: {algorithm}")
+            };
+    }
+
+    private Hash(IncrementalHash? native, IDigest? digest)
+    {
+        _native = native;
+        _digest = digest;
+    }
+
+    internal Hash Update(ReadOnlySpan<byte> data)
+    {
+        if (_finalized)
+            throw new InvalidOperationException("Digest already called");
+        if (_native is not null)
+            _native.AppendData(data);
+        else
+            _digest!.BlockUpdate(data);
+        return this;
     }
 
     /// <summary>
@@ -49,17 +78,7 @@ public class Hash : Transform
 
         var encoding = GetEncoding(inputEncoding ?? "utf8");
         var bytes = encoding.GetBytes(data);
-        _updates.Add((byte[])bytes.Clone());
-
-        if (_isShake)
-        {
-            _shakeDigest!.BlockUpdate(bytes, 0, bytes.Length);
-        }
-        else
-        {
-            _algorithm!.TransformBlock(bytes, 0, bytes.Length, null, 0);
-        }
-        return this;
+        return Update(bytes);
     }
 
     /// <summary>
@@ -72,17 +91,7 @@ public class Hash : Transform
         if (_finalized)
             throw new InvalidOperationException("Digest already called");
 
-        _updates.Add((byte[])data.Clone());
-
-        if (_isShake)
-        {
-            _shakeDigest!.BlockUpdate(data, 0, data.Length);
-        }
-        else
-        {
-            _algorithm!.TransformBlock(data, 0, data.Length, null, 0);
-        }
-        return this;
+        return Update(data);
     }
 
     /// <summary>
@@ -95,7 +104,7 @@ public class Hash : Transform
         if (data == null)
             throw new ArgumentNullException(nameof(data));
 
-        return update(data.InternalData);
+        return Update(data.InternalMemory.Span);
     }
 
     /// <summary>
@@ -110,12 +119,12 @@ public class Hash : Transform
         if (encoding == null || encoding == "buffer")
         {
             // Return hex by default
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            return Convert.ToHexStringLower(hash);
         }
 
         return encoding.ToLowerInvariant() switch
         {
-            "hex" => BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant(),
+            "hex" => Convert.ToHexStringLower(hash),
             "base64" => Convert.ToBase64String(hash),
             "base64url" => Convert.ToBase64String(hash).Replace("+", "-").Replace("/", "_").TrimEnd('='),
             "latin1" or "binary" => Encoding.Latin1.GetString(hash),
@@ -138,7 +147,7 @@ public class Hash : Transform
     /// <returns>The calculated hash as a Buffer.</returns>
     public Buffer digestBuffer()
     {
-        return Buffer.from(digestBytes());
+        return Buffer.TakeOwnership(digestBytes());
     }
 
     /// <summary>
@@ -158,19 +167,18 @@ public class Hash : Transform
 
         _finalized = true;
 
-        if (_isShake)
+        if (_native is not null)
+            return _native.GetHashAndReset();
+        if (_digest is ShakeDigest shake)
         {
-            // For SHAKE, use the specified output length or defaults
-            int length = outputLength ?? (_shakeDigest!.AlgorithmName.Contains("128") ? 16 : 32);
-            var hash = new byte[length];
-            _shakeDigest!.OutputFinal(hash, 0, length);
-            return hash;
+            var length = outputLength ?? (shake.AlgorithmName == "SHAKE128" ? 16 : 32);
+            var output = new byte[length];
+            shake.OutputFinal(output, 0, length);
+            return output;
         }
-        else
-        {
-            _algorithm!.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            return _algorithm.Hash!;
-        }
+        var hash = new byte[_digest!.GetDigestSize()];
+        _digest.DoFinal(hash, 0);
+        return hash;
     }
 
     /// <summary>
@@ -182,20 +190,19 @@ public class Hash : Transform
         if (_finalized)
             throw new InvalidOperationException("Cannot copy finalized hash");
 
-        var newHash = new Hash(_algorithmName);
-        foreach (var update in _updates)
+        if (_native is not null)
+            return new Hash(_native.Clone(), null);
+        var copied = _digest switch
         {
-            newHash.update(update);
-        }
-        return newHash;
+            Blake2bDigest digest => new Blake2bDigest(digest),
+            Blake2sDigest digest => new Blake2sDigest(digest),
+            IMemoable digest => (IDigest)digest.Copy(),
+            _ => throw new InvalidOperationException("Hash state does not support copying")
+        };
+        return new Hash(null, copied);
     }
 
 #pragma warning disable CS1591
-    ~Hash()
-    {
-        Dispose(false);
-    }
-
     public void Dispose()
     {
         Dispose(true);
@@ -206,34 +213,12 @@ public class Hash : Transform
     {
         if (disposing)
         {
-            _algorithm?.Dispose();
+            _native?.Dispose();
+            _digest?.Reset();
+            _finalized = true;
         }
     }
 #pragma warning restore CS1591
-
-    private static HashAlgorithm CreateHashAlgorithm(string algorithm)
-    {
-        return algorithm.ToLowerInvariant() switch
-        {
-            "md5" => MD5.Create(),
-            "sha1" or "sha-1" => SHA1.Create(),
-            "sha256" or "sha-256" => SHA256.Create(),
-            "sha384" or "sha-384" => SHA384.Create(),
-            "sha512" or "sha-512" => SHA512.Create(),
-            "sha512-224" => new BouncyCastleHashAlgorithm(new Sha512tDigest(224)),
-            "sha512-256" => new BouncyCastleHashAlgorithm(new Sha512tDigest(256)),
-            "sha3-224" => new BouncyCastleHashAlgorithm(new Sha3Digest(224)),
-            "sha3-256" => new BouncyCastleHashAlgorithm(new Sha3Digest(256)),
-            "sha3-384" => new BouncyCastleHashAlgorithm(new Sha3Digest(384)),
-            "sha3-512" => new BouncyCastleHashAlgorithm(new Sha3Digest(512)),
-            "shake128" => throw new InvalidOperationException("SHAKE128 is handled separately in constructor"),
-            "shake256" => throw new InvalidOperationException("SHAKE256 is handled separately in constructor"),
-            "ripemd160" or "rmd160" => new BouncyCastleHashAlgorithm(new RipeMD160Digest()),
-            "blake2b512" => new BouncyCastleHashAlgorithm(new Blake2bDigest(512)),
-            "blake2s256" => new BouncyCastleHashAlgorithm(new Blake2sDigest(256)),
-            _ => throw new ArgumentException($"Unknown hash algorithm: {algorithm}")
-        };
-    }
 
     private static Encoding GetEncoding(string encoding)
     {
@@ -247,47 +232,5 @@ public class Hash : Transform
             "hex" => Encoding.ASCII, // Hex is ASCII-based
             _ => Encoding.UTF8
         };
-    }
-}
-
-/// <summary>
-/// Wrapper to adapt BouncyCastle IDigest to .NET HashAlgorithm.
-/// </summary>
-internal class BouncyCastleHashAlgorithm : HashAlgorithm
-{
-    private readonly Org.BouncyCastle.Crypto.IDigest _digest;
-    private byte[]? _hashValue;
-
-    public BouncyCastleHashAlgorithm(Org.BouncyCastle.Crypto.IDigest digest)
-    {
-        _digest = digest;
-        HashSizeValue = digest.GetDigestSize() * 8;
-    }
-
-    public override void Initialize()
-    {
-        _digest.Reset();
-        _hashValue = null;
-    }
-
-    protected override void HashCore(byte[] array, int ibStart, int cbSize)
-    {
-        _digest.BlockUpdate(array, ibStart, cbSize);
-    }
-
-    protected override byte[] HashFinal()
-    {
-        _hashValue = new byte[_digest.GetDigestSize()];
-        _digest.DoFinal(_hashValue, 0);
-        return _hashValue;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _digest.Reset();
-        }
-        base.Dispose(disposing);
     }
 }

@@ -64,7 +64,7 @@ public class SecureContext
         {
             if (pfx.unwrap() is not Buffer pfxBuffer)
                 throw new ArgumentException("PFX input must be a Buffer.", nameof(pfx));
-            _certificate = new X509Certificate2(pfxBuffer.InternalData, passphrase);
+            _certificate = X509CertificateLoader.LoadPkcs12(pfxBuffer.InternalMemory.Span, passphrase);
             return;
         }
         if (!hasCertificate && !hasKey)
@@ -105,7 +105,7 @@ public class SecureContext
         }
         if (value is Buffer buffer)
         {
-            _caCertificates.Add(X509Certificate2.CreateFromPem(Encoding.UTF8.GetString(buffer.InternalData)));
+            _caCertificates.Add(X509Certificate2.CreateFromPem(Encoding.UTF8.GetString(buffer.InternalMemory.Span)));
             return;
         }
         throw new ArgumentException("CA input must be PEM text or a string array of PEM certificates.", nameof(ca));
@@ -149,7 +149,7 @@ public class SecureContext
         value.unwrap() switch
         {
             string text => text,
-            Buffer buffer => Encoding.UTF8.GetString(buffer.InternalData),
+            Buffer buffer => Encoding.UTF8.GetString(buffer.InternalMemory.Span),
             _ => throw new ArgumentException("PEM input must be a string or Buffer.", parameterName),
         };
 }

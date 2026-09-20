@@ -30,6 +30,6 @@ public static partial class fs
             throw new ArgumentNullException(nameof(data));
 
         await using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-        await stream.WriteAsync(data.InternalData);
+        await stream.WriteAsync(data.InternalMemory);
     }
 }

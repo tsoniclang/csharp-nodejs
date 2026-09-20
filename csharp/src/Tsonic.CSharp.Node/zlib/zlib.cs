@@ -15,10 +15,8 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    private static byte[] GzipBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] GzipBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
         if (buffer.Length == 0)
         {
@@ -43,7 +41,7 @@ public static partial class zlib
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var gzip = new GZipStream(output, compressionLevel))
         {
-            gzip.Write(buffer, 0, buffer.Length);
+            gzip.Write(buffer.Span);
             gzip.Flush();
         }
         return output.ToArray();
@@ -55,13 +53,11 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    private static byte[] GunzipBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] GunzipBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
 
-        using var input = new MemoryStream(buffer);
+        using var input = OpenInput(buffer);
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
@@ -75,10 +71,8 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    private static byte[] DeflateBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] DeflateBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
         if (buffer.Length == 0)
             return [0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01];
@@ -96,7 +90,7 @@ public static partial class zlib
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var deflate = new ZLibStream(output, compressionLevel))
         {
-            deflate.Write(buffer, 0, buffer.Length);
+            deflate.Write(buffer.Span);
         }
         return output.ToArray();
     }
@@ -107,13 +101,11 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    private static byte[] InflateBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] InflateBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
 
-        using var input = new MemoryStream(buffer);
+        using var input = OpenInput(buffer);
         using var deflate = new ZLibStream(input, CompressionMode.Decompress);
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
@@ -127,10 +119,8 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    private static byte[] DeflateRawBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] DeflateRawBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
         if (buffer.Length == 0)
             return [0x03, 0x00];
@@ -144,7 +134,7 @@ public static partial class zlib
         };
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var deflate = new DeflateStream(output, compressionLevel))
-            deflate.Write(buffer, 0, buffer.Length);
+            deflate.Write(buffer.Span);
         return output.ToArray();
     }
 
@@ -154,12 +144,10 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    private static byte[] InflateRawBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] InflateRawBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
         ValidateZlibOptions(options);
-        using var input = new MemoryStream(buffer);
+        using var input = OpenInput(buffer);
         using var deflate = new DeflateStream(input, CompressionMode.Decompress);
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
         deflate.CopyTo(output);
@@ -172,10 +160,8 @@ public static partial class zlib
     /// <param name="buffer">The data to compress.</param>
     /// <param name="options">Optional compression options.</param>
     /// <returns>The compressed data.</returns>
-    private static byte[] BrotliCompressBytes(byte[] buffer, BrotliOptions? options = null)
+    private static byte[] BrotliCompressBytes(ReadOnlyMemory<byte> buffer, BrotliOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
 
         var quality = options?.quality ?? 11; // Default Brotli quality
         var compressionLevel = quality switch
@@ -189,7 +175,7 @@ public static partial class zlib
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
         using (var brotli = new BrotliStream(output, compressionLevel))
         {
-            brotli.Write(buffer, 0, buffer.Length);
+            brotli.Write(buffer.Span);
         }
         return output.ToArray();
     }
@@ -200,12 +186,10 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    private static byte[] BrotliDecompressBytes(byte[] buffer, BrotliOptions? options = null)
+    private static byte[] BrotliDecompressBytes(ReadOnlyMemory<byte> buffer, BrotliOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
 
-        using var input = new MemoryStream(buffer);
+        using var input = OpenInput(buffer);
         using var brotli = new BrotliStream(input, CompressionMode.Decompress);
         using var output = new BoundedMemoryStream(options?.maxOutputLength);
 
@@ -219,10 +203,8 @@ public static partial class zlib
     /// <param name="buffer">The compressed data.</param>
     /// <param name="options">Optional decompression options.</param>
     /// <returns>The decompressed data.</returns>
-    private static byte[] UnzipBytes(byte[] buffer, ZlibOptions? options = null)
+    private static byte[] UnzipBytes(ReadOnlyMemory<byte> buffer, ZlibOptions? options = null)
     {
-        if (buffer == null)
-            throw new ArgumentNullException(nameof(buffer));
 
         if (buffer.Length < 2)
             throw new ArgumentException("Buffer too small to determine compression format");
@@ -230,11 +212,11 @@ public static partial class zlib
         // Detect format by magic bytes
         // Gzip: 0x1f 0x8b
         // Zlib (Deflate with header): 0x78 (multiple variations)
-        if (buffer[0] == 0x1f && buffer[1] == 0x8b)
+        if (buffer.Span[0] == 0x1f && buffer.Span[1] == 0x8b)
         {
             return GunzipBytes(buffer, options);
         }
-        else if (buffer[0] == 0x78)
+        else if (buffer.Span[0] == 0x78)
         {
             // Zlib format (deflate with header)
             return InflateBytes(buffer, options);
@@ -261,6 +243,13 @@ public static partial class zlib
         // Otherwise, start with 0xFFFFFFFF (standard CRC32 initial value)
         var initialCrc = value == 0 ? 0xFFFFFFFF : ~value;
         return ComputeCrc32(data, initialCrc);
+    }
+
+    private static MemoryStream OpenInput(ReadOnlyMemory<byte> buffer)
+    {
+        if (!System.Runtime.InteropServices.MemoryMarshal.TryGetArray(buffer, out var segment))
+            throw new ArgumentException("Compression input must be backed by a byte array.", nameof(buffer));
+        return new MemoryStream(segment.Array!, segment.Offset, segment.Count, false);
     }
 
     private static uint ComputeCrc32(byte[] data, uint crc)

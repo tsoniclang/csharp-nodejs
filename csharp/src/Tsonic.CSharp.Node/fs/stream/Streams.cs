@@ -129,14 +129,14 @@ public sealed class WriteStream : Writable
 
     protected override void _write(object? chunk, string? encoding, Action callback)
     {
-        var bytes = chunk switch
+        ReadOnlyMemory<byte> bytes = chunk switch
         {
-            Buffer buffer => buffer.InternalData,
+            Buffer buffer => buffer.InternalMemory,
             byte[] value => value,
             string value => Encoding.GetEncoding(encoding ?? _defaultEncoding).GetBytes(value),
             _ => throw new ArgumentException("WriteStream accepts Buffer, byte[], or string chunks.", nameof(chunk))
         };
-        _stream.Write(bytes, 0, bytes.Length);
+        _stream.Write(bytes.Span);
         bytesWritten += bytes.Length;
         callback();
     }

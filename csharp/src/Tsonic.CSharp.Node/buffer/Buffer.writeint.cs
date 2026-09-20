@@ -34,7 +34,7 @@ public partial class Buffer
     /// </summary>
     public int writeUInt16LE(ushort value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt16LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt16LittleEndian(_data.Slice(offset), value);
         return offset + 2;
     }
 
@@ -48,7 +48,7 @@ public partial class Buffer
     /// </summary>
     public int writeInt16LE(short value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt16LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt16LittleEndian(_data.Slice(offset), value);
         return offset + 2;
     }
 
@@ -58,7 +58,7 @@ public partial class Buffer
     /// </summary>
     public int writeUInt16BE(ushort value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt16BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt16BigEndian(_data.Slice(offset), value);
         return offset + 2;
     }
 
@@ -72,7 +72,7 @@ public partial class Buffer
     /// </summary>
     public int writeInt16BE(short value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt16BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt16BigEndian(_data.Slice(offset), value);
         return offset + 2;
     }
 
@@ -82,7 +82,7 @@ public partial class Buffer
     /// </summary>
     public int writeUInt32LE(uint value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt32LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt32LittleEndian(_data.Slice(offset), value);
         return offset + 4;
     }
 
@@ -96,7 +96,7 @@ public partial class Buffer
     /// </summary>
     public int writeInt32LE(int value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt32LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt32LittleEndian(_data.Slice(offset), value);
         return offset + 4;
     }
 
@@ -106,7 +106,7 @@ public partial class Buffer
     /// </summary>
     public int writeUInt32BE(uint value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt32BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt32BigEndian(_data.Slice(offset), value);
         return offset + 4;
     }
 
@@ -120,7 +120,7 @@ public partial class Buffer
     /// </summary>
     public int writeInt32BE(int value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt32BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt32BigEndian(_data.Slice(offset), value);
         return offset + 4;
     }
 
@@ -130,7 +130,7 @@ public partial class Buffer
     /// </summary>
     public int writeBigUInt64LE(ulong value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt64LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt64LittleEndian(_data.Slice(offset), value);
         return offset + 8;
     }
 
@@ -144,7 +144,7 @@ public partial class Buffer
     /// </summary>
     public int writeBigInt64LE(long value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt64LittleEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt64LittleEndian(_data.Slice(offset), value);
         return offset + 8;
     }
 
@@ -154,7 +154,7 @@ public partial class Buffer
     /// </summary>
     public int writeBigUInt64BE(ulong value, int offset = 0)
     {
-        BinaryPrimitives.WriteUInt64BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteUInt64BigEndian(_data.Slice(offset), value);
         return offset + 8;
     }
 
@@ -168,7 +168,7 @@ public partial class Buffer
     /// </summary>
     public int writeBigInt64BE(long value, int offset = 0)
     {
-        BinaryPrimitives.WriteInt64BigEndian(_data.AsSpan(offset), value);
+        BinaryPrimitives.WriteInt64BigEndian(_data.Slice(offset), value);
         return offset + 8;
     }
 

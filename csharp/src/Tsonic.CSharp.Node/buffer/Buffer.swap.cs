@@ -10,7 +10,7 @@ public partial class Buffer
     /// <returns>A reference to buf.</returns>
     public Buffer reverse()
     {
-        Array.Reverse(_data);
+        _data.Reverse();
         return this;
     }
 

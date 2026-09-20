@@ -22,36 +22,20 @@ public static partial class fs
 
         if (isFile)
         {
-                return new Stats
+                return new Stats(fileInfo.LastAccessTime, fileInfo.LastWriteTime, fileInfo.CreationTime, fileInfo.CreationTime)
             {
                 size = fileInfo.Length,
                 mode = 0, // Not easily available on Windows
-                atime = StatTime.ToJsDate(fileInfo.LastAccessTime),
-                atimeMs = StatTime.ToUnixMilliseconds(fileInfo.LastAccessTime),
-                mtime = StatTime.ToJsDate(fileInfo.LastWriteTime),
-                mtimeMs = StatTime.ToUnixMilliseconds(fileInfo.LastWriteTime),
-                ctime = StatTime.ToJsDate(fileInfo.CreationTime),
-                ctimeMs = StatTime.ToUnixMilliseconds(fileInfo.CreationTime),
-                birthtime = StatTime.ToJsDate(fileInfo.CreationTime),
-                birthtimeMs = StatTime.ToUnixMilliseconds(fileInfo.CreationTime),
                 isFile = true,
                 isDirectory = false
             };
         }
         else
         {
-            return new Stats
+            return new Stats(dirInfo.LastAccessTime, dirInfo.LastWriteTime, dirInfo.CreationTime, dirInfo.CreationTime)
             {
                 size = 0,
                 mode = 0,
-                atime = StatTime.ToJsDate(dirInfo.LastAccessTime),
-                atimeMs = StatTime.ToUnixMilliseconds(dirInfo.LastAccessTime),
-                mtime = StatTime.ToJsDate(dirInfo.LastWriteTime),
-                mtimeMs = StatTime.ToUnixMilliseconds(dirInfo.LastWriteTime),
-                ctime = StatTime.ToJsDate(dirInfo.CreationTime),
-                ctimeMs = StatTime.ToUnixMilliseconds(dirInfo.CreationTime),
-                birthtime = StatTime.ToJsDate(dirInfo.CreationTime),
-                birthtimeMs = StatTime.ToUnixMilliseconds(dirInfo.CreationTime),
                 isFile = false,
                 isDirectory = true
             };

@@ -82,7 +82,7 @@ public partial class Buffer
                 break;
 
             var copyLength = Math.Min(buf.length, length - offset);
-            Array.Copy(buf._data, 0, result._data, offset, copyLength);
+            buf._data.Slice(0, copyLength).CopyTo(result._data.Slice(offset));
             offset += copyLength;
         }
 

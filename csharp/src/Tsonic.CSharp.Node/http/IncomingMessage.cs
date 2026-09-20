@@ -20,9 +20,11 @@ public partial class IncomingMessage : EventEmitter
 {
     private readonly HttpRequest? _serverRequest;
     private readonly HttpResponseMessage? _clientResponse;
-    private readonly byte[]? _body;
     private bool _isServerSide;
-    private bool _clientBodyEmitted;
+    private readonly CancellationToken _cancellation;
+    private readonly Action? _releaseRequest;
+    private int _bodyClaimed;
+    private int _released;
     private Timer? _timeoutTimer;
 
     // Server-side constructor
@@ -40,10 +42,12 @@ public partial class IncomingMessage : EventEmitter
     }
 
     // Client-side constructor
-    internal IncomingMessage(HttpResponseMessage response, byte[] body)
+    internal IncomingMessage(HttpResponseMessage response, CancellationToken cancellation, Action releaseRequest)
     {
         _clientResponse = response;
-        _body = body;
+        _cancellation = cancellation;
+        _releaseRequest = releaseRequest;
+        ProcessKeepAlive.Acquire();
         _isServerSide = false;
 
         // Read headers
@@ -111,9 +115,7 @@ public partial class IncomingMessage : EventEmitter
     /// </summary>
     public void destroy()
     {
-        complete = true;
-        _timeoutTimer?.Dispose();
-        emit("close");
+        Finish(false);
     }
 
     /// <summary>
@@ -156,22 +158,16 @@ public partial class IncomingMessage : EventEmitter
     /// <returns>The body content as a string.</returns>
     public async Task<string> readAll()
     {
-        if (_isServerSide && _serverRequest != null)
+        ClaimBody();
+        try
         {
-            using var reader = new StreamReader(_serverRequest.Body);
-            var body = await reader.ReadToEndAsync();
-            complete = true;
-            _timeoutTimer?.Dispose();
-            emit("end");
+            var stream = await BodyStream();
+            using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
+            var body = await reader.ReadToEndAsync(_cancellation);
+            Finish(true);
             return body;
         }
-        else if (_body != null)
-        {
-            EmitBufferedClientBody();
-            return Encoding.UTF8.GetString(_body);
-        }
-
-        return "";
+        catch { Finish(false); throw; }
     }
 
     /// <summary>
@@ -186,23 +182,18 @@ public partial class IncomingMessage : EventEmitter
     /// <summary>Reads the complete message body into a binary buffer.</summary>
     public async Task<Buffer> readAllBuffer()
     {
-        if (_isServerSide && _serverRequest != null)
+        ClaimBody();
+        try
         {
             using var output = new MemoryStream();
-            await _serverRequest.Body.CopyToAsync(output);
-            complete = true;
-            _timeoutTimer?.Dispose();
-            emit("end");
-            return Buffer.from(output.ToArray());
+            var stream = await BodyStream();
+            await stream.CopyToAsync(output, _cancellation);
+            if (!output.TryGetBuffer(out var bytes)) throw new InvalidOperationException("Owned body storage is not accessible");
+            var result = Buffer.TakeOwnership(bytes.AsMemory());
+            Finish(true);
+            return result;
         }
-
-        if (_body != null)
-        {
-            EmitBufferedClientBody();
-            return Buffer.from(_body);
-        }
-
-        return Buffer.alloc(0);
+        catch { Finish(false); throw; }
     }
 
     /// <summary>
@@ -221,23 +212,67 @@ public partial class IncomingMessage : EventEmitter
         on("close", callback);
     }
 
-    internal void EmitBufferedClientBody()
+    private void ClaimBody()
     {
-        if (_isServerSide || _clientBodyEmitted)
+        if (Interlocked.CompareExchange(ref _bodyClaimed, 1, 0) != 0 || Volatile.Read(ref _released) != 0)
+            throw new InvalidOperationException("The message body already has a consumer");
+    }
+
+    private Task<Stream> BodyStream() => _serverRequest is not null
+        ? Task.FromResult(_serverRequest.Body)
+        : _clientResponse!.Content.ReadAsStreamAsync(_cancellation);
+
+    internal void StartClientBody()
+    {
+        if (_isServerSide || Volatile.Read(ref _released) != 0 ||
+            Interlocked.CompareExchange(ref _bodyClaimed, 1, 0) != 0) return;
+        _ = StreamClientBody();
+    }
+
+    private async Task StreamClientBody()
+    {
+        try
         {
-            return;
+            var stream = await BodyStream();
+            while (Volatile.Read(ref _released) == 0)
+            {
+                var bytes = new byte[16 * 1024];
+                var count = await stream.ReadAsync(bytes.AsMemory(), _cancellation);
+                if (count == 0) break;
+                var chunk = Buffer.TakeOwnership(bytes.AsMemory(0, count));
+                var delivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                {
+                    try { if (Volatile.Read(ref _released) == 0) emit("data", chunk); delivered.SetResult(); }
+                    catch (Exception error) { delivered.SetException(error); }
+                });
+                await delivered.Task;
+            }
+            Finish(true);
         }
-
-        _clientBodyEmitted = true;
-
-        if (_body is { Length: > 0 })
+        catch (Exception error)
         {
-            emit("data", Buffer.from(_body));
+            if (Volatile.Read(ref _released) == 0)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", error));
+            Finish(false);
         }
+    }
 
-        complete = true;
+    private void Finish(bool ended)
+    {
+        if (Interlocked.Exchange(ref _released, 1) != 0) return;
+        complete = ended;
         _timeoutTimer?.Dispose();
-        emit("end");
-        emit("close");
+        try
+        {
+            _clientResponse?.Dispose();
+            _releaseRequest?.Invoke();
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                if (ended) emit("end");
+                emit("close");
+            });
+        }
+        finally { if (!_isServerSide) ProcessKeepAlive.Release(); }
     }
 }

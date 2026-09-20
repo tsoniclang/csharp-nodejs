@@ -27,7 +27,7 @@ public partial class EventEmitter
         public bool Once { get; }
     }
 
-    private readonly Dictionary<object, List<EventListener>> _events = new();
+    private readonly Dictionary<object, EventListener[]> _events = new();
     private readonly object _eventLock = new();
     private int _maxListeners = _defaultMaxListeners;
     private static int _defaultMaxListeners = 10;
@@ -89,17 +89,12 @@ public partial class EventEmitter
         int count;
         lock (_eventLock)
         {
-            if (!_events.TryGetValue(eventName, out var listeners))
-            {
-                listeners = new List<EventListener>();
-                _events[eventName] = listeners;
-            }
-
-            if (prepend)
-                listeners.Insert(0, listener);
-            else
-                listeners.Add(listener);
-            count = listeners.Count;
+            var listeners = _events.GetValueOrDefault(eventName) ?? [];
+            var updated = new EventListener[listeners.Length + 1];
+            listeners.CopyTo(updated, prepend ? 1 : 0);
+            updated[prepend ? 0 : listeners.Length] = listener;
+            _events[eventName] = updated;
+            count = updated.Length;
         }
 
         if (count > _maxListeners && _maxListeners > 0)
@@ -161,10 +156,23 @@ public partial class EventEmitter
             if (!_events.TryGetValue(eventName, out var listeners))
                 return;
 
-            listeners.Remove(listener);
-            if (listeners.Count == 0)
-                _events.Remove(eventName);
+            var index = System.Array.IndexOf(listeners, listener);
+            if (index >= 0)
+                removeStoredListenerAt(eventName, listeners, index);
         }
+    }
+
+    private void removeStoredListenerAt(object eventName, EventListener[] listeners, int index)
+    {
+        if (listeners.Length == 1)
+        {
+            _events.Remove(eventName);
+            return;
+        }
+        var updated = new EventListener[listeners.Length - 1];
+        listeners.AsSpan(0, index).CopyTo(updated);
+        listeners.AsSpan(index + 1).CopyTo(updated.AsSpan(index));
+        _events[eventName] = updated;
     }
 
     private static object EventKey(string eventName)

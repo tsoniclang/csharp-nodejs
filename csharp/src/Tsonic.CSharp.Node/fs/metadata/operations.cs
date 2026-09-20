@@ -33,18 +33,10 @@ public static partial class fs
             size = fileInfo.Length;
         }
 
-        return new Stats
+        return new Stats(info.LastAccessTime, info.LastWriteTime, info.CreationTime, info.CreationTime)
         {
             size = size,
             mode = 0,
-            atime = StatTime.ToJsDate(info.LastAccessTime),
-            atimeMs = StatTime.ToUnixMilliseconds(info.LastAccessTime),
-            mtime = StatTime.ToJsDate(info.LastWriteTime),
-            mtimeMs = StatTime.ToUnixMilliseconds(info.LastWriteTime),
-            ctime = StatTime.ToJsDate(info.CreationTime),
-            ctimeMs = StatTime.ToUnixMilliseconds(info.CreationTime),
-            birthtime = StatTime.ToJsDate(info.CreationTime),
-            birthtimeMs = StatTime.ToUnixMilliseconds(info.CreationTime),
             isFile = !symbolicLink && info is FileInfo,
             isDirectory = !symbolicLink && info is DirectoryInfo,
             isSymbolicLink = symbolicLink

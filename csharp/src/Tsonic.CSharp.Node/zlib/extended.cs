@@ -80,15 +80,15 @@ public static partial class zlib
     private static readonly ZlibConstants ConstantsValue = new();
     public static ZlibConstants constants => ConstantsValue;
 
-    public static Buffer gzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(GzipBytes(BufferBytes(buffer), options));
-    public static Buffer gunzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(GunzipBytes(BufferBytes(buffer), options));
-    public static Buffer deflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(DeflateBytes(BufferBytes(buffer), options));
-    public static Buffer inflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(InflateBytes(BufferBytes(buffer), options));
-    public static Buffer deflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(DeflateRawBytes(BufferBytes(buffer), options));
-    public static Buffer inflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(InflateRawBytes(BufferBytes(buffer), options));
-    public static Buffer unzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.from(UnzipBytes(BufferBytes(buffer), options));
-    public static Buffer brotliCompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(BrotliCompressBytes(BufferBytes(buffer), options));
-    public static Buffer brotliDecompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.from(BrotliDecompressBytes(BufferBytes(buffer), options));
+    public static Buffer gzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(GzipBytes(BufferBytes(buffer), options));
+    public static Buffer gunzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(GunzipBytes(BufferBytes(buffer), options));
+    public static Buffer deflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(DeflateBytes(BufferBytes(buffer), options));
+    public static Buffer inflateSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(InflateBytes(BufferBytes(buffer), options));
+    public static Buffer deflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(DeflateRawBytes(BufferBytes(buffer), options));
+    public static Buffer inflateRawSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(InflateRawBytes(BufferBytes(buffer), options));
+    public static Buffer unzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(UnzipBytes(BufferBytes(buffer), options));
+    public static Buffer brotliCompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.TakeOwnership(BrotliCompressBytes(BufferBytes(buffer), options));
+    public static Buffer brotliDecompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.TakeOwnership(BrotliDecompressBytes(BufferBytes(buffer), options));
     public static void gzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer), callback);
     public static void gzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer, options), callback);
     public static void gunzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gunzipSync(buffer), callback);
@@ -116,10 +116,10 @@ public static partial class zlib
     public static ZlibTransform createUnzip(ZlibOptions? options = null) => new(ZlibMode.Unzip, options);
     public static ZlibTransform createBrotliCompress(BrotliOptions? options = null) => new(ZlibMode.BrotliCompress, brotliOptions: options);
     public static ZlibTransform createBrotliDecompress(BrotliOptions? options = null) => new(ZlibMode.BrotliDecompress, brotliOptions: options);
-    private static byte[] BufferBytes(Buffer buffer)
+    private static ReadOnlyMemory<byte> BufferBytes(Buffer buffer)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        return buffer.InternalData;
+        return buffer.InternalMemory;
     }
 
     private static void CompleteBuffer(Func<Buffer> operation, Action<Exception?, Buffer> callback)

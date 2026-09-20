@@ -22,18 +22,10 @@ public static partial class fs
         if (!fileInfo.Exists)
             throw new FileNotFoundException($"File not found", stream.Name);
 
-        return new Stats
+        return new Stats(fileInfo.LastAccessTime, fileInfo.LastWriteTime, fileInfo.LastWriteTime, fileInfo.CreationTime)
         {
             size = fileInfo.Length,
             mode = Convert.ToInt32("666", 8), // 0o666 in octal = 438 decimal
-            atime = StatTime.ToJsDate(fileInfo.LastAccessTime),
-            atimeMs = StatTime.ToUnixMilliseconds(fileInfo.LastAccessTime),
-            mtime = StatTime.ToJsDate(fileInfo.LastWriteTime),
-            mtimeMs = StatTime.ToUnixMilliseconds(fileInfo.LastWriteTime),
-            ctime = StatTime.ToJsDate(fileInfo.LastWriteTime),
-            ctimeMs = StatTime.ToUnixMilliseconds(fileInfo.LastWriteTime),
-            birthtime = StatTime.ToJsDate(fileInfo.CreationTime),
-            birthtimeMs = StatTime.ToUnixMilliseconds(fileInfo.CreationTime),
             isFile = !fileInfo.Attributes.HasFlag(FileAttributes.Directory),
             isDirectory = fileInfo.Attributes.HasFlag(FileAttributes.Directory)
         };

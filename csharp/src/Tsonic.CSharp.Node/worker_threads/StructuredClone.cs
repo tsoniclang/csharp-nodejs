@@ -176,7 +176,7 @@ internal static class StructuredClone
         writer.Write((byte)8);
         writer.Write(state.Identities[buffer]);
         writer.Write(buffer.length);
-        writer.Write(buffer.InternalData);
+        writer.Write(buffer.InternalMemory.Span);
     }
 
     private static bool WriteReference(

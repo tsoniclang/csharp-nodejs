@@ -11,16 +11,7 @@ public partial class Buffer
     /// <returns>True if the buffers are equal.</returns>
     public bool equals(Buffer otherBuffer)
     {
-        if (length != otherBuffer.length)
-            return false;
-
-        for (int i = 0; i < length; i++)
-        {
-            if (_data[i] != otherBuffer._data[i])
-                return false;
-        }
-
-        return true;
+        return _data.SequenceEqual(otherBuffer._data);
     }
 
     /// <summary>
@@ -46,25 +37,8 @@ public partial class Buffer
         sStart = Math.Max(0, Math.Min(sStart, length));
         sEnd = Math.Max(sStart, Math.Min(sEnd, length));
 
-        var sourceLength = sEnd - sStart;
-        var targetLength = tEnd - tStart;
-        var minLength = Math.Min(sourceLength, targetLength);
-
-        for (int i = 0; i < minLength; i++)
-        {
-            if (_data[sStart + i] < target._data[tStart + i])
-                return -1;
-            if (_data[sStart + i] > target._data[tStart + i])
-                return 1;
-        }
-
-        // If all bytes are equal so far, the shorter buffer comes first
-        if (sourceLength < targetLength)
-            return -1;
-        if (sourceLength > targetLength)
-            return 1;
-
-        return 0;
+        return Math.Sign(_data.Slice(sStart, sEnd - sStart)
+            .SequenceCompareTo(target._data.Slice(tStart, tEnd - tStart)));
     }
 
     /// <summary>
@@ -91,7 +65,7 @@ public partial class Buffer
         if (byteOffset < 0) byteOffset = Math.Max(0, length + byteOffset);
         if (byteOffset >= length) return -1;
 
-        byte[] searchBytes;
+        ReadOnlySpan<byte> searchBytes;
 
         if (value is string str)
         {
@@ -99,7 +73,8 @@ public partial class Buffer
         }
         else if (value is int intValue)
         {
-            searchBytes = new[] { (byte)(intValue & 0xFF) };
+            var found = _data.Slice(byteOffset).IndexOf((byte)intValue);
+            return found < 0 ? -1 : byteOffset + found;
         }
         else if (value is Buffer bufferValue)
         {
@@ -112,22 +87,8 @@ public partial class Buffer
 
         if (searchBytes.Length == 0) return byteOffset;
 
-        for (int i = byteOffset; i <= length - searchBytes.Length; i++)
-        {
-            bool found = true;
-            for (int j = 0; j < searchBytes.Length; j++)
-            {
-                if (_data[i + j] != searchBytes[j])
-                {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-                return i;
-        }
-
-        return -1;
+        var index = _data.Slice(byteOffset).IndexOf(searchBytes);
+        return index < 0 ? -1 : byteOffset + index;
     }
 
     /// <summary>
@@ -143,7 +104,7 @@ public partial class Buffer
         if (offset < 0) offset = Math.Max(0, length + offset);
         if (offset >= length) offset = length - 1;
 
-        byte[] searchBytes;
+        ReadOnlySpan<byte> searchBytes;
 
         if (value is string str)
         {
@@ -151,7 +112,7 @@ public partial class Buffer
         }
         else if (value is int intValue)
         {
-            searchBytes = new[] { (byte)(intValue & 0xFF) };
+            return _data.Slice(0, offset + 1).LastIndexOf((byte)intValue);
         }
         else if (value is Buffer bufferValue)
         {
@@ -164,21 +125,7 @@ public partial class Buffer
 
         if (searchBytes.Length == 0) return offset;
 
-        for (int i = Math.Min(offset, length - searchBytes.Length); i >= 0; i--)
-        {
-            bool found = true;
-            for (int j = 0; j < searchBytes.Length; j++)
-            {
-                if (_data[i + j] != searchBytes[j])
-                {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-                return i;
-        }
-
-        return -1;
+        var maxStart = Math.Min(offset, length - searchBytes.Length);
+        return maxStart < 0 ? -1 : _data.Slice(0, maxStart + searchBytes.Length).LastIndexOf(searchBytes);
     }
 }

@@ -71,7 +71,7 @@ public static class buffer
         if (value == null)
             throw new ArgumentNullException(nameof(value));
 
-        return isAscii(value.InternalData);
+        return System.Text.Ascii.IsValid(value.InternalMemory.Span);
     }
 
     /// <summary>
@@ -82,12 +82,7 @@ public static class buffer
         if (value == null)
             throw new ArgumentNullException(nameof(value));
 
-        foreach (var b in value)
-        {
-            if (b > 0x7F) return false;
-        }
-
-        return true;
+        return System.Text.Ascii.IsValid(value);
     }
 
     /// <summary>
@@ -98,7 +93,7 @@ public static class buffer
         if (value == null)
             throw new ArgumentNullException(nameof(value));
 
-        return isUtf8(value.InternalData);
+        return System.Text.Unicode.Utf8.IsValid(value.InternalMemory.Span);
     }
 
     /// <summary>
@@ -109,15 +104,7 @@ public static class buffer
         if (value == null)
             throw new ArgumentNullException(nameof(value));
 
-        try
-        {
-            _ = _strictUtf8.GetString(value);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return System.Text.Unicode.Utf8.IsValid(value);
     }
 
     /// <summary>
@@ -131,8 +118,8 @@ public static class buffer
         var srcEncoding = GetEncoding(fromEncoding);
         var dstEncoding = GetEncoding(toEncoding);
 
-        var text = srcEncoding.GetString(source.InternalData);
-        return Buffer.from(dstEncoding.GetBytes(text));
+        var text = srcEncoding.GetString(source.InternalMemory.Span);
+        return Buffer.TakeOwnership(dstEncoding.GetBytes(text));
     }
 
     /// <summary>

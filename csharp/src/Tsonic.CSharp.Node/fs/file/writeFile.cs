@@ -29,6 +29,6 @@ public static partial class fs
         if (data == null)
             throw new ArgumentNullException(nameof(data));
 
-        await File.WriteAllBytesAsync(path, data.InternalData);
+        await File.WriteAllBytesAsync(path, data.InternalMemory);
     }
 }

@@ -18,6 +18,11 @@ public static partial class fs
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
+        return ReadSync(fd, buffer.AsSpan(), offset, length, position);
+    }
+
+    private static int ReadSync(int fd, Span<byte> buffer, int offset, int length, int? position)
+    {
         var stream = FileDescriptorManager.Get(fd);
         if (stream == null)
             throw new ArgumentException($"Bad file descriptor: {fd}", nameof(fd));
@@ -34,7 +39,7 @@ public static partial class fs
             stream.Position = position.Value;
         }
 
-        return stream.Read(buffer, offset, length);
+        return stream.Read(buffer.Slice(offset, length));
     }
 
     /// <summary>
@@ -51,6 +56,6 @@ public static partial class fs
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
-        return readSync(fd, buffer.InternalData, offset, length, position);
+        return ReadSync(fd, buffer.InternalMemory.Span, offset, length, position);
     }
 }

@@ -27,6 +27,6 @@ public static partial class fs
         if (data == null)
             throw new ArgumentNullException(nameof(data));
 
-        File.WriteAllBytes(path, data.InternalData);
+        File.WriteAllBytes(path, data.InternalMemory.Span);
     }
 }
