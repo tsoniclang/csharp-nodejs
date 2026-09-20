@@ -8,10 +8,12 @@ namespace Tsonic.CSharp.Node;
 public static partial class child_process
 {
     /// <summary>Runs a child with exact Buffer results and .NET-supported options.</summary>
+    [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
     public static SpawnSyncResult spawnSyncResult(string command, string[] args, NativeSpawnOptions? options = null) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
     /// <summary>Runs native arguments with JavaScript-profile option carriers.</summary>
+    [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
     public static SpawnSyncResult spawnSyncResult(string command, string[] args, JsSpawnOptions options) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
