@@ -15,7 +15,7 @@ public static partial class fs
     public static async Task writeFile(string path, string data, string? encoding = "utf-8")
     {
         var enc = ParseEncoding(encoding ?? "utf-8");
-        await File.WriteAllTextAsync(path, data, enc);
+        await WriteTextAsync(path, data, enc).ConfigureAwait(false);
     }
 
     /// <summary>

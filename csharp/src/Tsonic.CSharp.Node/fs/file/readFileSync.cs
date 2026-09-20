@@ -23,6 +23,7 @@ public static partial class fs
     public static string readFileSync(string path, string encoding)
     {
         var enc = ParseEncoding(encoding);
-        return File.ReadAllText(path, enc);
+        using var reader = OpenTextReader(path, enc, asynchronous: false);
+        return reader.ReadToEnd();
     }
 }
