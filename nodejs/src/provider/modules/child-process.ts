@@ -53,7 +53,7 @@ export function nodeChildProcessOptionsTarget(includeJsSurfaceMembers: boolean) 
     ? csharpJsArrayTargetType(descriptor) : { kind: "array", element: descriptor };
   return {
     input, stdio,
-    type: csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncOptions`2", [input, stdio],
+    type: csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncOptions`2", [csharpNullableTargetType(input), stdio],
       csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncOptions")),
   };
 }

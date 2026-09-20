@@ -1,7 +1,7 @@
 namespace Tsonic.CSharp.Node;
 
 /// <summary>Closed options for synchronous Buffer-based process execution.</summary>
-public sealed class SpawnSyncOptions<TInput, TStdio> where TInput : class where TStdio : class
+public sealed class SpawnSyncOptions<TInput, TStdio> where TStdio : class
 {
     /// <summary>The binary output encoding, when explicitly selected.</summary>
     public string? encoding { get; set; }

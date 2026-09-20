@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Node;
 
 namespace Tsonic.CSharp.Node.Http;
@@ -218,7 +219,7 @@ public partial class IncomingMessage : EventEmitter
             throw new InvalidOperationException("The message body already has a consumer");
     }
 
-    private Task<Stream> BodyStream() => _serverRequest is not null
+    private Task<System.IO.Stream> BodyStream() => _serverRequest is not null
         ? Task.FromResult(_serverRequest.Body)
         : _clientResponse!.Content.ReadAsStreamAsync(_cancellation);
 

@@ -52,7 +52,8 @@ public sealed class ClientStreamingTests
             if (abort)
             {
                 request.abort();
-                await Assert.ThrowsAnyAsync<Exception>(() => body.WaitAsync(TimeSpan.FromSeconds(10)));
+                var error = await Assert.ThrowsAnyAsync<Exception>(() => body.WaitAsync(TimeSpan.FromSeconds(10)));
+                Assert.IsNotType<TimeoutException>(error);
                 Assert.False(response.complete);
             }
             else

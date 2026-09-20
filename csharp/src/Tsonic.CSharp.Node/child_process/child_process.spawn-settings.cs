@@ -1,7 +1,7 @@
 using System.Text;
 using Tsonic.CSharp.Runtime;
 using NativeSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>[]>;
-using JsSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
+using JsSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
 
 namespace Tsonic.CSharp.Node;
 
@@ -22,21 +22,21 @@ public static partial class child_process
             var descriptors = options?.stdio;
             return From(options, options?.input?.InternalMemory ?? ReadOnlyMemory<byte>.Empty, options?.input is not null,
                 descriptors?.Length ?? 0,
-                descriptors is { Length: > 0 } ? descriptors[0] : null,
-                descriptors is { Length: > 1 } ? descriptors[1] : null,
-                descriptors is { Length: > 2 } ? descriptors[2] : null);
+                descriptors is { Length: > 0 } ? descriptors[0] : (Union<double, string, Null, Undefined>?)null,
+                descriptors is { Length: > 1 } ? descriptors[1] : (Union<double, string, Null, Undefined>?)null,
+                descriptors is { Length: > 2 } ? descriptors[2] : (Union<double, string, Null, Undefined>?)null);
         }
 
         public static SpawnSettings From(JsSpawnOptions? options)
         {
             var input = options?.input;
-            var bytes = input is null || input.Is3() ? ReadOnlyMemory<byte>.Empty
-                : input.Is1() ? input.As1().AsMemory() : input.As2().InternalMemory;
+            var bytes = input is null || input.Value.Is3() ? ReadOnlyMemory<byte>.Empty
+                : input.Value.Is1() ? input.Value.As1().AsMemory() : input.Value.As2().InternalMemory;
             var descriptors = options?.stdio;
-            return From(options, bytes, input is not null && !input.Is3(), descriptors?.length ?? 0,
-                descriptors is not null && descriptors.length > 0 ? descriptors[0] : null,
-                descriptors is not null && descriptors.length > 1 ? descriptors[1] : null,
-                descriptors is not null && descriptors.length > 2 ? descriptors[2] : null);
+            return From(options, bytes, input is not null && !input.Value.Is3(), descriptors?.length ?? 0,
+                descriptors is not null && descriptors.length > 0 ? descriptors[0] : (Union<double, string, Null, Undefined>?)null,
+                descriptors is not null && descriptors.length > 1 ? descriptors[1] : (Union<double, string, Null, Undefined>?)null,
+                descriptors is not null && descriptors.length > 2 ? descriptors[2] : (Union<double, string, Null, Undefined>?)null);
         }
 
         private static SpawnSettings From<TInput, TStdio>(
@@ -44,7 +44,7 @@ public static partial class child_process
             Union<double, string, Null, Undefined>? stdinDescriptor,
             Union<double, string, Null, Undefined>? stdoutDescriptor,
             Union<double, string, Null, Undefined>? stderrDescriptor)
-            where TInput : class where TStdio : class
+            where TStdio : class
         {
             if (options?.encoding is not null and not "buffer")
                 throw new ArgumentException("spawnSync Buffer options require encoding: 'buffer'.");
@@ -60,8 +60,8 @@ public static partial class child_process
         }
 
         private static bool Pipe(Union<double, string, Null, Undefined>? entry, int index) =>
-            entry is null || entry.Is3() || entry.Is4() ||
-            (entry.Is1() ? DescriptorPipe(entry.As1(), index) : ModePipe(entry.As2()));
+            entry is null || entry.Value.Is3() || entry.Value.Is4() ||
+            (entry.Value.Is1() ? DescriptorPipe(entry.Value.As1(), index) : ModePipe(entry.Value.As2()));
 
         public static SpawnSettings From(ExecOptions? options)
         {

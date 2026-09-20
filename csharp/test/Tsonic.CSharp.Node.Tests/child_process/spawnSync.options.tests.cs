@@ -1,7 +1,7 @@
 using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Runtime;
 using Xunit;
-using SpawnSyncOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
+using SpawnSyncOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
 
 namespace Tsonic.CSharp.Node.Tests;
 
