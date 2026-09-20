@@ -32,31 +32,33 @@ public partial class Buffer
             if (bytes.Length == 0)
                 return this;
 
-            // Repeat the pattern to fill the range
-            for (int i = offset; i < endIndex; i++)
-            {
-                _data[i] = bytes[(i - offset) % bytes.Length];
-            }
+            FillPattern(bytes, _data.Slice(offset, endIndex - offset));
         }
         else if (value is int intValue)
         {
             var byteValue = (byte)(intValue & 0xFF);
-            for (int i = offset; i < endIndex; i++)
-            {
-                _data[i] = byteValue;
-            }
+            _data.Slice(offset, endIndex - offset).Fill(byteValue);
         }
         else if (value is Buffer bufferValue)
         {
             if (bufferValue.length == 0)
                 return this;
 
-            for (int i = offset; i < endIndex; i++)
-            {
-                _data[i] = bufferValue._data[(i - offset) % bufferValue.length];
-            }
+            FillPattern(bufferValue._data, _data.Slice(offset, endIndex - offset));
         }
 
         return this;
+    }
+
+    private static void FillPattern(ReadOnlySpan<byte> pattern, Span<byte> destination)
+    {
+        var filled = Math.Min(pattern.Length, destination.Length);
+        pattern.Slice(0, filled).CopyTo(destination);
+        while (filled < destination.Length)
+        {
+            var count = Math.Min(filled, destination.Length - filled);
+            destination.Slice(0, count).CopyTo(destination.Slice(filled));
+            filled += count;
+        }
     }
 }

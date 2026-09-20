@@ -99,9 +99,9 @@ public class ChildProcessSpawnSyncTests
     }
 
     [Fact]
-    public void spawnSyncResult_RejectsSparseJavaScriptArgumentArrays()
+    public void spawnSyncResult_RejectsNullJavaScriptArguments()
     {
-        var args = JSArray<string>.fromSparse(2, (0, "present"));
+        var args = new JSArray<string>(new[] { "present", null! });
 
         var exception = Assert.Throws<ArgumentException>(() =>
             child_process.spawnSyncResult("unused", args));

@@ -28,17 +28,17 @@ public partial class Buffer
         }
         else if (normalized == "base64")
         {
-            return Convert.ToBase64String(_data, start, endIndex - start);
+            return Convert.ToBase64String(_data.Slice(start, endIndex - start));
         }
         else if (normalized == "base64url")
         {
-            var base64 = Convert.ToBase64String(_data, start, endIndex - start);
+            var base64 = Convert.ToBase64String(_data.Slice(start, endIndex - start));
             return Base64ToBase64Url(base64);
         }
         else
         {
             var enc = GetEncoding(encoding);
-            return enc.GetString(_data, start, endIndex - start);
+            return enc.GetString(_data.Slice(start, endIndex - start));
         }
     }
 

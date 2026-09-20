@@ -84,10 +84,11 @@ public sealed class TextDecoder
     public string decode(byte[]? input = null, TextDecodeOptions? options = null)
     {
         _ = options;
-        if (input == null || input.Length == 0)
-            return string.Empty;
+        return Decode(input);
+    }
 
-        var bytes = input.AsSpan();
+    private string Decode(ReadOnlySpan<byte> bytes)
+    {
         if (!ignoreBOM && bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
             bytes = bytes[3..];
 
@@ -104,7 +105,8 @@ public sealed class TextDecoder
         if (input == null)
             throw new ArgumentNullException(nameof(input));
 
-        return decode(input.InternalData, options);
+        _ = options;
+        return Decode(input.InternalMemory.Span);
     }
 
     public static TextDecoder newFromOptions(TextDecoderOptions options)

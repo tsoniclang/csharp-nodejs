@@ -38,7 +38,7 @@ public partial class EventEmitter
         {
             if (!_events.TryGetValue(eventName, out var registered))
                 return this;
-            listeners = registered.ToArray();
+            listeners = registered;
             _events.Remove(eventName);
         }
         if (!IsEvent(eventName, "removeListener"))

@@ -12,7 +12,7 @@ public static partial class fs
     /// <returns>A promise that resolves to the contents of the file as a Buffer.</returns>
     public static async Task<Buffer> readFile(string path)
     {
-        return Buffer.from(await File.ReadAllBytesAsync(path));
+        return Buffer.TakeOwnership(await File.ReadAllBytesAsync(path));
     }
 
     /// <summary>

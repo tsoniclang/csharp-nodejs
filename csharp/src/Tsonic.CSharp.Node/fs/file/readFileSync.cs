@@ -11,7 +11,7 @@ public static partial class fs
     /// <returns>The contents of the file as a Buffer.</returns>
     public static Buffer readFileSync(string path)
     {
-        return Buffer.from(File.ReadAllBytes(path));
+        return Buffer.TakeOwnership(File.ReadAllBytes(path));
     }
 
     /// <summary>

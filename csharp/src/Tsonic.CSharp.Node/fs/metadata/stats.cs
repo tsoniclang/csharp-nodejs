@@ -7,6 +7,31 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Stats
 {
+    private readonly double _atimeSnapshot;
+    private readonly double _mtimeSnapshot;
+    private readonly double _ctimeSnapshot;
+    private readonly double _birthtimeSnapshot;
+    private Tsonic.CSharp.Js.Date? _atime;
+    private Tsonic.CSharp.Js.Date? _mtime;
+    private Tsonic.CSharp.Js.Date? _ctime;
+    private Tsonic.CSharp.Js.Date? _birthtime;
+
+    public Stats() { }
+
+    internal Stats(DateTime accessTime, DateTime modifiedTime, DateTime changedTime, DateTime createdTime)
+    {
+        _atimeSnapshot = atimeMs = StatTime.ToUnixMilliseconds(accessTime);
+        _mtimeSnapshot = mtimeMs = StatTime.ToUnixMilliseconds(modifiedTime);
+        _ctimeSnapshot = ctimeMs = StatTime.ToUnixMilliseconds(changedTime);
+        _birthtimeSnapshot = birthtimeMs = StatTime.ToUnixMilliseconds(createdTime);
+    }
+
+    private static Tsonic.CSharp.Js.Date GetDate(ref Tsonic.CSharp.Js.Date? value, double milliseconds)
+    {
+        return value ?? System.Threading.Interlocked.CompareExchange(
+            ref value, new Tsonic.CSharp.Js.Date(milliseconds), null) ?? value!;
+    }
+
     public long dev { get; set; }
     public long ino { get; set; }
     public long nlink { get; set; } = 1;
@@ -22,28 +47,44 @@ public class Stats
     public int mode { get; set; }
 
     /// <summary>The last access time.</summary>
-    public Tsonic.CSharp.Js.Date atime { get; set; } = new(0);
+    public Tsonic.CSharp.Js.Date atime
+    {
+        get => GetDate(ref _atime, _atimeSnapshot);
+        set => _atime = value;
+    }
 
     /// <summary>The last access time in Unix epoch milliseconds.</summary>
     public double atimeMs { get; set; }
     public long atimeNs { get; set; }
 
     /// <summary>The last modified time.</summary>
-    public Tsonic.CSharp.Js.Date mtime { get; set; } = new(0);
+    public Tsonic.CSharp.Js.Date mtime
+    {
+        get => GetDate(ref _mtime, _mtimeSnapshot);
+        set => _mtime = value;
+    }
 
     /// <summary>The last modified time in Unix epoch milliseconds.</summary>
     public double mtimeMs { get; set; }
     public long mtimeNs { get; set; }
 
     /// <summary>The last status change time.</summary>
-    public Tsonic.CSharp.Js.Date ctime { get; set; } = new(0);
+    public Tsonic.CSharp.Js.Date ctime
+    {
+        get => GetDate(ref _ctime, _ctimeSnapshot);
+        set => _ctime = value;
+    }
 
     /// <summary>The last status change time in Unix epoch milliseconds.</summary>
     public double ctimeMs { get; set; }
     public long ctimeNs { get; set; }
 
     /// <summary>The creation time (birthtime).</summary>
-    public Tsonic.CSharp.Js.Date birthtime { get; set; } = new(0);
+    public Tsonic.CSharp.Js.Date birthtime
+    {
+        get => GetDate(ref _birthtime, _birthtimeSnapshot);
+        set => _birthtime = value;
+    }
 
     /// <summary>The creation time in Unix epoch milliseconds.</summary>
     public double birthtimeMs { get; set; }

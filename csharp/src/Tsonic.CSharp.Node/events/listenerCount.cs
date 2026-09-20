@@ -20,6 +20,6 @@ public partial class EventEmitter
     private int listenerCountCore(object eventName)
     {
         lock (_eventLock)
-            return _events.TryGetValue(eventName, out var listeners) ? listeners.Count : 0;
+            return _events.TryGetValue(eventName, out var listeners) ? listeners.Length : 0;
     }
 }

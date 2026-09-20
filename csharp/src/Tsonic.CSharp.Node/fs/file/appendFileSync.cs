@@ -28,6 +28,6 @@ public static partial class fs
             throw new ArgumentNullException(nameof(data));
 
         using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-        stream.Write(data.InternalData, 0, data.length);
+        stream.Write(data.InternalMemory.Span);
     }
 }

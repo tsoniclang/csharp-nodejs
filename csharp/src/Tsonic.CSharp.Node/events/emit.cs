@@ -23,18 +23,24 @@ public partial class EventEmitter
 
     private bool emitCore(object eventName, object?[] args)
     {
-        List<EventListener>? listeners;
+        EventListener[]? listeners;
         lock (_eventLock)
         {
-            if (!_events.TryGetValue(eventName, out var registered) || registered.Count == 0)
+            if (!_events.TryGetValue(eventName, out var registered) || registered.Length == 0)
             {
                 listeners = null;
             }
             else
             {
-                listeners = registered.ToList();
-                foreach (var listener in listeners.Where(listener => listener.Once))
-                    removeStoredListener(eventName, listener);
+                listeners = registered;
+                if (System.Array.Exists(registered, static listener => listener.Once))
+                {
+                    var retained = System.Array.FindAll(registered, static listener => !listener.Once);
+                    if (retained.Length == 0)
+                        _events.Remove(eventName);
+                    else
+                        _events[eventName] = retained;
+                }
             }
         }
 

@@ -49,7 +49,7 @@ public partial class Buffer
     public static Buffer from(Buffer buffer)
     {
         var copy = new byte[buffer.length];
-        Array.Copy(buffer._data, copy, buffer.length);
+        buffer._data.CopyTo(copy);
         return new Buffer(copy);
     }
 

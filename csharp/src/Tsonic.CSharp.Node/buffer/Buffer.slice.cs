@@ -6,7 +6,6 @@ public partial class Buffer
 {
     /// <summary>
     /// Returns a new Buffer that references the same memory as the original, but offset and cropped by start and end.
-    /// Note: In this C# implementation, this creates a new copy of the data.
     /// </summary>
     /// <param name="start">Where the new Buffer will start.</param>
     /// <param name="end">Where the new Buffer will end (not inclusive).</param>
@@ -24,11 +23,7 @@ public partial class Buffer
         startIndex = Math.Max(0, Math.Min(startIndex, length));
         endIndex = Math.Max(startIndex, Math.Min(endIndex, length));
 
-        var sliceLength = endIndex - startIndex;
-        var newData = new byte[sliceLength];
-        Array.Copy(_data, startIndex, newData, 0, sliceLength);
-
-        return new Buffer(newData);
+        return new Buffer(_memory.Slice(startIndex, endIndex - startIndex));
     }
 
     /// <summary>
@@ -67,7 +62,7 @@ public partial class Buffer
         if (bytesToCopy <= 0)
             return 0;
 
-        Array.Copy(_data, srcStart, target._data, targetStart, bytesToCopy);
+        _data.Slice(srcStart, bytesToCopy).CopyTo(target._data.Slice(targetStart));
         return bytesToCopy;
     }
 }

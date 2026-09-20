@@ -190,7 +190,9 @@ public static partial class crypto
         if (b == null)
             throw new ArgumentNullException(nameof(b));
 
-        return timingSafeEqual(a.InternalData, b.InternalData);
+        if (a.length != b.length)
+            throw new ArgumentException("Input buffers must have the same byte length");
+        return CryptographicOperations.FixedTimeEquals(a.InternalMemory.Span, b.InternalMemory.Span);
     }
 
 }

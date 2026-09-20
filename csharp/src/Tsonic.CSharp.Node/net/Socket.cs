@@ -41,7 +41,7 @@ public partial class Socket : Stream
     private int _referenced;
     private bool _transportReadReserved;
 
-    private record WriteRequest(byte[] Data, Action<Exception?>? Callback);
+    private record WriteRequest(ReadOnlyMemory<byte> Data, Action<Exception?>? Callback);
 
     /// <summary>
     /// The amount of received bytes.

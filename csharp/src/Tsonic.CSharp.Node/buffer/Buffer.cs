@@ -11,7 +11,8 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Buffer : ITsClosedValueCarrier
 {
-    private readonly byte[] _data;
+    private readonly Memory<byte> _memory;
+    private Span<byte> _data => _memory.Span;
 
     /// <summary>
     /// Gets the length of the buffer in bytes.
@@ -22,9 +23,9 @@ public partial class Buffer : ITsClosedValueCarrier
     /// Creates a new Buffer instance with the specified byte array.
     /// </summary>
     /// <param name="data">The byte array to wrap.</param>
-    private Buffer(byte[] data)
+    private Buffer(Memory<byte> data)
     {
-        _data = data;
+        _memory = data;
     }
 
     /// <summary>
@@ -39,11 +40,13 @@ public partial class Buffer : ITsClosedValueCarrier
     }
 
     /// <summary>
-    /// Gets the internal byte array. Use with caution.
+    /// Gets the exact writable memory range.
     /// </summary>
-    internal byte[] InternalData => _data;
+    internal Memory<byte> InternalMemory => _memory;
 
     internal static Buffer TakeOwnership(byte[] data) => new(data);
+
+    internal static Buffer TakeOwnership(Memory<byte> data) => new(data);
 
     /// <summary>
     /// The size (in bytes) of pre-allocated internal Buffer instances used for pooling.

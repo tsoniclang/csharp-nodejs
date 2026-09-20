@@ -18,6 +18,11 @@ public static partial class fs
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
+        return WriteSync(fd, buffer.AsSpan(), offset, length, position);
+    }
+
+    private static int WriteSync(int fd, ReadOnlySpan<byte> buffer, int offset, int length, int? position)
+    {
         var stream = FileDescriptorManager.Get(fd);
         if (stream == null)
             throw new ArgumentException($"Bad file descriptor: {fd}", nameof(fd));
@@ -34,7 +39,7 @@ public static partial class fs
             stream.Position = position.Value;
         }
 
-        stream.Write(buffer, offset, length);
+        stream.Write(buffer.Slice(offset, length));
         return length;
     }
 
@@ -52,7 +57,7 @@ public static partial class fs
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
 
-        return writeSync(fd, buffer.InternalData, offset, length, position);
+        return WriteSync(fd, buffer.InternalMemory.Span, offset, length, position);
     }
 
     /// <summary>

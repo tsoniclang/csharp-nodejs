@@ -27,7 +27,11 @@ public partial class Socket : Stream
     public bool write(byte[] data, Action<Exception?>? callback = null)
     {
         ArgumentNullException.ThrowIfNull(data);
+        return WriteMemory(data, callback);
+    }
 
+    private bool WriteMemory(ReadOnlyMemory<byte> data, Action<Exception?>? callback)
+    {
         lock (_writeLoopLock)
         {
             if (_stream == null || _destroyed || _writeQueue.IsAddingCompleted)
@@ -57,7 +61,7 @@ public partial class Socket : Stream
 
     /// <summary>Writes a binary buffer to the socket.</summary>
     public bool write(Buffer data, Action<Exception?>? callback = null) =>
-        write(data.InternalData, callback);
+        WriteMemory(data.InternalMemory, callback);
 
     /// <summary>
     /// Starts the write loop that processes queued writes in FIFO order.
@@ -80,7 +84,7 @@ public partial class Socket : Stream
 
                     try
                     {
-                        await _stream.WriteAsync(request.Data, 0, request.Data.Length);
+                        await _stream.WriteAsync(request.Data);
                         bytesWritten += request.Data.Length;
                         if (request.Callback != null)
                             Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(null));
@@ -167,9 +171,11 @@ public partial class Socket : Stream
     /// <param name="data">Data to write before closing</param>
     /// <param name="callback">Callback when finished</param>
     /// <returns>The socket itself</returns>
-    public Socket end(byte[] data, Action? callback = null)
+    public Socket end(byte[] data, Action? callback = null) => EndMemory(data, callback);
+
+    private Socket EndMemory(ReadOnlyMemory<byte> data, Action? callback)
     {
-        write(data, (err) =>
+        WriteMemory(data, (err) =>
         {
             if (err == null)
             {
@@ -181,7 +187,7 @@ public partial class Socket : Stream
 
     /// <summary>Half-closes the socket after writing a final binary buffer.</summary>
     public Socket end(Buffer data, Action? callback = null) =>
-        end(data.InternalData, callback);
+        EndMemory(data.InternalMemory, callback);
 
     /// <summary>
     /// Half-closes the socket after writing string data.

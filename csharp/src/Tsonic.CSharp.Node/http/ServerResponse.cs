@@ -269,7 +269,7 @@ public partial class ServerResponse : Writable
                 _response.WriteAsync(text).GetAwaiter().GetResult();
                 break;
             case Buffer buffer:
-                _response.Body.WriteAsync(buffer.InternalData).GetAwaiter().GetResult();
+                _response.Body.WriteAsync(buffer.InternalMemory).GetAwaiter().GetResult();
                 break;
             case byte[] bytes:
                 _response.Body.WriteAsync(bytes).GetAwaiter().GetResult();
