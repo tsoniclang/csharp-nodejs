@@ -24,7 +24,6 @@ public static partial class fs
     public static async Task<string> readFile(string path, string encoding)
     {
         var enc = ParseEncoding(encoding);
-        using var reader = OpenTextReader(path, enc, asynchronous: true);
-        return await reader.ReadToEndAsync().ConfigureAwait(false);
+        return await File.ReadAllTextAsync(path, enc);
     }
 }

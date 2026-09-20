@@ -59,7 +59,6 @@ const expectedFilesystemSources = [
   "file/renameSync.cs",
   "file/symlink.cs",
   "file/symlinkSync.cs",
-  "file/text-io.cs",
   "file/truncate.cs",
   "file/truncateSync.cs",
   "file/unlink.cs",

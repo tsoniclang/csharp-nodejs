@@ -14,7 +14,7 @@ public static partial class fs
     public static void writeFileSync(string path, string data, string? encoding = "utf-8")
     {
         var enc = ParseEncoding(encoding ?? "utf-8");
-        WriteText(path, data, enc);
+        File.WriteAllText(path, data, enc);
     }
 
     /// <summary>
