@@ -1,6 +1,6 @@
 {
   "name": "@tsonic/csharp-nodejs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "C# NodeJS target capability package for Tsonic",
   "license": "MIT",
   "repository": {
@@ -39,13 +39,13 @@
     "test:parallel": "node ../tsonic/test/scripts/run-parallel.mjs --scope csharp-nodejs"
   },
   "peerDependencies": {
-    "@tsonic/target-api": "0.1.1",
-    "@tsonic/target-csharp": "0.1.1",
-    "@tsonic/tsts": "0.1.1"
+    "@tsonic/target-api": "0.1.2",
+    "@tsonic/target-csharp": "0.1.2",
+    "@tsonic/tsts": "0.1.2"
   },
   "dependencies": {
-    "@tsonic/csharp-js": "0.1.1",
-    "@tsonic/csharp-runtime": "0.1.1"
+    "@tsonic/csharp-js": "0.1.2",
+    "@tsonic/csharp-runtime": "0.1.2"
   },
   "devDependencies": {
     "@types/node": "25.9.1",
