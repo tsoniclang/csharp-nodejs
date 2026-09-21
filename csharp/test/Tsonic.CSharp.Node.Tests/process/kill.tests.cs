@@ -8,10 +8,13 @@ public class killTests
     [Fact]
     public void kill_ShouldThrowForNonExistentProcess()
     {
-        // Use a PID that's unlikely to exist (very high number)
-        var nonExistentPid = 999999;
+        var nonExistentPid = int.MaxValue;
+        Assert.Throws<ArgumentException>(() =>
+        {
+            using var unexpectedProcess = Process.GetProcessById(nonExistentPid);
+        });
 
-        var exception = Assert.Throws<Exception>(() => process.kill(nonExistentPid));
+        var exception = Assert.Throws<Exception>(() => process.kill(nonExistentPid, 0));
         Assert.Contains("ESRCH", exception.Message);
         Assert.Contains("No such process", exception.Message);
     }
