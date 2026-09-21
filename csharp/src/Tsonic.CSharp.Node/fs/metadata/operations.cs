@@ -14,33 +14,7 @@ public static partial class fs
 
     public static Stats lstatSync(string path)
     {
-        var attributes = File.GetAttributes(path);
-        var symbolicLink = (attributes & FileAttributes.ReparsePoint) != 0;
-        FileSystemInfo info = (attributes & FileAttributes.Directory) != 0
-            ? new DirectoryInfo(path)
-            : new FileInfo(path);
-        info.Refresh();
-
-        var size = 0L;
-        if (symbolicLink)
-        {
-            var linkTarget = info.LinkTarget;
-            if (linkTarget != null)
-                size = System.Text.Encoding.UTF8.GetByteCount(linkTarget);
-        }
-        else if (info is FileInfo fileInfo)
-        {
-            size = fileInfo.Length;
-        }
-
-        return new Stats(info.LastAccessTime, info.LastWriteTime, info.CreationTime, info.CreationTime)
-        {
-            size = size,
-            mode = 0,
-            isFile = !symbolicLink && info is FileInfo,
-            isDirectory = !symbolicLink && info is DirectoryInfo,
-            isSymbolicLink = symbolicLink
-        };
+        return ReadStats(path, followLink: false);
     }
     public static Task<Stats> lstat(string path, Action<Exception?, Stats>? callback = null)
     {

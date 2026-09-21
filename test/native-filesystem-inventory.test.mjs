@@ -75,6 +75,7 @@ const expectedFilesystemSources = [
   "metadata/chmodSync.cs",
   "metadata/existsSync.cs",
   "metadata/operations.cs",
+  "metadata/snapshot.cs",
   "metadata/stat.cs",
   "metadata/statSync.cs",
   "metadata/stats.cs",
