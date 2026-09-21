@@ -9,6 +9,7 @@ internal static class StatTime
 
     public static double ToUnixMilliseconds(DateTime value)
     {
-        return new DateTimeOffset(value.ToUniversalTime()).ToUnixTimeMilliseconds();
+        return value.ToUniversalTime().Ticks / TimeSpan.TicksPerMillisecond
+            - DateTime.UnixEpoch.Ticks / TimeSpan.TicksPerMillisecond;
     }
 }
