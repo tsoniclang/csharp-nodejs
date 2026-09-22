@@ -4,16 +4,16 @@ import test from "node:test";
 import {
   assertCsharpCompilationSucceeded,
   compileCsharpSource,
-} from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
-} from "../dist/index.js";
+} from "../../dist/index.js";
 import {
   nodejsSourceProvider,
 } from "./helpers/provider-package.mjs";
 import {
   nodejsProviderTargetRelations,
-} from "../dist/provider/target-relations.js";
+} from "../../dist/provider/target-relations.js";
 
 test("ServerResponse.end declares the exact Buffer overload", () => {
   const provider = nodejsSourceProvider(["js"]);
