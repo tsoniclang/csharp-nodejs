@@ -4,25 +4,25 @@ import {
   assertCsharpProviderPolicyIsNonContradictory,
   createCsharpProviderRejectionCatalog,
   createCsharpProviderRelationCatalog,
-} from "../../tsonic-csharp/dist/public/provider.js";
+} from "../../../tsonic-csharp/dist/public/provider.js";
 import {
   getCsharpNullableElementTargetType,
-} from "../../tsonic-csharp/dist/public/provider.js";
+} from "../../../tsonic-csharp/dist/public/provider.js";
 import {
   assertCsharpCompilationSucceeded,
   checkCsharpSource,
   compileCsharpSource,
-} from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
-} from "../dist/index.js";
+} from "../../dist/index.js";
 import {
   nodejsProviderTargetRejections,
   nodejsProviderTargetRelations,
-} from "../dist/provider/target-relations.js";
+} from "../../dist/provider/target-relations.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../dist/provider/modules/catalog.js";
+} from "../../dist/provider/modules/catalog.js";
 
 test("Node provider relations form one contradiction-free exact catalog", () => {
   const relations = nodejsProviderTargetRelations();

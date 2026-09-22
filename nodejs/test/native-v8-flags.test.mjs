@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkCsharpSource } from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
-import { createTsonicPlugin } from "../dist/index.js";
-import { nativeV8HeapFields, nativeV8HeapSource } from "../../tsonic/test/fixtures/native-v8-heap.mjs";
-import { nodeV8CallTargetMembers, nodeV8Exports, nodeV8PropertyTargetMembers } from "../dist/provider/modules/v8.js";
+import { checkCsharpSource } from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { createTsonicPlugin } from "../../dist/index.js";
+import { nativeV8HeapFields, nativeV8HeapSource } from "../../../tsonic/test/fixtures/native-v8-heap.mjs";
+import { nodeV8CallTargetMembers, nodeV8Exports, nodeV8PropertyTargetMembers } from "../../dist/provider/modules/v8.js";
 
 test("native V8 heap imports and uncalled field reads retain exact source declarations", () => {
   const checked = checkCsharpSource({ surface: "js", capabilities: [createTsonicPlugin()],

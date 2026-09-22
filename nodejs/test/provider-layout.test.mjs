@@ -6,15 +6,15 @@ import { fileURLToPath } from "node:url";
 import {
   evaluateBarrelModules,
   formatArchitectureFindings,
-} from "../../tsonic/test/architecture/tooling/architecture-rules.mjs";
+} from "../../../tsonic/test/architecture/tooling/architecture-rules.mjs";
 import {
   readSourceInventory,
-} from "../../tsonic/test/architecture/tooling/file-inventory.mjs";
+} from "../../../tsonic/test/architecture/tooling/file-inventory.mjs";
 import {
   buildTypeScriptModuleAnalysis,
-} from "../../tsonic/test/architecture/tooling/module-graph.mjs";
+} from "../../../tsonic/test/architecture/tooling/module-graph.mjs";
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const providerRoot = join(repositoryRoot, "nodejs/src/provider");
 
 test("C# Node provider files have explicit semantic ownership", () => {

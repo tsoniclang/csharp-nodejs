@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createTsonicPlugin } from "../../dist/index.js";
+import { createTsonicPlugin } from "../../../dist/index.js";
 
 export function nodejsSourceProvider(selectedSurfaceIds, plugin = createTsonicPlugin()) {
   const contribution = plugin.sourceCompilerContributions({

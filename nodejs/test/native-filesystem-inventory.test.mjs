@@ -5,7 +5,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const nativeRoot = join(repositoryRoot, "csharp/src/Tsonic.CSharp.Node");
 const filesystemRoot = join(nativeRoot, "fs");
 const packagedFilesystemPrefix = "csharp/src/Tsonic.CSharp.Node/fs/";

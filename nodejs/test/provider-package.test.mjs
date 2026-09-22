@@ -2,19 +2,19 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import * as packageExports from "../dist/index.js";
+import * as packageExports from "../../dist/index.js";
 import {
   csharpNodejsProviderPackageProviderIdentity,
   csharpNodejsVirtualDeclarationFileName,
-} from "../dist/provider/identity.js";
-import { nodejsCanonicalProviderExports } from "../dist/provider/modules/catalog.js";
-import { nodejsProviderModuleSpecifiers } from "../dist/provider/modules/specifiers.js";
-import { createCsharpNodejsProviderPolicyContribution } from "../dist/provider/target-relations.js";
+} from "../../dist/provider/identity.js";
+import { nodejsCanonicalProviderExports } from "../../dist/provider/modules/catalog.js";
+import { nodejsProviderModuleSpecifiers } from "../../dist/provider/modules/specifiers.js";
+import { createCsharpNodejsProviderPolicyContribution } from "../../dist/provider/target-relations.js";
 import { nodejsDeclarationModel, nodejsSourceProvider } from "./helpers/provider-package.mjs";
 import {
   assertCsharpCompilationSucceeded,
   compileCsharpSource,
-} from "../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 
 test("Node has one public plugin construction path and retains exact module ownership messages", () => {
   assert.deepEqual(Object.keys(packageExports), ["createTsonicPlugin"]);
