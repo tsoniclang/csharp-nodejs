@@ -22,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 67);
+  assert.equal(relations.length, 68);
   assert.deepEqual(relations.filter(relation => relation.source.providerModuleId === "node:child_process")
     .map(relation => relation.source.exportName).sort(), [
       "SpawnSyncError", "SpawnSyncOptionsWithBufferEncoding",

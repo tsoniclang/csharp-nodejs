@@ -8,6 +8,7 @@ import type {
 } from "@tsonic/target-csharp/provider";
 import {
   csharpNullableValueTargetType,
+  csharpSourcePrimitiveTargetType,
 } from "@tsonic/target-csharp/provider";
 import type {
   NodejsClassPropertyTargetMember,
@@ -15,7 +16,7 @@ import type {
 import {
   boolProviderType,
   boolTargetType,
-  doubleTargetType,
+  intTargetType,
   numberProviderType,
 } from "./types.js";
 import {
@@ -54,7 +55,7 @@ const optionPropertyRows = [
     makeDirectoryOptionsTargetType,
     "mode",
     numberProviderType,
-    csharpNullableValueTargetType(doubleTargetType),
+    csharpNullableValueTargetType(intTargetType),
   ),
   optionProperty(
     nodeFsRmOptionsExportName,
@@ -78,7 +79,7 @@ const optionPropertyRows = [
     rmOptionsTargetType,
     "maxRetries",
     numberProviderType,
-    csharpNullableValueTargetType(doubleTargetType),
+    csharpNullableValueTargetType(csharpSourcePrimitiveTargetType("uint32")),
   ),
   optionProperty(
     nodeFsRmOptionsExportName,
@@ -86,7 +87,7 @@ const optionPropertyRows = [
     rmOptionsTargetType,
     "retryDelay",
     numberProviderType,
-    csharpNullableValueTargetType(doubleTargetType),
+    csharpNullableValueTargetType(intTargetType),
   ),
 ] satisfies readonly NodeFsOptionPropertyRow[];
 

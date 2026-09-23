@@ -15,7 +15,7 @@ public sealed class SpawnSyncResult
     public int? status { get; set; }
 
     /// <summary>The started process ID, absent when process creation failed.</summary>
-    public double? pid { get; set; }
+    public int? pid { get; set; }
 
     /// <summary>The proven termination signal, or null for an ordinary exit.</summary>
     public string? signal { get; set; }

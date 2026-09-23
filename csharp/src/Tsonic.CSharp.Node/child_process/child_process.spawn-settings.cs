@@ -49,7 +49,7 @@ public static partial class child_process
             if (options?.encoding is not null and not "buffer")
                 throw new ArgumentException("spawnSync Buffer options require encoding: 'buffer'.");
             ValidateControls(options?.uid, options?.gid, options?.timeout, options?.killSignal);
-            var maximumBuffer = IntegerOption(options?.maxBuffer, 1024 * 1024, "maxBuffer");
+            var maximumBuffer = BufferLimit(options?.maxBuffer);
             if (descriptorCount > 3)
                 throw new PlatformNotSupportedException("The .NET launcher cannot map extra file descriptors.");
             var stdin = Pipe(stdinDescriptor, 0);
@@ -75,7 +75,7 @@ public static partial class child_process
                 throw new ArgumentException("spawnSync input requires piped stdin.");
             return new(options?.cwd, options?.env,
                 options?.input is null ? ReadOnlyMemory<byte>.Empty : Encoding.UTF8.GetBytes(options.input),
-                IntegerOption(options?.maxBuffer, 1024 * 1024, "maxBuffer"), pipe, pipe, pipe, options?.windowsHide ?? false);
+                BufferLimit(options?.maxBuffer), pipe, pipe, pipe, options?.windowsHide ?? false);
         }
 
         private static void ValidateControls(double? uid, double? gid, double? timeout, string? signal)
@@ -84,6 +84,12 @@ public static partial class child_process
                 throw new PlatformNotSupportedException("System.Diagnostics.Process cannot independently select numeric uid or gid.");
             if (IntegerOption(timeout, 0, "timeout") != 0 || signal is not null)
                 throw new PlatformNotSupportedException("System.Diagnostics.Process cannot preserve Node timeout/signal termination evidence.");
+        }
+
+        private static int BufferLimit(int? value)
+        {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "maxBuffer must be nonnegative.");
+            return value ?? 1024 * 1024;
         }
 
         private static int IntegerOption(double? value, int defaultValue, string name)

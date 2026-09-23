@@ -61,16 +61,11 @@ public class ChildProcessSpawnOptionsTests
         Assert.Null(Environment.GetEnvironmentVariable(key));
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0.5)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    [InlineData(2147483648)]
-    public void BufferBoundMustBeAnExactFiniteInteger(double maximum)
+    [Fact]
+    public void BufferBoundMustBeNonnegative()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => child_process.spawnSyncResult(
-            "must-not-be-started", System.Array.Empty<string>(), new SpawnSyncOptions { maxBuffer = maximum }));
+            "must-not-be-started", System.Array.Empty<string>(), new SpawnSyncOptions { maxBuffer = -1 }));
     }
 
     [Fact]

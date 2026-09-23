@@ -10,7 +10,7 @@ public sealed class SpawnSyncOptions<TInput, TStdio> where TStdio : class
     /// <summary>The complete child environment; omission inherits the parent's environment.</summary>
     public ProcessEnv? env { get; set; }
     /// <summary>The maximum captured bytes on each output stream.</summary>
-    public double? maxBuffer { get; set; }
+    public int? maxBuffer { get; set; }
     /// <summary>The timeout in milliseconds.</summary>
     public double? timeout { get; set; }
     /// <summary>The requested termination signal, unsupported by the .NET launcher.</summary>

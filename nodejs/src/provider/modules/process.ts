@@ -105,7 +105,7 @@ export function nodeProcessExports(): readonly ProviderExportDeclaration[] {
       id: "node:process.CpuUsage", name: "CpuUsage", kind: "interface" as const,
       members: nodeProcessCpuUsageClassPropertyTargetMembers().map(member => ({
         id: member.memberId, name: member.memberName, kind: "property" as const,
-        readonly: true, type: numberProviderType,
+        type: numberProviderType,
       })),
     },
     nodeProcessVersionsExportDeclaration(),
@@ -272,7 +272,7 @@ function nodeProcessCpuUsageClassPropertyTargetMembers(): readonly NodejsClassPr
     exportName: "CpuUsage", memberName: name, memberId: `Tsonic.CSharp.Node.CpuUsage.${name}`,
     targetMemberId: `Tsonic.CSharp.Node.CpuUsage.${name}`, sourceName: name, targetName: name,
     memberKind: "property", providerType: numberProviderType, targetParameters: [],
-    targetReturnType: longTargetType, declaringType: processCpuUsageTargetType, readonly: true,
+    targetReturnType: longTargetType, declaringType: processCpuUsageTargetType,
   }));
 }
 

@@ -21,12 +21,12 @@ public sealed class RmOptions
     /// <summary>
     /// Maximum retries for retryable recursive-removal failures.
     /// </summary>
-    public double? maxRetries { get; set; }
+    public uint? maxRetries { get; set; }
 
     /// <summary>
     /// Base delay in milliseconds between recursive-removal retries.
     /// </summary>
-    public double? retryDelay { get; set; }
+    public int? retryDelay { get; set; }
 }
 
 #pragma warning restore CS8981

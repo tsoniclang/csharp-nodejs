@@ -144,7 +144,7 @@ public partial class Server : EventEmitter
     /// <param name="backlog">Maximum length of the queue of pending connections (ignored in Kestrel).</param>
     /// <param name="callback">Optional callback when server has been started.</param>
     /// <returns>The server instance for chaining.</returns>
-    public Server listen(double port, string? hostname = null, int? backlog = null, Action? callback = null)
+    public Server listen(int port, string? hostname = null, int? backlog = null, Action? callback = null)
     {
         if (_listening)
         {
@@ -245,7 +245,7 @@ public partial class Server : EventEmitter
     /// <param name="port">The port number.</param>
     /// <param name="callback">Optional callback when server has been started.</param>
     /// <returns>The server instance for chaining.</returns>
-    public Server listen(double port, Action? callback)
+    public Server listen(int port, Action? callback)
     {
         return listen(port, null, null, callback);
     }
@@ -253,7 +253,7 @@ public partial class Server : EventEmitter
     /// <summary>
     /// Begin accepting connections on the specified port and hostname.
     /// </summary>
-    public Server listen(double port, string hostname, Action? callback)
+    public Server listen(int port, string hostname, Action? callback)
     {
         return listen(port, hostname, null, callback);
     }

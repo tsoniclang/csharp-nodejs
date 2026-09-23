@@ -50,6 +50,7 @@ public class mkdirSyncTests : FsTestBase
         var dirPath = GetTestPath("invalid-mode");
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            fs.mkdirSync(dirPath, new MakeDirectoryOptions { mode = 1.5 }));
+            fs.mkdirSync(dirPath, new MakeDirectoryOptions { mode = 0x1000 }));
+        Assert.False(Directory.Exists(dirPath));
     }
 }

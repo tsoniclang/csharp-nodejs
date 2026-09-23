@@ -91,14 +91,15 @@ export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembe
       union({ kind: "type-parameter", name: "T" }, nullType), csharpNullableTargetType(nodeBufferTargetType),
     )),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(numberType, nullType), csharpNullableValueTargetType(intTarget)),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", numberType, csharpNullableValueTargetType(numberTarget), true),
+    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", numberType, csharpNullableValueTargetType(intTarget), true),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "signal", union(providerRef("Signals", "node:process"), nullType), csharpNullableTargetType(stringTarget)),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "error", providerRef(errorExportName), csharpNullableTargetType(errorTarget), true),
     ...["message", "code"].map(name => property(errorExportName, errorTarget, name, stringType, stringTarget, false, true)),
     property(optionsExportName, optionsTarget, "encoding", { kind: "literal", value: "buffer" }, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "cwd", stringType, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "env", providerRef("ProcessEnv", "node:process"), csharpNullableTargetType(nativeType("ProcessEnv")), true),
-    ...["maxBuffer", "uid", "gid", "timeout"].map(name =>
+    property(optionsExportName, optionsTarget, "maxBuffer", numberType, csharpNullableValueTargetType(intTarget), true),
+    ...["uid", "gid", "timeout"].map(name =>
       property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(numberTarget), true)),
     property(optionsExportName, optionsTarget, "killSignal", providerRef("Signals", "node:process"), csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),

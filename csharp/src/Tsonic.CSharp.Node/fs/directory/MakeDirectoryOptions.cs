@@ -16,7 +16,7 @@ public sealed class MakeDirectoryOptions
     /// <summary>
     /// Directory mode (POSIX permissions). Applied on Unix when provided.
     /// </summary>
-    public double? mode { get; set; }
+    public int? mode { get; set; }
 }
 
 #pragma warning restore CS8981

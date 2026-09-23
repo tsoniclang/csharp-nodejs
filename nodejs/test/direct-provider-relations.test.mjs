@@ -429,7 +429,7 @@ test("Node numeric API parameters preserve the source number carrier", () => {
   const relations = nodejsProviderTargetRelations().filter(
     (relation) => relation.kind === "signature" &&
       relation.source.signatureId ===
-        "node:http.Server.listen(System.Double,System.Action)",
+        "node:http.Server.listen(System.Int32,System.Action)",
   );
   assert.deepEqual(
     relations.map((relation) => ({
@@ -439,7 +439,7 @@ test("Node numeric API parameters preserve the source number carrier", () => {
     })),
     ["http", "node:http"].map((moduleSpecifier) => ({
       moduleSpecifier,
-      targetId: "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.Action)",
+      targetId: "Tsonic.CSharp.Node.Http.Server.listen(System.Int32,System.Action)",
       parameterType: { kind: "source-primitive", name: "float64" },
     })),
   );

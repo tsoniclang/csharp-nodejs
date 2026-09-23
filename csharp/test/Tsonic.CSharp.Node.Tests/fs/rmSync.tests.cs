@@ -67,7 +67,7 @@ public class rmSyncTests : FsTestBase
             fs.rmSync(path, new RmOptions
             {
                 force = true,
-                maxRetries = 1.5
+                retryDelay = -1
             }));
     }
 
