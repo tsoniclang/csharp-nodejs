@@ -315,10 +315,10 @@ function fsPositionCalls(row: NodeFsCallTargetMetadataRow): readonly NodeFsCallT
   return [fsCall(row), fsCall({
     ...row,
     signatureId: `${row.signatureId}.int64-position`,
-    providerParameters: row.providerParameters.map(parameter => parameter.name !== "position" ? parameter : {
+    providerParameters: row.providerParameters.map((parameter): ProviderParameterDeclaration => parameter.name !== "position" ? parameter : {
       ...parameter,
       type: { kind: "union", types: [
-        { kind: "source-primitive", name: "int64" }, { kind: "null" },
+        { kind: "source-primitive", name: "int64" }, { kind: "literal", value: null },
       ] },
     }),
   })];
