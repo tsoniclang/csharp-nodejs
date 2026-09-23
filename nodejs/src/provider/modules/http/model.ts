@@ -15,6 +15,7 @@ import {
 } from "@tsonic/target-csharp/provider";
 import type {
   TargetTypeRef,
+  CsharpProviderArgumentAdapter,
 } from "@tsonic/target-csharp/provider";
 import {
   nodejsClassCallTargetMetadata,
@@ -58,6 +59,16 @@ const stringOrNullProviderType = {
 const stringTargetType = csharpStringTargetType();
 const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
+const integerInputAdapter: CsharpProviderArgumentAdapter = Object.freeze({
+  kind: "static-method",
+  id: "Tsonic.CSharp.Node.JsNumeric.RequireInteger(System.Double)",
+  declaringType: csharpTargetNamedType("Tsonic.CSharp.Node.JsNumeric", undefined,
+    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "JsNumeric")),
+  targetName: "RequireInteger",
+  inputType: csharpSourcePrimitiveTargetType("float64"),
+  resultType: intTargetType,
+  nativeIntegerConversion: "checked",
+});
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
 const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
@@ -287,6 +298,7 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       memberKind: "method",
       providerParameters: [numberParameter("port"), { name: "callback", type: voidCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
+      argumentAdapters: [integerInputAdapter, undefined],
       targetParameters: [targetParameter("port", intTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,
@@ -302,6 +314,7 @@ export function nodeHttpClassCallTargetMembers(): readonly NodejsClassCallTarget
       memberKind: "method",
       providerParameters: [numberParameter("port"), stringParameter("hostname"), { name: "callback", type: voidListenHostnameCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
+      argumentAdapters: [integerInputAdapter, undefined, undefined],
       targetParameters: [targetParameter("port", intTargetType), targetParameter("hostname", stringTargetType), targetParameter("callback", voidCallbackTargetType, { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,

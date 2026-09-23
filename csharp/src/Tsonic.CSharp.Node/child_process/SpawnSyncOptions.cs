@@ -12,13 +12,13 @@ public sealed class SpawnSyncOptions<TInput, TStdio> where TStdio : class
     /// <summary>The maximum captured bytes on each output stream.</summary>
     public int? maxBuffer { get; set; }
     /// <summary>The timeout in milliseconds.</summary>
-    public double? timeout { get; set; }
+    public int? timeout { get; set; }
     /// <summary>The requested termination signal, unsupported by the .NET launcher.</summary>
     public string? killSignal { get; set; }
     /// <summary>The requested numeric user identity, unsupported by the .NET launcher.</summary>
-    public double? uid { get; set; }
+    public int? uid { get; set; }
     /// <summary>The requested numeric group identity, unsupported by the .NET launcher.</summary>
-    public double? gid { get; set; }
+    public int? gid { get; set; }
     /// <summary>The exact binary input view, retained until invocation.</summary>
     public TInput? input { get; set; }
     /// <summary>The selected standard descriptors, retained by reference until invocation.</summary>

@@ -78,11 +78,12 @@ public static partial class child_process
                 BufferLimit(options?.maxBuffer), pipe, pipe, pipe, options?.windowsHide ?? false);
         }
 
-        private static void ValidateControls(double? uid, double? gid, double? timeout, string? signal)
+        private static void ValidateControls(int? uid, int? gid, int? timeout, string? signal)
         {
             if (uid is not null || gid is not null)
                 throw new PlatformNotSupportedException("System.Diagnostics.Process cannot independently select numeric uid or gid.");
-            if (IntegerOption(timeout, 0, "timeout") != 0 || signal is not null)
+            if (timeout < 0) throw new ArgumentOutOfRangeException(nameof(timeout));
+            if (timeout.GetValueOrDefault() != 0 || signal is not null)
                 throw new PlatformNotSupportedException("System.Diagnostics.Process cannot preserve Node timeout/signal termination evidence.");
         }
 
@@ -90,14 +91,6 @@ public static partial class child_process
         {
             if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "maxBuffer must be nonnegative.");
             return value ?? 1024 * 1024;
-        }
-
-        private static int IntegerOption(double? value, int defaultValue, string name)
-        {
-            if (value is null) return defaultValue;
-            if (!double.IsFinite(value.Value) || value < 0 || value > int.MaxValue || Math.Truncate(value.Value) != value.Value)
-                throw new ArgumentOutOfRangeException(name, "Expected an exact nonnegative .NET integer.");
-            return checked((int)value.Value);
         }
 
         private static bool DescriptorPipe(double descriptor, int index)

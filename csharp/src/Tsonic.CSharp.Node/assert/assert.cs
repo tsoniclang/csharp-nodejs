@@ -257,7 +257,7 @@ public static partial class assert
         // Try numeric comparison if both are numbers
         if (IsNumeric(a) && IsNumeric(b))
         {
-            return Convert.ToDouble(a) == Convert.ToDouble(b);
+            return Tsonic.CSharp.Runtime.TsValue.ApplyDynamicBinaryBoolean(a, "==", b);
         }
 
         return a.Equals(b);
@@ -302,6 +302,7 @@ public static partial class assert
     private static bool IsNumeric(object value)
     {
         return value is sbyte or byte or short or ushort or int or uint
-            or long or ulong or float or double or decimal;
+            or long or ulong or nint or nuint or Int128 or UInt128
+            or Half or float or double or decimal;
     }
 }

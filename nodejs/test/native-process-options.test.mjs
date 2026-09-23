@@ -13,51 +13,44 @@ test("process buffer options retain native integer storage", () => {
 });
 
 for (const expression of [...invalidNativeProcessOptionValues, "2147483648"]) {
-  test(`process buffer options reject unrepresentable native input ${expression}`, () => {
+  test(`process buffer options check non-native input ${expression}`, () => {
     const compiled = compileCsharpSource({
       surface: "js", capabilities: [createTsonicPlugin()],
       sourceText: nativeProcessOptionSource("maxBuffer", expression),
     });
-    assert.equal(compiled.sourceDiagnosticsText, "");
-    assert.ok(compiled.result.diagnostics.some(diagnostic => diagnostic.category === "error"));
-    assert.equal(compiled.result.artifacts.length, 0);
+    assertCsharpCompilationSucceeded(compiled);
+    assert.match(compiled.artifacts.get("src/Index.cs"), /IntegerConversions\.Checked/u);
   });
 }
 
 for (const [moduleSpecifier, typeName, field] of nativeOptionContracts) {
-  test(`${typeName}.${field} retains native option storage and rejects nonintegral values`, () => {
+  test(`${typeName}.${field} retains native option storage and checks nonintegral values`, () => {
     for (const expression of ["1", ...invalidNativeProcessOptionValues]) {
       const compiled = compileCsharpSource({
         surface: "js", capabilities: [createTsonicPlugin()],
         sourceText: nativeOptionSource(moduleSpecifier, typeName, field, expression),
       });
-      if (expression === "1") assertCsharpCompilationSucceeded(compiled);
-      else {
-        assert.equal(compiled.sourceDiagnosticsText, "");
-        assert.ok(compiled.result.diagnostics.some(diagnostic => diagnostic.category === "error"), expression);
-        assert.equal(compiled.result.artifacts.length, 0);
-      }
+      assertCsharpCompilationSucceeded(compiled);
+      if (expression !== "1") assert.match(compiled.artifacts.get("src/Index.cs"), /IntegerConversions\.Checked/u);
     }
   });
 }
 
-test("HTTP listen retains a native port and rejects fractional or nonfinite ports", () => {
-  for (const expression of ["8080", ...invalidNativeProcessOptionValues]) {
+test("HTTP listen validates floating ports and passes native integers directly", () => {
+  for (const native of [false, true]) {
     const compiled = compileCsharpSource({
       surface: "js", capabilities: [createTsonicPlugin()],
       sourceText: `
         import { createServer } from "node:http";
-        export function run(): void {
-          const port = ${expression};
+        import type { int32 } from "@tsonic/core/types.js";
+        export function run(port: ${native ? "int32" : "number"}): void {
           createServer((request, response) => { response.end(); }).listen(port);
         }
       `,
     });
-    if (expression === "8080") assertCsharpCompilationSucceeded(compiled);
-    else {
-      assert.equal(compiled.sourceDiagnosticsText, "");
-      assert.ok(compiled.result.diagnostics.some(diagnostic => diagnostic.category === "error"), expression);
-      assert.equal(compiled.result.artifacts.length, 0);
-    }
+    assertCsharpCompilationSucceeded(compiled);
+    const source = compiled.artifacts.get("src/Index.cs");
+    if (native) assert.doesNotMatch(source, /RequireInteger|Convert\.ToInt32/u);
+    else assert.match(source, /JsNumeric\.RequireInteger\(port\)/u);
   }
 });

@@ -100,7 +100,7 @@ export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembe
     property(optionsExportName, optionsTarget, "env", providerRef("ProcessEnv", "node:process"), csharpNullableTargetType(nativeType("ProcessEnv")), true),
     property(optionsExportName, optionsTarget, "maxBuffer", numberType, csharpNullableValueTargetType(intTarget), true),
     ...["uid", "gid", "timeout"].map(name =>
-      property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(numberTarget), true)),
+      property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(intTarget), true)),
     property(optionsExportName, optionsTarget, "killSignal", providerRef("Signals", "node:process"), csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),
       csharpNullableTargetType(options.input), true),

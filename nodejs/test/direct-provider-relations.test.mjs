@@ -23,6 +23,7 @@ import {
 import {
   nodejsCanonicalProviderExports,
 } from "../../dist/provider/modules/catalog.js";
+import { nodejsTargetMemberMetadataRecords } from "../../dist/provider/members/provider-records.js";
 
 test("Node provider relations form one contradiction-free exact catalog", () => {
   const relations = nodejsProviderTargetRelations();
@@ -244,11 +245,11 @@ test("standard filesystem option objects lower through exact provider constructi
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(
     source,
-    /new Tsonic\.CSharp\.Node\.MakeDirectoryOptions\s*\{[\s\S]*recursive = true[\s\S]*mode = mode[\s\S]*\}/u,
+    /new Tsonic\.CSharp\.Node\.MakeDirectoryOptions\s*\{[\s\S]*recursive = true[\s\S]*mode = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, int>\(mode\)[\s\S]*\}/u,
   );
   assert.match(
     source,
-    /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = maxRetries[\s\S]*retryDelay = retryDelay[\s\S]*\}/u,
+    /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, uint>\(maxRetries\)[\s\S]*retryDelay = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, int>\(retryDelay\)[\s\S]*\}/u,
   );
   assert.match(
     source,
@@ -406,7 +407,7 @@ test("combined portability provider selection is independent of source ordering"
   ]);
 });
 
-test("Node numeric API parameters preserve the source number carrier", () => {
+test("Node numeric API parameters validate floating inputs at native integer boundaries", () => {
   const compiled = compileCsharpSource({
     capabilities: [createTsonicPlugin()],
     targetOptions: { outputType: "Exe" },
@@ -423,7 +424,7 @@ test("Node numeric API parameters preserve the source number carrier", () => {
   assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
-    /server\.listen\(port, \(\) =>/u,
+    /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), \(\) =>/u,
   );
 
   const relations = nodejsProviderTargetRelations().filter(
@@ -440,7 +441,7 @@ test("Node numeric API parameters preserve the source number carrier", () => {
     ["http", "node:http"].map((moduleSpecifier) => ({
       moduleSpecifier,
       targetId: "Tsonic.CSharp.Node.Http.Server.listen(System.Int32,System.Action)",
-      parameterType: { kind: "source-primitive", name: "float64" },
+      parameterType: { kind: "source-primitive", name: "int32" },
     })),
   );
 });
@@ -485,6 +486,18 @@ test("Node provider relations declare every source-number target adapter exactly
         : undefined;
       const identity = `${relation.source.moduleSpecifier}:${relation.source.signatureId}:parameter[${parameter.sourceParameterIndex}]`;
 
+      const declaredAdapters = nodejsTargetMemberMetadataRecords().filter(record =>
+        record.member.id === relation.targetMember.id && record.argumentAdapters !== undefined);
+      const explicitAdapter = declaredAdapters[0]?.argumentAdapters[parameter.targetParameterIndex];
+      if (explicitAdapter !== undefined) {
+        for (const record of declaredAdapters) {
+          assert.deepEqual(record.argumentAdapters[parameter.targetParameterIndex], explicitAdapter, identity);
+        }
+        assert.deepEqual(parameter.argumentAdapter, explicitAdapter, identity);
+        adapterCount += 1;
+        continue;
+      }
+
       assert.equal(
         parameter.argumentAdapter?.targetName,
         expectedTargetName,
@@ -514,7 +527,7 @@ test("Node provider relations declare every source-number target adapter exactly
     }
   }
 
-  assert.equal(adapterCount, 284);
+  assert.equal(adapterCount, 288);
 });
 
 function findSourceSignature(relation) {
