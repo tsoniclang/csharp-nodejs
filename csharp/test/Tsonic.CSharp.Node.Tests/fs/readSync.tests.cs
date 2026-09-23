@@ -26,6 +26,22 @@ public class Fs_readSyncTests : IDisposable
     }
 
     [Fact]
+    public void readSync_AcceptsNative64BitPositionsWithoutLargeFileAllocation()
+    {
+        File.WriteAllText(_testFile, "test");
+        var descriptor = fs.openSync(_testFile, "r");
+        try
+        {
+            Assert.Equal(0, fs.readSync(descriptor, new byte[1], 0, 1, 9007199254740993L));
+            Assert.Equal(1, fs.readSync(descriptor, new byte[1], 0, 1, 0L));
+        }
+        finally
+        {
+            fs.closeSync(descriptor);
+        }
+    }
+
+    [Fact]
     public void readSync_ShouldReadEntireFile()
     {
         var content = "Hello, World!";

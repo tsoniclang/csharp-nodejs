@@ -13,7 +13,7 @@ public static partial class fs
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <returns>A Task that resolves to the number of bytes written.</returns>
-    public static Task<int> write(int fd, byte[] buffer, int offset, int length, int? position)
+    public static Task<int> write(int fd, byte[] buffer, int offset, int length, long? position)
     {
         return Task.Run(() => writeSync(fd, buffer, offset, length, position));
     }
@@ -26,7 +26,7 @@ public static partial class fs
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <param name="encoding">The string encoding. Default is "utf8".</param>
     /// <returns>A Task that resolves to the number of bytes written.</returns>
-    public static Task<int> write(int fd, string data, int? position = null, string? encoding = null)
+    public static Task<int> write(int fd, string data, long? position = null, string? encoding = null)
     {
         return Task.Run(() => writeSync(fd, data, position, encoding));
     }

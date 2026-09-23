@@ -13,7 +13,7 @@ public static partial class fs
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <returns>The number of bytes written.</returns>
-    public static int writeSync(int fd, byte[] buffer, int offset, int length, int? position)
+    public static int writeSync(int fd, byte[] buffer, int offset, int length, long? position)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -21,7 +21,7 @@ public static partial class fs
         return WriteSync(fd, buffer.AsSpan(), offset, length, position);
     }
 
-    private static int WriteSync(int fd, ReadOnlySpan<byte> buffer, int offset, int length, int? position)
+    private static int WriteSync(int fd, ReadOnlySpan<byte> buffer, int offset, int length, long? position)
     {
         var stream = FileDescriptorManager.Get(fd);
         if (stream == null)
@@ -52,7 +52,7 @@ public static partial class fs
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <returns>The number of bytes written.</returns>
-    public static int writeSync(int fd, Buffer buffer, int offset, int length, int? position)
+    public static int writeSync(int fd, Buffer buffer, int offset, int length, long? position)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));
@@ -68,7 +68,7 @@ public static partial class fs
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <param name="encoding">The string encoding. Default is "utf8".</param>
     /// <returns>The number of bytes written.</returns>
-    public static int writeSync(int fd, string data, int? position = null, string? encoding = null)
+    public static int writeSync(int fd, string data, long? position = null, string? encoding = null)
     {
         var enc = System.Text.Encoding.UTF8; // Default encoding
         if (encoding != null)
