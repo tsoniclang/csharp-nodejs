@@ -31,6 +31,21 @@ public class ProcessMetricsTests : FsTestBase
     }
 
     [Fact]
+    public void ProcessHrtime_PreservesNativeIntegerPrecisionAndBounds()
+    {
+        long[] before = process.hrtime();
+        const long previous = 9_007_199_254_740_993;
+        long[] delta = process.hrtime([previous, 0]);
+        long[] after = process.hrtime();
+        Assert.InRange(delta[0], before[0] - previous, after[0] - previous);
+        Assert.InRange(delta[1], 0, 999_999_999);
+        Assert.Throws<ArgumentOutOfRangeException>(() => process.hrtime([]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => process.hrtime([0, -1]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => process.hrtime([0, 1_000_000_000]));
+        Assert.Throws<OverflowException>(() => process.hrtime([long.MinValue, 0]));
+    }
+
+    [Fact]
     public void ProcessFeaturesAndConfig_AreClosedObjects()
     {
         Assert.True(process.features.tls);

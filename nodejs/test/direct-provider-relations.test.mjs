@@ -30,7 +30,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 1818);
+  assert.equal(relations.length, 1840);
   assert.equal(rejections.length, 166);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -507,11 +507,14 @@ test("Node provider relations declare every source-number target adapter exactly
         targetName: expectedTargetName,
         inputType: { kind: "source-primitive", name: "float64" },
         resultType,
+        ...(["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"].includes(resultType.name)
+          ? { nativeIntegerConversion: "checked" }
+          : {}),
       }, identity);
     }
   }
 
-  assert.equal(adapterCount, 256);
+  assert.equal(adapterCount, 284);
 });
 
 function findSourceSignature(relation) {
