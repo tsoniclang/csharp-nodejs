@@ -25,7 +25,6 @@ public static partial class util
         return obj switch
         {
             null => "null",
-            Undefined => "undefined",
             string text => $"'{text}'",
             bool value => value ? "true" : "false",
             char value => $"'{value}'",

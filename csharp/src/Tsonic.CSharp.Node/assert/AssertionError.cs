@@ -64,6 +64,6 @@ public class AssertionError : Exception
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
-        return value.ToString() ?? "undefined";
+        return value.ToString() ?? "null";
     }
 }

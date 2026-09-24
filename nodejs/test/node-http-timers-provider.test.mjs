@@ -22,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 67);
+  assert.equal(relations.length, 68);
   assert.deepEqual(relations.filter(relation => relation.source.providerModuleId === "node:child_process")
     .map(relation => relation.source.exportName).sort(), [
       "SpawnSyncError", "SpawnSyncOptionsWithBufferEncoding",
@@ -143,7 +143,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
     source,
     /Tsonic\.CSharp\.Node\.Http\.http\.createServer/u,
   );
-  assert.match(source, /server\.listen\(port/u);
+  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\),/u);
   assert.match(
     source,
     /Tsonic\.CSharp\.Node\.timers\.setInterval/u,

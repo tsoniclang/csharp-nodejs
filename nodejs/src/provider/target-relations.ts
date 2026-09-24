@@ -134,6 +134,7 @@ function nodejsProviderMemberRelations(includeJsSurfaceMembers: boolean):
             moduleSpecifier,
             record.member,
             includeJsSurfaceMembers,
+            record.argumentAdapters,
           ),
       ),
     ));
@@ -144,6 +145,7 @@ function nodejsProviderTargetRelation(
   moduleSpecifier: string,
   targetMember: CsharpTargetMember,
   includeJsSurfaceMembers: boolean,
+  argumentAdapters: readonly (CsharpProviderArgumentAdapter | undefined)[] | undefined,
 ): CsharpProviderTargetRelation {
   const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
   const targetBinding = targetBindingForMember(identity, targetMember, includeJsSurfaceMembers);
@@ -158,6 +160,7 @@ function nodejsProviderTargetRelation(
         identity,
         providerSignatureParameters(identity, includeJsSurfaceMembers),
         targetMember,
+        argumentAdapters,
       ),
       bindingTypeParameters: [],
       bindingTypeArgumentSource:
@@ -410,6 +413,7 @@ function providerParameterRelations(
   identity: NodejsProviderDeclarationIdentity,
   sourceParameters: readonly ProviderParameterDeclaration[] | undefined,
   member: CsharpTargetMember,
+  argumentAdapters: readonly (CsharpProviderArgumentAdapter | undefined)[] | undefined,
 ): readonly CsharpProviderParameterRelation[] {
   if (sourceParameters === undefined) {
     throw new Error(
@@ -421,9 +425,12 @@ function providerParameterRelations(
       `C# NodeJS provider signature '${identity.signatureId ?? "<missing>"}' exposes ${sourceParameters.length} source parameters but relates to ${member.parameters.length} target parameters.`,
     );
   }
+  if (argumentAdapters !== undefined && argumentAdapters.length !== sourceParameters.length) {
+    throw new Error(`Provider argument adapters must match the exact parameter count for ${identity.signatureId}.`);
+  }
   return Object.freeze(sourceParameters.map((source, index) => {
     const target = member.parameters[index]!;
-    const argumentAdapter = nodejsProviderArgumentAdapter(
+    const argumentAdapter = argumentAdapters?.[index] ?? nodejsProviderArgumentAdapter(
       source,
       target.type,
     );
@@ -474,6 +481,9 @@ function nodejsProviderArgumentAdapter(
     targetName,
     inputType,
     resultType,
+    ...(["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"].includes(resultType.name)
+      ? { nativeIntegerConversion: "checked" as const }
+      : {}),
   });
 }
 

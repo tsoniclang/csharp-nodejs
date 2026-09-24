@@ -9,6 +9,7 @@ import type {
 } from "@tsonic/target-csharp/provider";
 import type {
   NodejsClassCallTargetMember,
+  NodejsCallArgumentAdapters,
   NodejsClassPropertyTargetMember,
   NodejsModuleCallTargetMember,
   NodejsModulePropertyTargetMember,
@@ -49,7 +50,7 @@ export interface NodejsClassPropertyTargetMetadata extends NodejsClassPropertyTa
   readonly optional?: true;
 }
 
-export interface NodejsModuleCallTargetMetadataRow {
+export interface NodejsModuleCallTargetMetadataRow extends NodejsCallArgumentAdapters {
   readonly exportName: string;
   readonly signatureId: string;
   readonly targetMemberId: string;
@@ -72,7 +73,7 @@ export interface NodejsModulePropertyTargetMetadataRow {
   readonly declaringType: TargetTypeRef;
 }
 
-export interface NodejsClassCallTargetMetadataRow {
+export interface NodejsClassCallTargetMetadataRow extends NodejsCallArgumentAdapters {
   readonly exportName: string;
   readonly memberName: string;
   readonly memberId: string;
@@ -117,6 +118,7 @@ export function nodejsModuleCallTargetMetadata(
     targetName: row.targetName,
     providerParameters: row.providerParameters,
     providerReturnType: row.providerReturnType,
+    ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     member: nodejsTargetMember({
       targetMemberId: row.targetMemberId,
       sourceName: row.sourceName,
@@ -162,6 +164,7 @@ export function nodejsClassCallTargetMetadata(
     targetMemberId: row.targetMemberId,
     targetName: row.targetName,
     memberKind: row.memberKind,
+    ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     providerParameters: row.providerParameters,
     ...(row.providerReturnType !== undefined ? { providerReturnType: row.providerReturnType } : {}),
     ...(row.static === true ? { static: true } : {}),

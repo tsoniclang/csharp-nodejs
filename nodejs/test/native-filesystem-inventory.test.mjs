@@ -33,7 +33,6 @@ const expectedFilesystemSources = [
   "directory/cpSync.cs",
   "directory/mkdir.cs",
   "directory/mkdirSync.cs",
-  "directory/numericOptions.cs",
   "directory/operations.cs",
   "directory/readdir.cs",
   "directory/readdirSync.cs",

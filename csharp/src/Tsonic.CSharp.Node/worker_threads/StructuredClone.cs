@@ -48,9 +48,6 @@ internal static class StructuredClone
         value = Unwrap(value);
         switch (value)
         {
-            case Undefined:
-                writer.Write((byte)0);
-                return;
             case null:
                 writer.Write((byte)1);
                 return;
@@ -60,9 +57,69 @@ internal static class StructuredClone
             case true:
                 writer.Write((byte)3);
                 return;
-            case byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal:
+            case double number:
                 writer.Write((byte)4);
-                writer.Write(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                writer.Write(number);
+                return;
+            case byte number:
+                writer.Write((byte)10);
+                writer.Write(number);
+                return;
+            case sbyte number:
+                writer.Write((byte)11);
+                writer.Write(number);
+                return;
+            case short number:
+                writer.Write((byte)12);
+                writer.Write(number);
+                return;
+            case ushort number:
+                writer.Write((byte)13);
+                writer.Write(number);
+                return;
+            case int number:
+                writer.Write((byte)14);
+                writer.Write(number);
+                return;
+            case uint number:
+                writer.Write((byte)15);
+                writer.Write(number);
+                return;
+            case long number:
+                writer.Write((byte)16);
+                writer.Write(number);
+                return;
+            case ulong number:
+                writer.Write((byte)17);
+                writer.Write(number);
+                return;
+            case float number:
+                writer.Write((byte)18);
+                writer.Write(number);
+                return;
+            case decimal number:
+                writer.Write((byte)19);
+                writer.Write(number);
+                return;
+            case nint number:
+                writer.Write((byte)20);
+                writer.Write((long)number);
+                return;
+            case nuint number:
+                writer.Write((byte)21);
+                writer.Write((ulong)number);
+                return;
+            case Int128 number:
+                writer.Write((byte)22);
+                WriteWideInteger(writer, unchecked((UInt128)number));
+                return;
+            case UInt128 number:
+                writer.Write((byte)23);
+                WriteWideInteger(writer, number);
+                return;
+            case Half number:
+                writer.Write((byte)24);
+                writer.Write(BitConverter.HalfToUInt16Bits(number));
                 return;
             case string text:
                 writer.Write((byte)5);
@@ -206,7 +263,6 @@ internal static class StructuredClone
             throw DataCloneError("Structured-clone depth exceeds the finite limit.");
         return reader.ReadByte() switch
         {
-            0 => Undefined.value,
             1 => null,
             2 => false,
             3 => true,
@@ -216,8 +272,36 @@ internal static class StructuredClone
             7 => ReadArray(reader, state, depth),
             8 => ReadBuffer(reader, state),
             9 => ReadReference(reader, state),
+            10 => reader.ReadByte(),
+            11 => reader.ReadSByte(),
+            12 => reader.ReadInt16(),
+            13 => reader.ReadUInt16(),
+            14 => reader.ReadInt32(),
+            15 => reader.ReadUInt32(),
+            16 => reader.ReadInt64(),
+            17 => reader.ReadUInt64(),
+            18 => reader.ReadSingle(),
+            19 => reader.ReadDecimal(),
+            20 => checked((nint)reader.ReadInt64()),
+            21 => checked((nuint)reader.ReadUInt64()),
+            22 => unchecked((Int128)ReadWideInteger(reader)),
+            23 => ReadWideInteger(reader),
+            24 => BitConverter.UInt16BitsToHalf(reader.ReadUInt16()),
             _ => throw DataCloneError("Structured-clone payload contains an unknown value tag."),
         };
+    }
+
+    private static void WriteWideInteger(BinaryWriter writer, UInt128 value)
+    {
+        writer.Write(unchecked((ulong)value));
+        writer.Write((ulong)(value >> 64));
+    }
+
+    private static UInt128 ReadWideInteger(BinaryReader reader)
+    {
+        var low = reader.ReadUInt64();
+        var high = reader.ReadUInt64();
+        return ((UInt128)high << 64) | low;
     }
 
     private static TsObject ReadObject(

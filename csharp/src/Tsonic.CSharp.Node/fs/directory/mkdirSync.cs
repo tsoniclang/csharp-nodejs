@@ -18,12 +18,9 @@ public static partial class fs
     {
         ArgumentNullException.ThrowIfNull(options);
         var recursive = options.recursive ?? false;
-        var mode = options.mode is double configuredMode
-            ? checked((int)RequireNonNegativeInteger(
-                configuredMode,
-                nameof(options.mode),
-                0xFFF))
-            : (int?)null;
+        var mode = options.mode;
+        if (mode < 0 || mode > 0xFFF)
+            throw new ArgumentOutOfRangeException(nameof(options.mode));
         if (!recursive && Directory.Exists(path))
         {
             throw new IOException($"Path already exists: {path}");

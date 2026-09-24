@@ -10,6 +10,26 @@ namespace Tsonic.CSharp.Node.Tests;
 public class WorkerThreadsTests
 {
     [Fact]
+    public void MessageChannel_PreservesNativeNumericCarriersAndBits()
+    {
+        var first = new MessageChannel();
+        using var firstPort = first.port1;
+        using var secondPort = first.port2;
+        object[] values = [(byte)255, (sbyte)-128, short.MinValue, ushort.MaxValue,
+            int.MinValue, uint.MaxValue, 9_007_199_254_740_993L, ulong.MaxValue,
+            nint.MinValue, nuint.MaxValue, System.Int128.MinValue, System.UInt128.MaxValue,
+            System.Half.MaxValue, float.Epsilon, double.Epsilon, decimal.MaxValue, -0.0];
+        foreach (var value in values)
+        {
+            first.port1.postMessage(TsValue.from(value));
+            var received = first.port2.receiveMessageOnPort().unwrap();
+            Assert.IsType(value.GetType(), received);
+            Assert.Equal(value, received);
+        }
+        JsEventLoop.Run();
+    }
+
+    [Fact]
     public void MessageChannel_DeliversMessagesBetweenPorts()
     {
         var channel = new MessageChannel();

@@ -19,15 +19,11 @@ public static partial class fs
         ArgumentNullException.ThrowIfNull(options);
         var recursive = options.recursive ?? false;
         var force = options.force ?? false;
-        var configuredMaxRetries = checked((uint)RequireNonNegativeInteger(
-            options.maxRetries ?? 0,
-            nameof(options.maxRetries),
-            uint.MaxValue));
+        var configuredMaxRetries = options.maxRetries ?? 0;
         var maxRetries = recursive ? configuredMaxRetries : 0U;
-        var retryDelay = checked((int)RequireNonNegativeInteger(
-            options.retryDelay ?? 100,
-            nameof(options.retryDelay),
-            int.MaxValue));
+        var retryDelay = options.retryDelay ?? 100;
+        if (retryDelay < 0)
+            throw new ArgumentOutOfRangeException(nameof(options.retryDelay));
         for (uint attempt = 0; ; attempt++)
         {
             try

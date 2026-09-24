@@ -172,16 +172,25 @@ public static partial class process
     public static long constrainedMemory() => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
     public static long availableMemory() => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes - GC.GetTotalMemory(false);
 
-    public static double[] hrtime(double[]? previous = null)
+    public static long[] hrtime(long[]? previous = null)
     {
         var elapsedNs = HrtimeNanoseconds();
-        if (previous is { Length: >= 2 })
+        var seconds = elapsedNs / 1_000_000_000L;
+        var nanoseconds = elapsedNs % 1_000_000_000L;
+        if (previous != null)
         {
-            var previousNs = (long)previous[0] * 1_000_000_000L + (long)previous[1];
-            elapsedNs -= previousNs;
+            if (previous.Length != 2 || previous[1] < 0 || previous[1] >= 1_000_000_000L)
+                throw new ArgumentOutOfRangeException(nameof(previous));
+            seconds = checked(seconds - previous[0]);
+            nanoseconds -= previous[1];
+            if (nanoseconds < 0)
+            {
+                seconds = checked(seconds - 1);
+                nanoseconds += 1_000_000_000L;
+            }
         }
 
-        return [elapsedNs / 1_000_000_000L, elapsedNs % 1_000_000_000L];
+        return [seconds, nanoseconds];
     }
 
     public static long hrtime_bigint()
@@ -217,8 +226,8 @@ public static partial class process
         using var proc = Process.GetCurrentProcess();
         var current = new CpuUsage
         {
-            user = (long)proc.UserProcessorTime.TotalMilliseconds * 1000,
-            system = (long)proc.PrivilegedProcessorTime.TotalMilliseconds * 1000
+            user = proc.UserProcessorTime.Ticks / (TimeSpan.TicksPerMillisecond / 1000),
+            system = proc.PrivilegedProcessorTime.Ticks / (TimeSpan.TicksPerMillisecond / 1000)
         };
 
         if (previous == null)

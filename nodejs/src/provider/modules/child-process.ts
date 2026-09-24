@@ -1,8 +1,8 @@
 import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import {
   csharpJsArrayTargetType, csharpJsTypedArrayTargetType, csharpNullableTargetType,
-  csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, csharpRuntimeUnionTargetType,
-  csharpRuntimeNullTargetType, csharpRuntimeUndefinedTargetType,
+  csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, combineCsharpTargetUnionMembers,
+  csharpAbsenceTargetType,
   csharpSourcePrimitiveTargetType, csharpStringTargetType, csharpTargetNamedType, targetParameter,
 } from "@tsonic/target-csharp/provider";
 import type { CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
@@ -39,16 +39,16 @@ const errorTarget = nativeType("SpawnSyncError");
 const moduleTarget = nativeType("child_process");
 
 function requiredUnion(arms: readonly TargetTypeRef[]): TargetTypeRef {
-  const result = csharpRuntimeUnionTargetType(arms);
+  const result = combineCsharpTargetUnionMembers(arms);
   if (result === undefined) throw new Error("Invalid closed child-process union.");
   return result;
 }
 
 export function nodeChildProcessOptionsTarget(includeJsSurfaceMembers: boolean) {
   const input = includeJsSurfaceMembers
-    ? requiredUnion([csharpJsTypedArrayTargetType("Uint8Array"), nodeBufferTargetType, csharpRuntimeUndefinedTargetType()])
+    ? requiredUnion([csharpJsTypedArrayTargetType("Uint8Array"), nodeBufferTargetType])
     : nodeBufferTargetType;
-  const descriptor = requiredUnion([numberTarget, stringTarget, csharpRuntimeNullTargetType(), csharpRuntimeUndefinedTargetType()]);
+  const descriptor = requiredUnion([numberTarget, stringTarget, csharpAbsenceTargetType()]);
   const stdio: TargetTypeRef = includeJsSurfaceMembers
     ? csharpJsArrayTargetType(descriptor) : { kind: "array", element: descriptor };
   return {
@@ -91,15 +91,16 @@ export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembe
       union({ kind: "type-parameter", name: "T" }, nullType), csharpNullableTargetType(nodeBufferTargetType),
     )),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(numberType, nullType), csharpNullableValueTargetType(intTarget)),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", numberType, csharpNullableValueTargetType(numberTarget), true),
+    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", numberType, csharpNullableValueTargetType(intTarget), true),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "signal", union(providerRef("Signals", "node:process"), nullType), csharpNullableTargetType(stringTarget)),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "error", providerRef(errorExportName), csharpNullableTargetType(errorTarget), true),
     ...["message", "code"].map(name => property(errorExportName, errorTarget, name, stringType, stringTarget, false, true)),
     property(optionsExportName, optionsTarget, "encoding", { kind: "literal", value: "buffer" }, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "cwd", stringType, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "env", providerRef("ProcessEnv", "node:process"), csharpNullableTargetType(nativeType("ProcessEnv")), true),
-    ...["maxBuffer", "uid", "gid", "timeout"].map(name =>
-      property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(numberTarget), true)),
+    property(optionsExportName, optionsTarget, "maxBuffer", numberType, csharpNullableValueTargetType(intTarget), true),
+    ...["uid", "gid", "timeout"].map(name =>
+      property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(intTarget), true)),
     property(optionsExportName, optionsTarget, "killSignal", providerRef("Signals", "node:process"), csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),
       csharpNullableTargetType(options.input), true),

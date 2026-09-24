@@ -176,7 +176,7 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
     fsCall({ exportName: "readFileSync", signatureId: "node:fs.readFileSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.readFileSync(System.String)", sourceName: "readFileSync", targetName: "readFileSync", providerParameters: [stringParameter("path")], providerReturnType: bufferProviderType, targetParameters: [
       targetParameter("path", stringTargetType),
     ], targetReturnType: bufferTargetType }),
-    fsCall({ exportName: "readSync", signatureId: "node:fs.readSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", targetMemberId: "Tsonic.CSharp.Node.fs.readSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", sourceName: "readSync", targetName: "readSync", providerParameters: [
+    ...fsPositionCalls({ exportName: "readSync", signatureId: "node:fs.readSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", targetMemberId: "Tsonic.CSharp.Node.fs.readSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", sourceName: "readSync", targetName: "readSync", providerParameters: [
       numberParameter("fd"),
       { name: "buffer", type: bufferProviderType },
       numberParameter("offset"),
@@ -187,7 +187,7 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("buffer", bufferTargetType),
       targetParameter("offset", intTargetType),
       targetParameter("length", intTargetType),
-      targetParameter("position", csharpNullableValueTargetType(intTargetType), { optional: true }),
+      targetParameter("position", csharpNullableValueTargetType(longTargetType), { optional: true }),
     ], targetReturnType: intTargetType }),
     fsCall({ exportName: "readdirSync", signatureId: "node:fs.readdirSync(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.readdirSync(System.String)", sourceName: "readdirSync", targetName: "readdirSync", providerParameters: [stringParameter("path")], providerReturnType: { kind: "array", elementType: stringProviderType }, targetParameters: [
       targetParameter("path", stringTargetType),
@@ -234,7 +234,7 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("path", stringTargetType),
       targetParameter("data", bufferTargetType),
     ], targetReturnType: voidTargetType }),
-    fsCall({ exportName: "writeSync", signatureId: "node:fs.writeSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", targetMemberId: "Tsonic.CSharp.Node.fs.writeSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", sourceName: "writeSync", targetName: "writeSync", providerParameters: [
+    ...fsPositionCalls({ exportName: "writeSync", signatureId: "node:fs.writeSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", targetMemberId: "Tsonic.CSharp.Node.fs.writeSync(System.Int32,Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32,System.Nullable`1)", sourceName: "writeSync", targetName: "writeSync", providerParameters: [
       numberParameter("fd"),
       { name: "buffer", type: bufferProviderType },
       numberParameter("offset"),
@@ -245,9 +245,9 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
       targetParameter("buffer", bufferTargetType),
       targetParameter("offset", intTargetType),
       targetParameter("length", intTargetType),
-      targetParameter("position", csharpNullableValueTargetType(intTargetType), { optional: true }),
+      targetParameter("position", csharpNullableValueTargetType(longTargetType), { optional: true }),
     ], targetReturnType: intTargetType }),
-    fsCall({ exportName: "writeSync", signatureId: "node:fs.writeSync(System.Int32,System.String,System.Nullable`1,System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.writeSync(System.Int32,System.String,System.Nullable`1,System.String)", sourceName: "writeSync", targetName: "writeSync", providerParameters: [
+    ...fsPositionCalls({ exportName: "writeSync", signatureId: "node:fs.writeSync(System.Int32,System.String,System.Nullable`1,System.String)", targetMemberId: "Tsonic.CSharp.Node.fs.writeSync(System.Int32,System.String,System.Nullable`1,System.String)", sourceName: "writeSync", targetName: "writeSync", providerParameters: [
       numberParameter("fd"),
       stringParameter("data"),
       optionalNumberParameter("position"),
@@ -255,7 +255,7 @@ export function nodeFsCallTargetMembers(): readonly NodeFsCallTargetMember[] {
     ], providerReturnType: numberProviderType, targetParameters: [
       targetParameter("fd", intTargetType),
       targetParameter("data", stringTargetType),
-      targetParameter("position", csharpNullableValueTargetType(intTargetType), { optional: true }),
+      targetParameter("position", csharpNullableValueTargetType(longTargetType), { optional: true }),
       targetParameter("encoding", stringTargetType, { optional: true }),
     ], targetReturnType: intTargetType }),
   ];
@@ -309,6 +309,19 @@ function fsCall(row: NodeFsCallTargetMetadataRow): NodeFsCallTargetMember {
     ...row,
     declaringType: fsTargetType,
   });
+}
+
+function fsPositionCalls(row: NodeFsCallTargetMetadataRow): readonly NodeFsCallTargetMember[] {
+  return [fsCall(row), fsCall({
+    ...row,
+    signatureId: `${row.signatureId}.int64-position`,
+    providerParameters: row.providerParameters.map((parameter): ProviderParameterDeclaration => parameter.name !== "position" ? parameter : {
+      ...parameter,
+      type: { kind: "union", types: [
+        { kind: "source-primitive", name: "int64" }, { kind: "literal", value: null },
+      ] },
+    }),
+  })];
 }
 
 const nodeFsCallTargetMemberByProviderDeclarationIdentity =

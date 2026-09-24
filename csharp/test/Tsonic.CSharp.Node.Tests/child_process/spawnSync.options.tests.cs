@@ -1,7 +1,7 @@
 using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Runtime;
 using Xunit;
-using SpawnSyncOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
+using SpawnSyncOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string>?>>;
 
 namespace Tsonic.CSharp.Node.Tests;
 
@@ -12,7 +12,7 @@ public class ChildProcessSpawnOptionsTests
     {
         var backing = new Uint8Array(new double[] { 9, 0, 255, 42, 9 });
         var view = new Uint8Array(backing.buffer, 1, 3);
-        var descriptors = new JSArray<Union<double, string, Null, Undefined>>(new Union<double, string, Null, Undefined>[] { "pipe", "ignore", "pipe" });
+        var descriptors = new JSArray<Union<double, string>?>(new Union<double, string>?[] { "pipe", "ignore", "pipe" });
         var options = new SpawnSyncOptions { encoding = "buffer", input = view, stdio = descriptors, maxBuffer = 4096 };
         descriptors[1] = "pipe";
         backing[3] = 43;
@@ -61,16 +61,11 @@ public class ChildProcessSpawnOptionsTests
         Assert.Null(Environment.GetEnvironmentVariable(key));
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0.5)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    [InlineData(2147483648)]
-    public void BufferBoundMustBeAnExactFiniteInteger(double maximum)
+    [Fact]
+    public void BufferBoundMustBeNonnegative()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => child_process.spawnSyncResult(
-            "must-not-be-started", System.Array.Empty<string>(), new SpawnSyncOptions { maxBuffer = maximum }));
+            "must-not-be-started", System.Array.Empty<string>(), new SpawnSyncOptions { maxBuffer = -1 }));
     }
 
     [Fact]
@@ -79,9 +74,9 @@ public class ChildProcessSpawnOptionsTests
         var unsupported = new SpawnSyncOptions[]
         {
             new() { uid = 1 }, new() { gid = 1 }, new() { timeout = 1 }, new() { killSignal = "SIGTERM" },
-            new() { stdio = new JSArray<Union<double, string, Null, Undefined>>(new Union<double, string, Null, Undefined>[] { "pipe", "ignore", "pipe" }) },
-            new() { stdio = new JSArray<Union<double, string, Null, Undefined>>(new Union<double, string, Null, Undefined>[] { 4, "pipe", "pipe" }) },
-            new() { stdio = new JSArray<Union<double, string, Null, Undefined>>(new Union<double, string, Null, Undefined>[] { "pipe", "pipe", "pipe", "pipe" }) }
+            new() { stdio = new JSArray<Union<double, string>?>(new Union<double, string>?[] { "pipe", "ignore", "pipe" }) },
+            new() { stdio = new JSArray<Union<double, string>?>(new Union<double, string>?[] { 4, "pipe", "pipe" }) },
+            new() { stdio = new JSArray<Union<double, string>?>(new Union<double, string>?[] { "pipe", "pipe", "pipe", "pipe" }) }
         };
         foreach (var options in unsupported)
             Assert.Throws<PlatformNotSupportedException>(() => child_process.spawnSyncResult("must-not-be-started", System.Array.Empty<string>(), options));

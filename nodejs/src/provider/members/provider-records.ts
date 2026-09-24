@@ -1,5 +1,6 @@
 import type {
   CsharpTargetMember,
+  CsharpProviderArgumentAdapter,
 } from "@tsonic/target-csharp/provider";
 import { nodeV8CallTargetMembers, nodeV8ModuleSpecifier, nodeV8PropertyTargetMembers } from "../modules/v8.js";
 import {
@@ -157,6 +158,7 @@ import type {
 } from "./types.js";
 
 export interface NodejsTargetMemberMetadataRecord {
+  readonly argumentAdapters?: readonly (CsharpProviderArgumentAdapter | undefined)[];
   readonly declarationIdentities: readonly NodejsProviderDeclarationIdentity[];
   readonly member: CsharpTargetMember;
 }
@@ -250,6 +252,7 @@ function moduleCallRecords(
   entries: readonly NodejsModuleCallTargetMember[],
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
+    ...(entry.argumentAdapters === undefined ? {} : { argumentAdapters: entry.argumentAdapters }),
     declarationIdentities: [
       nodejsExportSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.signatureId),
       ...nodejsDefaultModuleMemberDeclarationIdentities(
@@ -280,6 +283,7 @@ function classCallRecords(
   entries: readonly NodejsClassCallTargetMember[],
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
+    ...(entry.argumentAdapters === undefined ? {} : { argumentAdapters: entry.argumentAdapters }),
     declarationIdentities: [
       nodejsExportMemberSignatureDeclarationIdentity(
         moduleSpecifier,

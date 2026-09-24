@@ -60,8 +60,8 @@ test("Server.listen declares the exact hostname overload", () => {
   assert.deepEqual(
     listen.signatures.map((signature) => signature.id),
     [
-      "node:http.Server.listen(System.Double,System.Action)",
-      "node:http.Server.listen(System.Double,System.String,System.Action)",
+      "node:http.Server.listen(System.Int32,System.Action)",
+      "node:http.Server.listen(System.Int32,System.String,System.Action)",
     ],
   );
   const hostnameSignature = listen.signatures[1];
@@ -108,13 +108,13 @@ test("the new operations map through exact selected relations", () => {
   }
   const listenHostname = relations.filter((relation) =>
     relation.kind === "signature" &&
-    relation.source.signatureId === "node:http.Server.listen(System.Double,System.String,System.Action)"
+    relation.source.signatureId === "node:http.Server.listen(System.Int32,System.String,System.Action)"
   );
   assert.equal(listenHostname.length, 2);
   for (const relation of listenHostname) {
     assert.equal(
       relation.targetMember.id,
-      "Tsonic.CSharp.Node.Http.Server.listen(System.Double,System.String,System.Action)",
+      "Tsonic.CSharp.Node.Http.Server.listen(System.Int32,System.String,System.Action)",
     );
   }
   const defaultExitCode = relations.filter((relation) =>
@@ -160,7 +160,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
     source,
     /response\.end\(Tsonic\.CSharp\.Node\.fs\.readFileSync\(filePath\)\)/u,
   );
-  assert.match(source, /server\.listen\(port, host, callback\);/u);
+  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), host, callback\);/u);
   assert.match(source, /Tsonic\.CSharp\.Node\.process\.exitCode = 2/u);
   assert.match(
     source,

@@ -35,8 +35,8 @@
   },
   "scripts": {
     "build": "bash scripts/build.sh",
-    "test": "node ../tsonic/test/scripts/run-parallel.mjs --scope csharp-nodejs --with-preruns",
-    "test:parallel": "node ../tsonic/test/scripts/run-parallel.mjs --scope csharp-nodejs"
+    "test": "bash \"${TSONIC_ROOT:-../tsonic}/test/scripts/run-all.sh\" --scope csharp-nodejs",
+    "test:parallel": "bash \"${TSONIC_ROOT:-../tsonic}/test/scripts/run-parallel.sh\" --scope csharp-nodejs"
   },
   "peerDependencies": {
     "@tsonic/target-api": "0.1.2",

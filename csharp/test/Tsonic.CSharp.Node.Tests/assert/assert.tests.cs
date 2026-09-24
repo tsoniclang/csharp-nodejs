@@ -6,6 +6,17 @@ namespace Tsonic.CSharp.Node.Tests;
 public class AssertTests
 {
     [Fact]
+    public void NumericEqualityPreservesWideNativeIntegerValues()
+    {
+        assert.equal(9_007_199_254_740_993L, 9_007_199_254_740_993L);
+        assert.notEqual(9_007_199_254_740_993L, 9_007_199_254_740_992L);
+        assert.notEqual(ulong.MaxValue, ulong.MaxValue - 1);
+        assert.notEqual(System.UInt128.MaxValue, System.UInt128.MaxValue - 1);
+        assert.equal(7U, 7L);
+        Assert.Throws<AssertionError>(() => assert.equal(9_007_199_254_740_993L, 9_007_199_254_740_992L));
+    }
+
+    [Fact]
     public void ok_WithTrue_ShouldNotThrow()
     {
         assert.ok(true);

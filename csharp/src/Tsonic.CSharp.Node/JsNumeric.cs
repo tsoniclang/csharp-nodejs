@@ -2,19 +2,28 @@ using System;
 
 namespace Tsonic.CSharp.Node;
 
-internal static class JsNumeric
+/// <summary>Checked numeric adapters for generated Node capability calls.</summary>
+public static class JsNumeric
 {
-    public static int RequirePort(double value, string paramName)
+    /// <summary>Accepts an exact finite integer within the native Int32 range.</summary>
+    public static int RequireInteger(double value)
     {
-        if (!double.IsFinite(value) || Math.Truncate(value) != value || value < 0 || value > 65535)
+        if (!double.IsInteger(value))
+            throw new ArgumentOutOfRangeException(nameof(value), "Value must be an integer.");
+        return checked((int)value);
+    }
+
+    internal static int RequirePort(int value, string paramName)
+    {
+        if (value < 0 || value > 65535)
         {
             throw new ArgumentOutOfRangeException(paramName, "Port must be an integer between 0 and 65535.");
         }
 
-        return checked((int)value);
+        return value;
     }
 
-    public static int RequireNonNegativeInt(int value, string paramName)
+    internal static int RequireNonNegativeInt(int value, string paramName)
     {
         if (value < 0)
         {
