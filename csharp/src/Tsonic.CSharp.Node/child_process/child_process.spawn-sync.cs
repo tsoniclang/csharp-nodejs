@@ -1,7 +1,7 @@
 using System.Text;
 using Tsonic.CSharp.Js;
-using NativeSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>[]>;
-using JsSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Undefined>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string, Tsonic.CSharp.Runtime.Null, Tsonic.CSharp.Runtime.Undefined>>>;
+using NativeSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Node.Buffer, Tsonic.CSharp.Runtime.Union<double, string>?[]>;
+using JsSpawnOptions = Tsonic.CSharp.Node.SpawnSyncOptions<Tsonic.CSharp.Runtime.Union<Tsonic.CSharp.Js.Uint8Array, Tsonic.CSharp.Node.Buffer>?, Tsonic.CSharp.Js.JSArray<Tsonic.CSharp.Runtime.Union<double, string>?>>;
 
 namespace Tsonic.CSharp.Node;
 

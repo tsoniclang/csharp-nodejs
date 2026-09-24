@@ -26,7 +26,7 @@ public class utilTests
         Assert.Equal("{ name: 'Alice', age: 30 }", util.inspect(obj));
         Assert.Equal("[ 1, 2, 3 ]", util.inspect(new TsArray(new object?[] { 1, 2, 3 })));
         Assert.Equal("[ 1, 2, 3 ]", util.inspect(new JSArray<int>(new[] { 1, 2, 3 })));
-        Assert.Equal("undefined", util.inspect(Undefined.value));
+        Assert.Equal("null", util.inspect(TsValue.undefined().unwrap()));
     }
 
     [Fact]

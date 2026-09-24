@@ -190,7 +190,7 @@ public sealed class Worker : EventEmitter, IDisposable
     private static void ApplyEnvironment(ProcessStartInfo startInfo, TsValue environment)
     {
         var value = environment.unwrap();
-        if (value is Undefined)
+        if (value is null)
             return;
         IEnumerable<KeyValuePair<string, object?>> entries = value switch
         {
@@ -205,7 +205,7 @@ public sealed class Worker : EventEmitter, IDisposable
         foreach (var entry in entries)
         {
             var entryValue = entry.Value is TsValue typed ? typed.unwrap() : entry.Value;
-            if (entryValue is Undefined)
+            if (entryValue is null)
                 continue;
             if (entryValue is not string text)
                 throw new TypeError("WorkerOptions.env values must be strings or undefined.");

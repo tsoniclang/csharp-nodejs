@@ -160,7 +160,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
     source,
     /response\.end\(Tsonic\.CSharp\.Node\.fs\.readFileSync\(filePath\)\)/u,
   );
-  assert.match(source, /server\.listen\(port, host, callback\);/u);
+  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), host, callback\);/u);
   assert.match(source, /Tsonic\.CSharp\.Node\.process\.exitCode = 2/u);
   assert.match(
     source,

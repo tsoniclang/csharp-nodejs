@@ -227,7 +227,7 @@ public static class worker_threads
     private static object TransferIdentity(TsValue value)
     {
         var unwrapped = value.unwrap();
-        return unwrapped is null or Undefined || unwrapped.GetType().IsValueType || unwrapped is string
+        return unwrapped is null || unwrapped.GetType().IsValueType || unwrapped is string
             ? throw new TypeError("markAsUntransferable requires a closed reference value.")
             : unwrapped;
     }

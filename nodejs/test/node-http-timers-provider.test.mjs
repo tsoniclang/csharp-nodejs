@@ -143,7 +143,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
     source,
     /Tsonic\.CSharp\.Node\.Http\.http\.createServer/u,
   );
-  assert.match(source, /server\.listen\(port/u);
+  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\),/u);
   assert.match(
     source,
     /Tsonic\.CSharp\.Node\.timers\.setInterval/u,

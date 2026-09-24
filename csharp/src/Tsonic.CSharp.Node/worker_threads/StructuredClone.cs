@@ -48,9 +48,6 @@ internal static class StructuredClone
         value = Unwrap(value);
         switch (value)
         {
-            case Undefined:
-                writer.Write((byte)0);
-                return;
             case null:
                 writer.Write((byte)1);
                 return;
@@ -266,7 +263,6 @@ internal static class StructuredClone
             throw DataCloneError("Structured-clone depth exceeds the finite limit.");
         return reader.ReadByte() switch
         {
-            0 => Undefined.value,
             1 => null,
             2 => false,
             3 => true,

@@ -1,8 +1,8 @@
 import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import {
   csharpJsArrayTargetType, csharpJsTypedArrayTargetType, csharpNullableTargetType,
-  csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, csharpRuntimeUnionTargetType,
-  csharpRuntimeNullTargetType, csharpRuntimeUndefinedTargetType,
+  csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, combineCsharpTargetUnionMembers,
+  csharpAbsenceTargetType,
   csharpSourcePrimitiveTargetType, csharpStringTargetType, csharpTargetNamedType, targetParameter,
 } from "@tsonic/target-csharp/provider";
 import type { CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
@@ -39,16 +39,16 @@ const errorTarget = nativeType("SpawnSyncError");
 const moduleTarget = nativeType("child_process");
 
 function requiredUnion(arms: readonly TargetTypeRef[]): TargetTypeRef {
-  const result = csharpRuntimeUnionTargetType(arms);
+  const result = combineCsharpTargetUnionMembers(arms);
   if (result === undefined) throw new Error("Invalid closed child-process union.");
   return result;
 }
 
 export function nodeChildProcessOptionsTarget(includeJsSurfaceMembers: boolean) {
   const input = includeJsSurfaceMembers
-    ? requiredUnion([csharpJsTypedArrayTargetType("Uint8Array"), nodeBufferTargetType, csharpRuntimeUndefinedTargetType()])
+    ? requiredUnion([csharpJsTypedArrayTargetType("Uint8Array"), nodeBufferTargetType])
     : nodeBufferTargetType;
-  const descriptor = requiredUnion([numberTarget, stringTarget, csharpRuntimeNullTargetType(), csharpRuntimeUndefinedTargetType()]);
+  const descriptor = requiredUnion([numberTarget, stringTarget, csharpAbsenceTargetType()]);
   const stdio: TargetTypeRef = includeJsSurfaceMembers
     ? csharpJsArrayTargetType(descriptor) : { kind: "array", element: descriptor };
   return {
