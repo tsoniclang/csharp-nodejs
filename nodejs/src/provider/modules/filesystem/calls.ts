@@ -8,12 +8,8 @@ import {
   csharpNullableValueTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  nodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsModuleCallTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+import { nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsModuleCallTargetMetadataRow } from "../../model/target-members.js";
 import {
   getNodejsProviderExportSignatureDeclarationTargetMember,
   nodejsProviderExportSignatureDeclarationTargetMemberIndex,
@@ -47,9 +43,7 @@ import {
   voidProviderType,
   voidTargetType,
 } from "./types.js";
-import type {
-  NodejsUnsupportedTargetIdentity,
-} from "../../members/types.js";
+import type { NodejsUnsupportedTargetIdentity } from "../../model/members.js";
 import type {
   NodeFsCallTargetMember,
 } from "./types.js";

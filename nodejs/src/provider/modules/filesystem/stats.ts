@@ -5,10 +5,7 @@ import type {
 import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp/provider";
-import type {
-  NodejsClassCallTargetMember,
-  NodejsClassPropertyTargetMember,
-} from "../../members/types.js";
+import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember } from "../../model/members.js";
 import {
   nodeFsStatsAtimeMemberId,
   nodeFsStatsAtimeMsMemberId,

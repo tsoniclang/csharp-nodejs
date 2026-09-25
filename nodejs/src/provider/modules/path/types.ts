@@ -1,10 +1,7 @@
 import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type {
-  NodejsModuleCallTargetMetadata,
-  NodejsModulePropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
+import type { NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../../model/target-members.js";
 import {
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,

@@ -32,7 +32,7 @@ import {
 } from "./unsupported.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../defaults.js";
+} from "../../declarations/defaults.js";
 import {
   nodeUrlModuleSpecifier,
 } from "./identities.js";

@@ -9,9 +9,7 @@ import type {
 import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import type {
-  NodejsClassCallTargetMember,
-} from "../../members/types.js";
+import type { NodejsClassCallTargetMember } from "../../model/members.js";
 import {
   nodeBufferTargetType,
 } from "./identities.js";

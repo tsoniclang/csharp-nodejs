@@ -10,9 +10,7 @@ import {
   csharpNullableValueTargetType,
   csharpSourcePrimitiveTargetType,
 } from "@tsonic/target-csharp/provider";
-import type {
-  NodejsClassPropertyTargetMember,
-} from "../../members/types.js";
+import type { NodejsClassPropertyTargetMember } from "../../model/members.js";
 import {
   boolProviderType,
   boolTargetType,

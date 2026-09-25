@@ -19,7 +19,7 @@ import {
 } from "./identities.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../defaults.js";
+} from "../../declarations/defaults.js";
 import {
   nodeFsStreamExportDeclarations,
 } from "./streams.js";

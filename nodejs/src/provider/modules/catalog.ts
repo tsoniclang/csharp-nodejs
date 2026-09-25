@@ -76,7 +76,7 @@ import {
 import {
   nodeProcessExports,
   nodeProcessModuleSpecifier,
-} from "./process.js";
+} from "./process/declarations.js";
 import {
   nodeTimersExports,
   nodeTimersModuleSpecifier,

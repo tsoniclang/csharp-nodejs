@@ -2,9 +2,7 @@ import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
-import type {
-  NodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
+import type { NodejsModuleCallTargetMetadata } from "../../model/target-members.js";
 import {
   csharpVoidTargetType,
   csharpSourcePrimitiveTargetType,

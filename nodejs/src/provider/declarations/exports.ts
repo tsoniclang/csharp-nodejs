@@ -15,12 +15,7 @@ import type {
 import {
   nodejsDefaultModuleObjectExports,
 } from "./defaults.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-  NodejsModulePropertyTargetMetadata,
-} from "../members/target-member-metadata.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
 
 export const stringProviderType = Object.freeze({ kind: "string" }) satisfies ProviderTypeExpression;
 export const numberProviderType = Object.freeze({ kind: "number" }) satisfies ProviderTypeExpression;

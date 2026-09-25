@@ -25,17 +25,9 @@ import {
   stringProviderType,
   unknownProviderType,
   voidProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+} from "../declarations/exports.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeNetModuleSpecifier = "node:net";
 

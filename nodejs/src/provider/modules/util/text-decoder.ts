@@ -14,14 +14,8 @@ import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
 import {
   nodeBufferTargetType,
 } from "../buffer/identities.js";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../../model/target-members.js";
 
 export const nodeUtilTextDecoderExportName = "TextDecoder";
 

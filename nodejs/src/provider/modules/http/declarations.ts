@@ -4,15 +4,11 @@ import type {
 } from "@tsonic/tsts";
 import {
   nodejsProviderSignature,
-} from "../declarations.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
+} from "../../declarations/exports.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../../model/target-members.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../defaults.js";
+} from "../../declarations/defaults.js";
 import {
   nodeHttpCallTargetMembers,
   nodeHttpClassCallTargetMembers,

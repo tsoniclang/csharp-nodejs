@@ -27,16 +27,11 @@ import {
 import type {
   NodejsProviderDeclarationIdentity,
 } from "./identity.js";
-import {
-  nodejsTargetMemberMetadataRecords,
-  nodejsUnsupportedTargetMetadataRecords,
-} from "./members/provider-records.js";
-import type {
-  NodejsUnsupportedTargetMetadataRecord,
-} from "./members/provider-records.js";
+import { nodejsTargetMemberMetadataRecords, nodejsUnsupportedTargetMetadataRecords } from "./assembly/member-records.js";
+import type { NodejsUnsupportedTargetMetadataRecord } from "./model/member-records.js";
 import {
   nodejsPublicModuleSpecifiers,
-} from "./modules/specifiers.js";
+} from "./declarations/specifiers.js";
 import {
   nodejsProviderTargetBinding,
   nodejsProviderTargetTypeRows,

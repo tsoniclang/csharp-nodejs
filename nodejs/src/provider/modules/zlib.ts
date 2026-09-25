@@ -22,15 +22,9 @@ import {
   providerRef,
   unknownProviderType,
   voidProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+} from "../declarations/exports.js";
+import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeZlibModuleSpecifier = "node:zlib";
 

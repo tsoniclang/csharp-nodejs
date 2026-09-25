@@ -25,16 +25,10 @@ import {
   unionProviderType,
   unknownProviderType,
   voidProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-} from "../members/target-member-metadata.js";
+} from "../declarations/exports.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../declarations/target-members.js";
 import { nodeBufferProviderType } from "./buffer/provider-types.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-} from "../members/target-member-metadata.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../model/target-members.js";
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";

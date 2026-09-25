@@ -5,12 +5,8 @@ import {
   getNodejsProviderExportDeclarationTargetMember,
   nodejsProviderExportDeclarationTargetMemberIndex,
 } from "../../metadata-indexes.js";
-import {
-  nodejsModulePropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsModulePropertyTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+import { nodejsModulePropertyTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsModulePropertyTargetMetadataRow } from "../../model/target-members.js";
 import {
   nodePathModuleSpecifier,
 } from "./identity.js";

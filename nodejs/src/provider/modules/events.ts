@@ -17,13 +17,9 @@ import {
   stringProviderType,
   unionProviderType,
   unknownProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+} from "../declarations/exports.js";
+import { nodejsClassCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeEventsModuleSpecifier = "node:events";
 export const nodeEventEmitterExportName = "EventEmitter";

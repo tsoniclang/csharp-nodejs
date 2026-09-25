@@ -2,15 +2,9 @@ import type {
   ProviderExportDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import {
-  nodejsClassPropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMember,
-} from "../../members/types.js";
+import { nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadataRow } from "../../model/target-members.js";
+import type { NodejsClassPropertyTargetMember } from "../../model/members.js";
 import {
   nodePathParsedPathBaseMemberId,
   nodePathParsedPathDirMemberId,

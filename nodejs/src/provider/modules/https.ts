@@ -24,21 +24,15 @@ import {
   stringProviderType,
   unionProviderType,
   voidProviderType,
-} from "./declarations.js";
+} from "../declarations/exports.js";
 import {
   nodeBufferProviderType,
 } from "./buffer/provider-types.js";
 import {
   nodeHttpModuleSpecifier,
 } from "./http/index.js";
-import {
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeHttpsModuleSpecifier = "node:https";
 

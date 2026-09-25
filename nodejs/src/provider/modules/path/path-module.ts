@@ -7,16 +7,8 @@ import type {
 import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassCallTargetMetadataRow,
-  NodejsClassPropertyTargetMetadata,
-  NodejsClassPropertyTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassCallTargetMetadataRow, NodejsClassPropertyTargetMetadata, NodejsClassPropertyTargetMetadataRow } from "../../model/target-members.js";
 import {
   boolProviderType,
   boolTargetType,

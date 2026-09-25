@@ -5,7 +5,7 @@ import {
   csharpNodejsVirtualDeclarationFileName,
 } from "./identity.js";
 import { nodejsProviderModules } from "./modules/catalog.js";
-import { nodejsProviderModuleSpecifiers } from "./modules/specifiers.js";
+import { nodejsProviderModuleSpecifiers } from "./declarations/specifiers.js";
 import { nodejsRuntimeContributions } from "./runtime.js";
 import { createCsharpNodejsProviderPolicyContribution } from "./target-relations.js";
 

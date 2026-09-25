@@ -14,19 +14,14 @@ import {
   getNodejsProviderExportSignatureDeclarationMetadata,
   nodejsProviderExportSignatureDeclarationMetadataIndex,
 } from "../../metadata-indexes.js";
-import {
-  nodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
+import { nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
 import {
   nodeUtilTextDecoderExportDeclaration,
 } from "./text-decoder.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../defaults.js";
-import type {
-  NodejsModuleCallTargetMetadata,
-  NodejsModuleCallTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+} from "../../declarations/defaults.js";
+import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../../model/target-members.js";
 
 const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
