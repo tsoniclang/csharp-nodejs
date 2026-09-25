@@ -11,7 +11,7 @@ import {
 } from "../../../dist/index.js";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../../../dist/provider/modules/specifiers.js";
+} from "../../../dist/provider/declarations/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
 } from "../../../dist/provider/assembly/modules.js";

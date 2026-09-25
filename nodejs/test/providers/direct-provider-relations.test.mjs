@@ -23,7 +23,7 @@ import {
 import {
   nodejsCanonicalProviderExports,
 } from "../../../dist/provider/assembly/modules.js";
-import { nodejsTargetMemberMetadataRecords } from "../../../dist/provider/members/provider-records.js";
+import { nodejsTargetMemberMetadataRecords } from "../../../dist/provider/assembly/member-records.js";
 
 test("Node provider relations form one contradiction-free exact catalog", () => {
   const relations = nodejsProviderTargetRelations();

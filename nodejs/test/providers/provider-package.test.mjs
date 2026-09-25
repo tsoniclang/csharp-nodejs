@@ -6,9 +6,9 @@ import * as packageExports from "../../../dist/index.js";
 import {
   csharpNodejsProviderPackageProviderIdentity,
   csharpNodejsVirtualDeclarationFileName,
-} from "../../../dist/provider/identity.js";
+} from "../../../dist/provider/model/identity.js";
 import { nodejsCanonicalProviderExports } from "../../../dist/provider/assembly/modules.js";
-import { nodejsProviderModuleSpecifiers } from "../../../dist/provider/modules/specifiers.js";
+import { nodejsProviderModuleSpecifiers } from "../../../dist/provider/declarations/specifiers.js";
 import { createCsharpNodejsProviderPolicyContribution } from "../../../dist/provider/target-relations.js";
 import { nodejsDeclarationModel, nodejsSourceProvider } from "../helpers/provider-package.mjs";
 import {

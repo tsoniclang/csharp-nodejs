@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../../../dist/provider/modules/specifiers.js";
+} from "../../../dist/provider/declarations/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
 } from "../../../dist/provider/assembly/modules.js";
