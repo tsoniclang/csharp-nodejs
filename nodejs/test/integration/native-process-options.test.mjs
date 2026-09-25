@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
-import { invalidNativeProcessOptionValues, nativeProcessOptionSource, nativeOptionContracts, nativeOptionSource } from "../../../tsonic/test/fixtures/native-process-options.mjs";
-import { createTsonicPlugin } from "../../dist/index.js";
+import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { invalidNativeProcessOptionValues, nativeProcessOptionSource, nativeOptionContracts, nativeOptionSource } from "../../../../tsonic/test/fixtures/native-process-options.mjs";
+import { createTsonicPlugin } from "../../../dist/index.js";
 
 test("process buffer options retain native integer storage", () => {
   const compiled = compileCsharpSource({

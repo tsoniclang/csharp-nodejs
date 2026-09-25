@@ -14,17 +14,8 @@ import {
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import {
-  arrayProviderType,
-  booleanProviderType,
-  callbackProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  providerRef,
-  stringProviderType,
-  unionProviderType,
-  voidProviderType,
-} from "../declarations/exports.js";
+import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
+import { booleanProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import {
   nodeBufferProviderType,
 } from "./buffer/provider-types.js";

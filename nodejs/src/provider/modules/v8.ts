@@ -2,7 +2,8 @@ import type { ProviderExportDeclaration } from "@tsonic/tsts";
 import { csharpQualifiedTypeRenderShape, csharpSourcePrimitiveTargetType, csharpStringTargetType, csharpTargetNamedType, csharpVoidTargetType, targetParameter } from "@tsonic/target-csharp/provider";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
-import { nodejsCapabilityModuleExports, numberProviderType, providerRef, stringProviderType, voidProviderType } from "../declarations/exports.js";
+import { nodejsCapabilityModuleExports, providerRef } from "../declarations/exports.js";
+import { numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 
 export const nodeV8ModuleSpecifier = "node:v8";
 const v8Type = csharpTargetNamedType("Tsonic.CSharp.Node.v8", undefined,

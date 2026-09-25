@@ -5,20 +5,20 @@ import {
   assertCsharpCheckingSucceeded,
   assertCsharpCompilationSucceeded,
   compileCsharpSource,
-} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
-} from "../../dist/index.js";
+} from "../../../dist/index.js";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../../dist/provider/modules/specifiers.js";
+} from "../../../dist/provider/modules/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../../dist/provider/modules/catalog.js";
+} from "../../../dist/provider/assembly/modules.js";
 import {
   nodejsProviderTargetRejections,
   nodejsProviderTargetRelations,
-} from "../../dist/provider/target-relations.js";
+} from "../../../dist/provider/target-relations.js";
 
 test("every canonical Node source operation has exact target policy", () => {
   const sourceSignatures = new Set();

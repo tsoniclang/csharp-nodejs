@@ -13,19 +13,8 @@ import {
   csharpVoidTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  booleanProviderType,
-  callbackProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  numberProviderType,
-  providerRef,
-  stringProviderType,
-  undefinedProviderType,
-  unionProviderType,
-  unknownProviderType,
-  voidProviderType,
-} from "../declarations/exports.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
+import { booleanProviderType, numberProviderType, stringProviderType, undefinedProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../declarations/target-members.js";
 import { nodeBufferProviderType } from "./buffer/provider-types.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../model/target-members.js";

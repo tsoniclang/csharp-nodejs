@@ -17,18 +17,8 @@ import {
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import {
-  arrayProviderType,
-  booleanProviderType,
-  callbackProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  numberProviderType,
-  providerRef,
-  stringProviderType,
-  unknownProviderType,
-  voidProviderType,
-} from "../declarations/exports.js";
+import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
+import { booleanProviderType, numberProviderType, stringProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
 

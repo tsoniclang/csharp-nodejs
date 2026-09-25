@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { nodeChildProcessExports } from "../../dist/provider/modules/child-process.js";
-import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
-import { createTsonicPlugin } from "../../dist/index.js";
-import { nativeNodeSpawnSource } from "../../../tsonic/test/fixtures/native-node-spawn.mjs";
+import { nodeChildProcessExports } from "../../../dist/provider/modules/child-process.js";
+import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { createTsonicPlugin } from "../../../dist/index.js";
+import { nativeNodeSpawnSource } from "../../../../tsonic/test/fixtures/native-node-spawn.mjs";
 
 test("spawnSync options and result absence are exact public declarations", () => {
   for (const js of [false, true]) {

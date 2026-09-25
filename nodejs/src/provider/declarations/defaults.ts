@@ -6,10 +6,10 @@ import type {
 import {
   nodejsExportMemberDeclarationIdentity,
   nodejsExportMemberSignatureDeclarationIdentity,
-} from "../identity.js";
+} from "../model/identity.js";
 import type {
   NodejsProviderDeclarationIdentity,
-} from "../identity.js";
+} from "../model/identity.js";
 
 export interface NodejsDefaultModuleObjectMetadata {
   readonly moduleSpecifier: string;

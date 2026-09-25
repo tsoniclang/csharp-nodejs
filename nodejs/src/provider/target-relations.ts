@@ -23,10 +23,10 @@ import type {
 } from "@tsonic/target-csharp/provider";
 import {
   csharpNodejsProviderPackageProviderIdentity,
-} from "./identity.js";
+} from "./model/identity.js";
 import type {
   NodejsProviderDeclarationIdentity,
-} from "./identity.js";
+} from "./model/identity.js";
 import { nodejsTargetMemberMetadataRecords, nodejsUnsupportedTargetMetadataRecords } from "./assembly/member-records.js";
 import type { NodejsUnsupportedTargetMetadataRecord } from "./model/member-records.js";
 import {
@@ -38,7 +38,7 @@ import {
 } from "./modules/target-bindings.js";
 import {
   nodejsCanonicalProviderExports,
-} from "./modules/catalog.js";
+} from "./assembly/modules.js";
 
 export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
   return csharpProviderPolicyContribution(

@@ -1,5 +1,5 @@
 import type { CsharpTargetMember, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
-import type { NodejsProviderDeclarationIdentity } from "../identity.js";
+import type { NodejsProviderDeclarationIdentity } from "./identity.js";
 import type { NodejsUnsupportedTargetIdentity } from "./members.js";
 
 export interface NodejsTargetMemberMetadataRecord {

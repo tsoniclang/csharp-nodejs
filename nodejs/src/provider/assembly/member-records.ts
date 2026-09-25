@@ -21,9 +21,9 @@ import { nodeNetCallTargetMembers, nodeNetClassCallTargetMembers, nodeNetClassPr
 import { nodeTlsCallTargetMembers, nodeTlsClassPropertyTargetMembers, nodeTlsModuleSpecifier } from "../modules/tls.js";
 import { nodeReadlineCallTargetMembers, nodeReadlineClassCallTargetMembers, nodeReadlineClassPropertyTargetMembers, nodeReadlineModuleSpecifier } from "../modules/readline.js";
 import { nodeWorkerThreadsClassCallTargetMembers, nodeWorkerThreadsClassPropertyTargetMembers, nodeWorkerThreadsModuleCallTargetMembers, nodeWorkerThreadsModulePropertyTargetMembers, nodeWorkerThreadsModuleSpecifier } from "../modules/worker-threads.js";
-import { nodejsExportDeclarationIdentity, nodejsExportMemberDeclarationIdentity, nodejsExportMemberSignatureDeclarationIdentity, nodejsExportSignatureDeclarationIdentity } from "../identity.js";
+import { nodejsExportDeclarationIdentity, nodejsExportMemberDeclarationIdentity, nodejsExportMemberSignatureDeclarationIdentity, nodejsExportSignatureDeclarationIdentity } from "../model/identity.js";
 import { nodejsDefaultModuleMemberDeclarationIdentities } from "../declarations/defaults.js";
-import type { NodejsProviderDeclarationIdentity } from "../identity.js";
+import type { NodejsProviderDeclarationIdentity } from "../model/identity.js";
 import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember, NodejsUnsupportedTargetIdentity } from "../model/members.js";
 import type { NodejsTargetMemberMetadataRecord, NodejsUnsupportedTargetMetadataRecord } from "../model/member-records.js";
 

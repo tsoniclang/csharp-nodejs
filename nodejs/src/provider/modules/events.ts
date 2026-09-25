@@ -9,15 +9,8 @@ import {
   csharpTsValueTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  callbackProviderType,
-  arrayProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  stringProviderType,
-  unionProviderType,
-  unknownProviderType,
-} from "../declarations/exports.js";
+import { callbackProviderType, arrayProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, unionProviderType } from "../declarations/exports.js";
+import { stringProviderType, unknownProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata } from "../model/target-members.js";
 

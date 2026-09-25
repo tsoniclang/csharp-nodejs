@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
-import { nativeFilePositionSource } from "../../../tsonic/test/fixtures/native-file-positions.mjs";
-import { createTsonicPlugin } from "../../dist/index.js";
+import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { nativeFilePositionSource } from "../../../../tsonic/test/fixtures/native-file-positions.mjs";
+import { createTsonicPlugin } from "../../../dist/index.js";
 
 test("filesystem calls preserve exact native int64 positions through provider selection", () => {
   const compiled = compileCsharpSource({

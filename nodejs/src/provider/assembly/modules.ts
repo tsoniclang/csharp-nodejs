@@ -1,94 +1,94 @@
 import type { ProviderExportDeclaration } from "@tsonic/tsts";
-import { nodeV8Exports, nodeV8ModuleSpecifier } from "./v8.js";
+import { nodeV8Exports, nodeV8ModuleSpecifier } from "../modules/v8.js";
 import type { CsharpProviderModuleDefinition } from "@tsonic/target-csharp/provider";
 import {
   nodeAssertExports,
   nodeAssertModuleSpecifier,
-} from "./assert.js";
+} from "../modules/assert.js";
 import {
   nodeBufferExports,
   nodeBufferModuleSpecifier,
-} from "./buffer/index.js";
+} from "../modules/buffer/index.js";
 import {
   nodeCryptoExports,
   nodeCryptoModuleSpecifier,
-} from "./crypto.js";
+} from "../modules/crypto.js";
 import {
   nodeChildProcessExports,
   nodeChildProcessModuleSpecifier,
-} from "./child-process.js";
+} from "../modules/child-process.js";
 import {
   nodeFsExports,
   nodeFsModuleSpecifier,
   nodeFsPromisesExports,
   nodeFsPromisesModuleSpecifier,
-} from "./filesystem/index.js";
+} from "../modules/filesystem/index.js";
 import {
   nodeHttpExports,
   nodeHttpModuleSpecifier,
-} from "./http/index.js";
+} from "../modules/http/index.js";
 import {
   nodeHttpsExports,
   nodeHttpsModuleSpecifier,
-} from "./https.js";
+} from "../modules/https.js";
 import {
   nodeEventsExports,
   nodeEventsModuleSpecifier,
-} from "./events.js";
+} from "../modules/events.js";
 import {
   nodeStreamExports,
   nodeStreamModuleSpecifier,
-} from "./stream.js";
+} from "../modules/stream.js";
 import {
   nodeZlibExports,
   nodeZlibModuleSpecifier,
-} from "./zlib.js";
+} from "../modules/zlib.js";
 import {
   nodeDnsExports,
   nodeDnsModuleSpecifier,
   nodeDnsPromisesExports,
   nodeDnsPromisesModuleSpecifier,
-} from "./dns.js";
+} from "../modules/dns.js";
 import {
   nodeNetExports,
   nodeNetModuleSpecifier,
-} from "./net.js";
+} from "../modules/net.js";
 import {
   nodeTlsExports,
   nodeTlsModuleSpecifier,
-} from "./tls.js";
+} from "../modules/tls.js";
 import {
   nodeReadlineExports,
   nodeReadlineModuleSpecifier,
-} from "./readline.js";
+} from "../modules/readline.js";
 import {
   nodeWorkerThreadsExports,
   nodeWorkerThreadsModuleSpecifier,
-} from "./worker-threads.js";
+} from "../modules/worker-threads.js";
 import {
   nodeOsExports,
   nodeOsModuleSpecifier,
-} from "./os.js";
+} from "../modules/os.js";
 import {
   nodePathExports,
   nodePathModuleSpecifier,
-} from "./path/index.js";
+} from "../modules/path/index.js";
 import {
   nodeProcessExports,
   nodeProcessModuleSpecifier,
-} from "./process/declarations.js";
+} from "../modules/process/declarations.js";
 import {
   nodeTimersExports,
   nodeTimersModuleSpecifier,
-} from "./timers.js";
+} from "../modules/timers.js";
 import {
   nodeUtilExports,
   nodeUtilModuleSpecifier,
-} from "./util/declarations.js";
+} from "../modules/util/declarations.js";
 import {
   nodeUrlExports,
   nodeUrlModuleSpecifier,
-} from "./url/index.js";
+} from "../modules/url/index.js";
 
 const canonicalModules = new Map<string, readonly ProviderExportDeclaration[]>([
   [nodeAssertModuleSpecifier, nodeAssertExports()],
