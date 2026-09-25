@@ -1,172 +1,31 @@
-import type {
-  CsharpTargetMember,
-  CsharpProviderArgumentAdapter,
-} from "@tsonic/target-csharp/provider";
 import { nodeV8CallTargetMembers, nodeV8ModuleSpecifier, nodeV8PropertyTargetMembers } from "../modules/v8.js";
-import {
-  nodeAssertCallTargetMembers,
-  nodeAssertModuleSpecifier,
-  nodeAssertUnsupportedTargetIdentities,
-} from "../modules/assert.js";
-import {
-  nodeBufferClassCallTargetMembers,
-  nodeBufferClassPropertyTargetMembers,
-  nodeBufferModuleCallTargetMembers,
-  nodeBufferModuleSpecifier,
-  nodeBufferUnsupportedTargetIdentities,
-} from "../modules/buffer/index.js";
-import {
-  nodeCryptoClassCallTargetMembers,
-  nodeCryptoCallTargetMembers,
-  nodeCryptoModuleSpecifier,
-  nodeCryptoUnsupportedTargetIdentities,
-} from "../modules/crypto.js";
-import {
-  nodeChildProcessCallTargetMembers,
-  nodeChildProcessClassPropertyTargetMembers,
-  nodeChildProcessModuleSpecifier,
-} from "../modules/child-process.js";
-import {
-  nodeFsCallTargetMembers,
-  nodeFsClassCallTargetMembers,
-  nodeFsClassPropertyTargetMembers,
-  nodeFsOptionClassPropertyTargetMembers,
-  nodeFsModuleSpecifier,
-  nodeFsPromisesCallTargetMembers,
-  nodeFsPromisesModuleSpecifier,
-  nodeFsUnsupportedTargetIdentities,
-  nodeFsStreamCallTargetMembers,
-  nodeFsStreamClassCallTargetMembers,
-  nodeFsStreamClassPropertyTargetMembers,
-} from "../modules/filesystem/index.js";
-import {
-  nodeOsCallTargetMembers,
-  nodeOsModuleSpecifier,
-  nodeOsPropertyTargetMembers,
-  nodeOsUnsupportedTargetIdentities,
-} from "../modules/os.js";
-import {
-  nodeHttpCallTargetMembers,
-  nodeHttpClassCallTargetMembers,
-  nodeHttpClassPropertyTargetMembers,
-  nodeHttpModuleSpecifier,
-} from "../modules/http/index.js";
-import {
-  nodeHttpsCallTargetMembers,
-  nodeHttpsClassPropertyTargetMembers,
-  nodeHttpsModuleSpecifier,
-} from "../modules/https.js";
-import {
-  nodePathCallTargetMembers,
-  nodePathClassPropertyTargetMembers,
-  nodePathModuleSpecifier,
-  nodePathPathModuleClassCallTargetMembers,
-  nodePathPathModulePropertyTargetMembers,
-  nodePathPropertyTargetMembers,
-} from "../modules/path/index.js";
-import {
-  nodeProcessClassPropertyTargetMembers,
-  nodeProcessCallTargetMembers,
-  nodeProcessModuleSpecifier,
-  nodeProcessPropertyTargetMembers,
-  nodeProcessUnsupportedTargetIdentities,
-} from "../modules/process.js";
-import {
-  nodeTimersCallTargetMembers,
-  nodeTimersModuleSpecifier,
-} from "../modules/timers.js";
-import {
-  nodeUtilCallTargetMembers,
-  nodeUtilModuleSpecifier,
-  nodeUtilUnsupportedTargetIdentities,
-} from "../modules/util/declarations.js";
-import {
-  nodeUtilTextDecoderClassCallTargetMembers,
-  nodeUtilTextDecoderClassPropertyTargetMembers,
-} from "../modules/util/text-decoder.js";
-import {
-  nodeUrlCallTargetMembers,
-  nodeUrlClassCallTargetMembers,
-  nodeUrlClassPropertyTargetMembers,
-  nodeUrlModuleSpecifier,
-  nodeUrlUnsupportedTargetIdentities,
-} from "../modules/url/index.js";
-import {
-  nodeEventsClassCallTargetMembers,
-  nodeEventsModuleSpecifier,
-} from "../modules/events.js";
-import {
-  nodeStreamClassCallTargetMembers,
-  nodeStreamClassPropertyTargetMembers,
-  nodeStreamModuleSpecifier,
-} from "../modules/stream.js";
-import {
-  nodeZlibCallTargetMembers,
-  nodeZlibClassPropertyTargetMembers,
-  nodeZlibModuleSpecifier,
-} from "../modules/zlib.js";
-import {
-  nodeDnsCallTargetMembers,
-  nodeDnsClassPropertyTargetMembers,
-  nodeDnsModuleSpecifier,
-  nodeDnsPromisesCallTargetMembers,
-  nodeDnsPromisesModuleSpecifier,
-  nodeDnsPropertyTargetMembers,
-} from "../modules/dns.js";
-import {
-  nodeNetCallTargetMembers,
-  nodeNetClassCallTargetMembers,
-  nodeNetClassPropertyTargetMembers,
-  nodeNetModuleSpecifier,
-} from "../modules/net.js";
-import {
-  nodeTlsCallTargetMembers,
-  nodeTlsClassPropertyTargetMembers,
-  nodeTlsModuleSpecifier,
-} from "../modules/tls.js";
-import {
-  nodeReadlineCallTargetMembers,
-  nodeReadlineClassCallTargetMembers,
-  nodeReadlineClassPropertyTargetMembers,
-  nodeReadlineModuleSpecifier,
-} from "../modules/readline.js";
-import {
-  nodeWorkerThreadsClassCallTargetMembers,
-  nodeWorkerThreadsClassPropertyTargetMembers,
-  nodeWorkerThreadsModuleCallTargetMembers,
-  nodeWorkerThreadsModulePropertyTargetMembers,
-  nodeWorkerThreadsModuleSpecifier,
-} from "../modules/worker-threads.js";
-import {
-  nodejsExportDeclarationIdentity,
-  nodejsExportMemberDeclarationIdentity,
-  nodejsExportMemberSignatureDeclarationIdentity,
-  nodejsExportSignatureDeclarationIdentity,
-} from "../identity.js";
-import {
-  nodejsDefaultModuleMemberDeclarationIdentities,
-} from "../modules/defaults.js";
-import type {
-  NodejsProviderDeclarationIdentity,
-} from "../identity.js";
-import type {
-  NodejsClassCallTargetMember,
-  NodejsClassPropertyTargetMember,
-  NodejsModuleCallTargetMember,
-  NodejsModulePropertyTargetMember,
-  NodejsUnsupportedTargetIdentity,
-} from "./types.js";
-
-export interface NodejsTargetMemberMetadataRecord {
-  readonly argumentAdapters?: readonly (CsharpProviderArgumentAdapter | undefined)[];
-  readonly declarationIdentities: readonly NodejsProviderDeclarationIdentity[];
-  readonly member: CsharpTargetMember;
-}
-
-export interface NodejsUnsupportedTargetMetadataRecord {
-  readonly declarationIdentities: readonly NodejsProviderDeclarationIdentity[];
-  readonly identity: NodejsUnsupportedTargetIdentity;
-}
+import { nodeAssertCallTargetMembers, nodeAssertModuleSpecifier, nodeAssertUnsupportedTargetIdentities } from "../modules/assert.js";
+import { nodeBufferClassCallTargetMembers, nodeBufferClassPropertyTargetMembers, nodeBufferModuleCallTargetMembers, nodeBufferModuleSpecifier, nodeBufferUnsupportedTargetIdentities } from "../modules/buffer/index.js";
+import { nodeCryptoClassCallTargetMembers, nodeCryptoCallTargetMembers, nodeCryptoModuleSpecifier, nodeCryptoUnsupportedTargetIdentities } from "../modules/crypto.js";
+import { nodeChildProcessCallTargetMembers, nodeChildProcessClassPropertyTargetMembers, nodeChildProcessModuleSpecifier } from "../modules/child-process.js";
+import { nodeFsCallTargetMembers, nodeFsClassCallTargetMembers, nodeFsClassPropertyTargetMembers, nodeFsOptionClassPropertyTargetMembers, nodeFsModuleSpecifier, nodeFsPromisesCallTargetMembers, nodeFsPromisesModuleSpecifier, nodeFsUnsupportedTargetIdentities, nodeFsStreamCallTargetMembers, nodeFsStreamClassCallTargetMembers, nodeFsStreamClassPropertyTargetMembers } from "../modules/filesystem/index.js";
+import { nodeOsCallTargetMembers, nodeOsModuleSpecifier, nodeOsPropertyTargetMembers, nodeOsUnsupportedTargetIdentities } from "../modules/os.js";
+import { nodeHttpCallTargetMembers, nodeHttpClassCallTargetMembers, nodeHttpClassPropertyTargetMembers, nodeHttpModuleSpecifier } from "../modules/http/index.js";
+import { nodeHttpsCallTargetMembers, nodeHttpsClassPropertyTargetMembers, nodeHttpsModuleSpecifier } from "../modules/https.js";
+import { nodePathCallTargetMembers, nodePathClassPropertyTargetMembers, nodePathModuleSpecifier, nodePathPathModuleClassCallTargetMembers, nodePathPathModulePropertyTargetMembers, nodePathPropertyTargetMembers } from "../modules/path/index.js";
+import { nodeProcessClassPropertyTargetMembers, nodeProcessCallTargetMembers, nodeProcessModuleSpecifier, nodeProcessPropertyTargetMembers, nodeProcessUnsupportedTargetIdentities } from "../modules/process/declarations.js";
+import { nodeTimersCallTargetMembers, nodeTimersModuleSpecifier } from "../modules/timers.js";
+import { nodeUtilCallTargetMembers, nodeUtilModuleSpecifier, nodeUtilUnsupportedTargetIdentities } from "../modules/util/declarations.js";
+import { nodeUtilTextDecoderClassCallTargetMembers, nodeUtilTextDecoderClassPropertyTargetMembers } from "../modules/util/text-decoder.js";
+import { nodeUrlCallTargetMembers, nodeUrlClassCallTargetMembers, nodeUrlClassPropertyTargetMembers, nodeUrlModuleSpecifier, nodeUrlUnsupportedTargetIdentities } from "../modules/url/index.js";
+import { nodeEventsClassCallTargetMembers, nodeEventsModuleSpecifier } from "../modules/events.js";
+import { nodeStreamClassCallTargetMembers, nodeStreamClassPropertyTargetMembers, nodeStreamModuleSpecifier } from "../modules/stream.js";
+import { nodeZlibCallTargetMembers, nodeZlibClassPropertyTargetMembers, nodeZlibModuleSpecifier } from "../modules/zlib.js";
+import { nodeDnsCallTargetMembers, nodeDnsClassPropertyTargetMembers, nodeDnsModuleSpecifier, nodeDnsPromisesCallTargetMembers, nodeDnsPromisesModuleSpecifier, nodeDnsPropertyTargetMembers } from "../modules/dns.js";
+import { nodeNetCallTargetMembers, nodeNetClassCallTargetMembers, nodeNetClassPropertyTargetMembers, nodeNetModuleSpecifier } from "../modules/net.js";
+import { nodeTlsCallTargetMembers, nodeTlsClassPropertyTargetMembers, nodeTlsModuleSpecifier } from "../modules/tls.js";
+import { nodeReadlineCallTargetMembers, nodeReadlineClassCallTargetMembers, nodeReadlineClassPropertyTargetMembers, nodeReadlineModuleSpecifier } from "../modules/readline.js";
+import { nodeWorkerThreadsClassCallTargetMembers, nodeWorkerThreadsClassPropertyTargetMembers, nodeWorkerThreadsModuleCallTargetMembers, nodeWorkerThreadsModulePropertyTargetMembers, nodeWorkerThreadsModuleSpecifier } from "../modules/worker-threads.js";
+import { nodejsExportDeclarationIdentity, nodejsExportMemberDeclarationIdentity, nodejsExportMemberSignatureDeclarationIdentity, nodejsExportSignatureDeclarationIdentity } from "../model/identity.js";
+import { nodejsDefaultModuleMemberDeclarationIdentities } from "../declarations/defaults.js";
+import type { NodejsProviderDeclarationIdentity } from "../model/identity.js";
+import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember, NodejsUnsupportedTargetIdentity } from "../model/members.js";
+import type { NodejsTargetMemberMetadataRecord, NodejsUnsupportedTargetMetadataRecord } from "../model/member-records.js";
 
 export function nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers = true): readonly NodejsTargetMemberMetadataRecord[] {
   return [

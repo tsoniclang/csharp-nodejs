@@ -1,10 +1,5 @@
-import type {
-  NodejsProviderDeclarationIdentity,
-} from "../identity.js";
-import {
-  canonicalNodejsModuleSpecifier,
-  isSupportedNodejsModuleSpecifier,
-} from "../modules/specifiers.js";
+import type { NodejsProviderDeclarationIdentity } from "../model/identity.js";
+import { canonicalNodejsModuleSpecifier, isSupportedNodejsModuleSpecifier } from "./specifiers.js";
 
 export function isNodejsProviderModule(moduleSpecifier: string | undefined): boolean {
   return isSupportedNodejsModuleSpecifier(moduleSpecifier);

@@ -14,23 +14,10 @@ import {
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import {
-  callbackProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  numberProviderType,
-  providerRef,
-  unknownProviderType,
-  voidProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
+import { numberProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeZlibModuleSpecifier = "node:zlib";
 

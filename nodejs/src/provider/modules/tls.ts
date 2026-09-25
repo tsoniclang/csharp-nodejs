@@ -15,24 +15,10 @@ import {
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import {
-  booleanProviderType,
-  callbackProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  numberProviderType,
-  providerRef,
-  stringProviderType,
-  unknownProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
+import { booleanProviderType, numberProviderType, stringProviderType, unknownProviderType } from "../model/source-types.js";
+import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeTlsModuleSpecifier = "node:tls";
 

@@ -1,3 +1,4 @@
+import { voidProviderType } from "../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderMemberDeclaration,
@@ -15,19 +16,7 @@ import type {
 import {
   nodejsDefaultModuleObjectExports,
 } from "./defaults.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassPropertyTargetMetadata,
-  NodejsModuleCallTargetMetadata,
-  NodejsModulePropertyTargetMetadata,
-} from "../members/target-member-metadata.js";
-
-export const stringProviderType = Object.freeze({ kind: "string" }) satisfies ProviderTypeExpression;
-export const numberProviderType = Object.freeze({ kind: "number" }) satisfies ProviderTypeExpression;
-export const booleanProviderType = Object.freeze({ kind: "boolean" }) satisfies ProviderTypeExpression;
-export const voidProviderType = Object.freeze({ kind: "void" }) satisfies ProviderTypeExpression;
-export const unknownProviderType = Object.freeze({ kind: "unknown" }) satisfies ProviderTypeExpression;
-export const undefinedProviderType = Object.freeze({ kind: "undefined" }) satisfies ProviderTypeExpression;
+import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
 
 export function nodejsCapabilityModuleExports(options: {
   readonly moduleSpecifier: string;

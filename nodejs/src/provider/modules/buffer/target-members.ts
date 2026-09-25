@@ -1,11 +1,7 @@
 import type {
   CsharpTargetMember,
 } from "@tsonic/target-csharp/provider";
-import type {
-  NodejsClassCallTargetMember,
-  NodejsClassPropertyTargetMember,
-  NodejsModuleCallTargetMember,
-} from "../../members/types.js";
+import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember } from "../../model/members.js";
 import {
   nodeBufferAllocMemberId,
   nodeBufferAllocSignatureId,

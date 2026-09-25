@@ -9,21 +9,10 @@ import {
   csharpTsValueTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  callbackProviderType,
-  arrayProviderType,
-  nodejsCapabilityModuleExports,
-  nodejsTargetNamedType,
-  stringProviderType,
-  unionProviderType,
-  unknownProviderType,
-} from "./declarations.js";
-import {
-  nodejsClassCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-} from "../members/target-member-metadata.js";
+import { callbackProviderType, arrayProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, unionProviderType } from "../declarations/exports.js";
+import { stringProviderType, unknownProviderType } from "../model/source-types.js";
+import { nodejsClassCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata } from "../model/target-members.js";
 
 export const nodeEventsModuleSpecifier = "node:events";
 export const nodeEventEmitterExportName = "EventEmitter";

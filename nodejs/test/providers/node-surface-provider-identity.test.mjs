@@ -3,10 +3,10 @@ import test from "node:test";
 
 import {
   createCsharpProviderRelationCatalog,
-} from "../../../tsonic-csharp/dist/public/provider.js";
+} from "../../../../tsonic-csharp/dist/public/provider.js";
 import {
   nodejsProviderTargetRelations,
-} from "../../dist/provider/target-relations.js";
+} from "../../../dist/provider/target-relations.js";
 
 const relations = nodejsProviderTargetRelations();
 const catalog = createCsharpProviderRelationCatalog([relations]);

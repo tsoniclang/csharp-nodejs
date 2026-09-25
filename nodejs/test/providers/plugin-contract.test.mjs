@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { createTsonicPlugin } from "../../dist/index.js";
+import { createTsonicPlugin } from "../../../dist/index.js";
 import {
   csharpProviderPolicyContributionKind,
   csharpCoreRuntimeSource,
   csharpJsRuntimeSource,
-} from "../../../tsonic-csharp/dist/public/provider.js";
+} from "../../../../tsonic-csharp/dist/public/provider.js";
 
 test("C# Node contributes through the standard target capability hook", () => {
   const plugin = createTsonicPlugin();

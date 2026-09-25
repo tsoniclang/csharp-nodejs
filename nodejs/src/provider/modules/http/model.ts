@@ -17,19 +17,8 @@ import type {
   TargetTypeRef,
   CsharpProviderArgumentAdapter,
 } from "@tsonic/target-csharp/provider";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadata,
-  NodejsClassCallTargetMetadataRow,
-  NodejsClassPropertyTargetMetadata,
-  NodejsClassPropertyTargetMetadataRow,
-  NodejsModuleCallTargetMetadata,
-  NodejsModuleCallTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadata, NodejsClassCallTargetMetadataRow, NodejsClassPropertyTargetMetadata, NodejsClassPropertyTargetMetadataRow, NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../../model/target-members.js";
 import {
   promiseProviderType,
   taskTargetType,

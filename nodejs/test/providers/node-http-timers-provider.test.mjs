@@ -5,16 +5,16 @@ import {
   assertCsharpCompilationSucceeded,
   compileCsharpSource,
   checkCsharpSource,
-} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
-} from "../../dist/index.js";
+} from "../../../dist/index.js";
 import {
   nodejsSourceProvider,
-} from "./helpers/provider-package.mjs";
+} from "../helpers/provider-package.mjs";
 import {
   nodejsProviderTargetRelations,
-} from "../../dist/provider/target-relations.js";
+} from "../../../dist/provider/target-relations.js";
 
 test("every canonical Node provider target type has one exact C# render binding", () => {
   const relations = nodejsProviderTargetRelations().filter((relation) =>

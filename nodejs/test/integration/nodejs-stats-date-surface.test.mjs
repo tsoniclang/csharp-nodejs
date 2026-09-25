@@ -4,16 +4,16 @@ import test from "node:test";
 import {
   assertCsharpCompilationSucceeded,
   compileCsharpSource,
-} from "../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+} from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import {
   createTsonicPlugin,
-} from "../../dist/index.js";
+} from "../../../dist/index.js";
 import {
   nodejsSourceProvider,
-} from "./helpers/provider-package.mjs";
+} from "../helpers/provider-package.mjs";
 import {
   nodejsProviderTargetRelations,
-} from "../../dist/provider/target-relations.js";
+} from "../../../dist/provider/target-relations.js";
 
 test("Node fs Stats Date declarations use the selected source global", () => {
   const provider = nodejsSourceProvider(["js"]);

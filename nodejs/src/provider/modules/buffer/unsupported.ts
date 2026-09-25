@@ -4,9 +4,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type {
-  NodejsUnsupportedTargetIdentity,
-} from "../../members/types.js";
+import type { NodejsUnsupportedTargetIdentity } from "../../model/members.js";
 import {
   nodeBufferExportName,
   nodeBufferModuleSpecifier,

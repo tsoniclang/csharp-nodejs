@@ -1,70 +1,70 @@
 import type { CsharpProviderModuleSpecifier } from "@tsonic/target-csharp/provider";
-import { nodeV8ModuleSpecifier } from "./v8.js";
+import { nodeV8ModuleSpecifier } from "../modules/v8.js";
 import {
   nodeAssertModuleSpecifier,
-} from "./assert.js";
+} from "../modules/assert.js";
 import {
   nodeBufferModuleSpecifier,
-} from "./buffer/index.js";
+} from "../modules/buffer/index.js";
 import {
   nodeCryptoModuleSpecifier,
-} from "./crypto.js";
+} from "../modules/crypto.js";
 import {
   nodeChildProcessModuleSpecifier,
-} from "./child-process.js";
+} from "../modules/child-process.js";
 import {
   nodeFsModuleSpecifier,
   nodeFsPromisesModuleSpecifier,
-} from "./filesystem/index.js";
+} from "../modules/filesystem/index.js";
 import {
   nodeOsModuleSpecifier,
-} from "./os.js";
+} from "../modules/os.js";
 import {
   nodeHttpModuleSpecifier,
-} from "./http/index.js";
+} from "../modules/http/index.js";
 import {
   nodeHttpsModuleSpecifier,
-} from "./https.js";
+} from "../modules/https.js";
 import {
   nodePathModuleSpecifier,
-} from "./path/index.js";
+} from "../modules/path/index.js";
 import {
   nodeProcessModuleSpecifier,
-} from "./process.js";
+} from "../modules/process/declarations.js";
 import {
   nodeTimersModuleSpecifier,
-} from "./timers.js";
+} from "../modules/timers.js";
 import {
   nodeUtilModuleSpecifier,
-} from "./util/declarations.js";
+} from "../modules/util/declarations.js";
 import {
   nodeUrlModuleSpecifier,
-} from "./url/index.js";
+} from "../modules/url/index.js";
 import {
   nodeEventsModuleSpecifier,
-} from "./events.js";
+} from "../modules/events.js";
 import {
   nodeStreamModuleSpecifier,
-} from "./stream.js";
+} from "../modules/stream.js";
 import {
   nodeZlibModuleSpecifier,
-} from "./zlib.js";
+} from "../modules/zlib.js";
 import {
   nodeDnsModuleSpecifier,
   nodeDnsPromisesModuleSpecifier,
-} from "./dns.js";
+} from "../modules/dns.js";
 import {
   nodeNetModuleSpecifier,
-} from "./net.js";
+} from "../modules/net.js";
 import {
   nodeTlsModuleSpecifier,
-} from "./tls.js";
+} from "../modules/tls.js";
 import {
   nodeReadlineModuleSpecifier,
-} from "./readline.js";
+} from "../modules/readline.js";
 import {
   nodeWorkerThreadsModuleSpecifier,
-} from "./worker-threads.js";
+} from "../modules/worker-threads.js";
 
 const canonicalBySpecifier = new Map<string, string>([
   ["v8", nodeV8ModuleSpecifier],

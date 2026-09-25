@@ -16,22 +16,12 @@ import {
   nodejsProviderExportDeclarationTargetMemberIndex,
   nodejsProviderExportSignatureDeclarationTargetMemberIndex,
 } from "../metadata-indexes.js";
-import {
-  nodejsModuleCallTargetMetadata,
-  nodejsModulePropertyTargetMetadata,
-} from "../members/target-member-metadata.js";
+import { nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "./defaults.js";
-import type {
-  NodejsUnsupportedTargetIdentity,
-} from "../members/types.js";
-import type {
-  NodejsModuleCallTargetMetadata,
-  NodejsModuleCallTargetMetadataRow,
-  NodejsModulePropertyTargetMetadata,
-  NodejsModulePropertyTargetMetadataRow,
-} from "../members/target-member-metadata.js";
+} from "../declarations/defaults.js";
+import type { NodejsUnsupportedTargetIdentity } from "../model/members.js";
+import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow, NodejsModulePropertyTargetMetadata, NodejsModulePropertyTargetMetadataRow } from "../model/target-members.js";
 
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;

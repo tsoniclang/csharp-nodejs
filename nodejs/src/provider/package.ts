@@ -3,9 +3,9 @@ import { createCsharpProviderPackage } from "@tsonic/target-csharp/provider";
 import {
   csharpNodejsProviderPackageProviderIdentity,
   csharpNodejsVirtualDeclarationFileName,
-} from "./identity.js";
-import { nodejsProviderModules } from "./modules/catalog.js";
-import { nodejsProviderModuleSpecifiers } from "./modules/specifiers.js";
+} from "./model/identity.js";
+import { nodejsProviderModules } from "./assembly/modules.js";
+import { nodejsProviderModuleSpecifiers } from "./declarations/specifiers.js";
 import { nodejsRuntimeContributions } from "./runtime.js";
 import { createCsharpNodejsProviderPolicyContribution } from "./target-relations.js";
 

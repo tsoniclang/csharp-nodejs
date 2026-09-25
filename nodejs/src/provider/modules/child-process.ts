@@ -7,9 +7,9 @@ import {
 } from "@tsonic/target-csharp/provider";
 import type { CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
 import { nodeBufferTargetType } from "./buffer/identities.js";
-import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../members/target-member-metadata.js";
-import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../members/target-member-metadata.js";
-import { nodejsDefaultModuleObjectExports } from "./defaults.js";
+import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import { nodejsDefaultModuleObjectExports } from "../declarations/defaults.js";
 
 export const nodeChildProcessModuleSpecifier = "node:child_process";
 export const nodeChildProcessSpawnSyncReturnsExportName = "SpawnSyncReturns";

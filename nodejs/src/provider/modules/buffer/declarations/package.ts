@@ -12,7 +12,7 @@ import {
 } from "../identities.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../../defaults.js";
+} from "../../../declarations/defaults.js";
 
 export function nodeBufferExports(): readonly ProviderExportDeclaration[] {
   const declarations = [

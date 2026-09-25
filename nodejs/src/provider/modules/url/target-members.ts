@@ -5,16 +5,8 @@ import type { TargetParameter } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  nodejsClassCallTargetMetadata,
-  nodejsClassPropertyTargetMetadata,
-  nodejsModuleCallTargetMetadata,
-} from "../../members/target-member-metadata.js";
-import type {
-  NodejsClassCallTargetMetadataRow,
-  NodejsClassPropertyTargetMetadataRow,
-  NodejsModuleCallTargetMetadataRow,
-} from "../../members/target-member-metadata.js";
+import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
+import type { NodejsClassCallTargetMetadataRow, NodejsClassPropertyTargetMetadataRow, NodejsModuleCallTargetMetadataRow } from "../../model/target-members.js";
 import {
   nodeUrlFileUrlToPathExportName,
   nodeUrlFileUrlToPathStringSignatureId,

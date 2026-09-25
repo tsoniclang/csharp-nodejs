@@ -5,7 +5,7 @@ import {
   nodejsExportDeclarationIdentity,
   nodejsExportSignatureDeclarationIdentity,
   nodejsProviderDeclarationIdentityKey,
-} from "./identity.js";
+} from "./model/identity.js";
 
 interface NodejsExportMetadataRow {
   readonly exportName: string;

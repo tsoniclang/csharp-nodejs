@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   nodejsProviderPackageOwnedModuleSpecifiers,
-} from "../../dist/provider/modules/specifiers.js";
+} from "../../../dist/provider/declarations/specifiers.js";
 import {
   nodejsCanonicalProviderExports,
-} from "../../dist/provider/modules/catalog.js";
+} from "../../../dist/provider/assembly/modules.js";
 import {
   nodejsProviderTargetRelations,
-} from "../../dist/provider/target-relations.js";
+} from "../../../dist/provider/target-relations.js";
 
 test("native V8 flags retain one exact string-to-void runtime boundary", () => {
   const declarations = nodejsCanonicalProviderExports("node:v8");

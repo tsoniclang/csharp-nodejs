@@ -10,16 +10,11 @@ import {
   csharpTargetNamedType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import {
-  nodejsModuleCallTargetMetadata,
-} from "../members/target-member-metadata.js";
-import type {
-  NodejsModuleCallTargetMetadata,
-  NodejsModuleCallTargetMetadataRow,
-} from "../members/target-member-metadata.js";
+import { nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../model/target-members.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "./defaults.js";
+} from "../declarations/defaults.js";
 
 export const nodeTimersModuleSpecifier = "node:timers";
 export const nodeTimersTimeoutExportName = "Timeout";

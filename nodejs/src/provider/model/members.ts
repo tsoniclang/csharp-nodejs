@@ -1,7 +1,4 @@
-import type {
-  CsharpTargetMember,
-  CsharpProviderArgumentAdapter,
-} from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
 
 export interface NodejsCallArgumentAdapters {
   readonly argumentAdapters?: readonly (CsharpProviderArgumentAdapter | undefined)[];

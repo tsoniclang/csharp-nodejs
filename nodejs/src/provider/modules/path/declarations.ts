@@ -18,7 +18,7 @@ import {
 } from "./identity.js";
 import {
   nodejsDefaultModuleObjectExports,
-} from "../defaults.js";
+} from "../../declarations/defaults.js";
 
 export function nodePathExports(): readonly ProviderExportDeclaration[] {
   const exports = [

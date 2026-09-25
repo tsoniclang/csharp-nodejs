@@ -23,27 +23,22 @@ import type {
 } from "@tsonic/target-csharp/provider";
 import {
   csharpNodejsProviderPackageProviderIdentity,
-} from "./identity.js";
+} from "./model/identity.js";
 import type {
   NodejsProviderDeclarationIdentity,
-} from "./identity.js";
-import {
-  nodejsTargetMemberMetadataRecords,
-  nodejsUnsupportedTargetMetadataRecords,
-} from "./members/provider-records.js";
-import type {
-  NodejsUnsupportedTargetMetadataRecord,
-} from "./members/provider-records.js";
+} from "./model/identity.js";
+import { nodejsTargetMemberMetadataRecords, nodejsUnsupportedTargetMetadataRecords } from "./assembly/member-records.js";
+import type { NodejsUnsupportedTargetMetadataRecord } from "./model/member-records.js";
 import {
   nodejsPublicModuleSpecifiers,
-} from "./modules/specifiers.js";
+} from "./declarations/specifiers.js";
 import {
   nodejsProviderTargetBinding,
   nodejsProviderTargetTypeRows,
 } from "./modules/target-bindings.js";
 import {
   nodejsCanonicalProviderExports,
-} from "./modules/catalog.js";
+} from "./assembly/modules.js";
 
 export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
   return csharpProviderPolicyContribution(
