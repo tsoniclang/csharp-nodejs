@@ -9,6 +9,28 @@ import {
 import {
   nodejsProviderTargetRelations,
 } from "../../../dist/provider/target-relations.js";
+import { nodejsProviderSignature } from "../../../dist/provider/declarations/exports.js";
+
+test("signature scoping preserves exact bigint literals inside callbacks and defaults", () => {
+  const lower = { kind: "bigint-literal", value: "9007199254740992" };
+  const upper = { kind: "bigint-literal", value: "9007199254740993" };
+  const callback = {
+    kind: "function",
+    id: "unscoped",
+    parameters: [{ name: "value", type: lower, defaultType: lower }],
+    returnType: upper,
+    typeParameters: [{ name: "Size", constraints: [upper], defaultType: upper }],
+  };
+  const signature = nodejsProviderSignature("exact", [
+    { name: "callback", type: callback },
+  ], { kind: "tuple", elementTypes: [lower, upper] });
+  assert.deepEqual(signature.parameters[0].type, {
+    ...callback,
+    id: "exact.parameter[0]",
+  });
+  assert.deepEqual(signature.returnType, { kind: "tuple", elementTypes: [lower, upper] });
+  assert.equal(callback.id, "unscoped");
+});
 
 test("native V8 flags retain one exact string-to-void runtime boundary", () => {
   const declarations = nodejsCanonicalProviderExports("node:v8");
