@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace Tsonic.CSharp.Node;
 
@@ -40,6 +42,9 @@ public partial class Socket : Stream
     private int _needsDrain;
     private int _referenced;
     private bool _transportReadReserved;
+    private Action? _metadataDestroy;
+    private CancellationTokenRegistration _metadataCancellation;
+    private bool _metadataConnected;
 
     private record WriteRequest(ReadOnlyMemory<byte> Data, Action<Exception?>? Callback);
 
@@ -102,7 +107,7 @@ public partial class Socket : Stream
         {
             if (_destroyed) return "closed";
             if (_connecting) return "opening";
-            if (_client?.Connected == true) return "open";
+            if (_client?.Connected == true || _metadataConnected) return "open";
             return "closed";
         }
     }
@@ -133,6 +138,55 @@ public partial class Socket : Stream
         // Don't start reading immediately - let the connection callback register handlers first
         // StartReading will be called after emitting the connection event
     }
+
+    private Socket(
+        string? remoteAddress,
+        int? remotePort,
+        string? localAddress,
+        int? localPort,
+        Action? destroyTransport,
+        CancellationToken cancellationToken) : base()
+    {
+        this.remoteAddress = remoteAddress;
+        this.remotePort = remotePort;
+        this.localAddress = localAddress;
+        this.localPort = localPort;
+        remoteFamily = AddressFamilyName(remoteAddress);
+        localFamily = AddressFamilyName(localAddress);
+        _metadataDestroy = destroyTransport;
+        _metadataConnected = true;
+        if (cancellationToken.CanBeCanceled)
+            _metadataCancellation = cancellationToken.Register(() => destroy());
+    }
+
+    internal static Socket FromHttpConnection(
+        ConnectionInfo connection,
+        Action destroyTransport,
+        CancellationToken cancellationToken) =>
+        new(
+            connection.RemoteIpAddress?.ToString(),
+            connection.RemotePort,
+            connection.LocalIpAddress?.ToString(),
+            connection.LocalPort,
+            destroyTransport,
+            cancellationToken);
+
+    internal static Socket FromHttpResponse(HttpResponseMessage response)
+    {
+        var uri = response.RequestMessage?.RequestUri;
+        return new Socket(
+            uri?.Host,
+            uri?.IsDefaultPort == false ? uri.Port : null,
+            null,
+            null,
+            null,
+            CancellationToken.None);
+    }
+
+    private static string? AddressFamilyName(string? address) =>
+        IPAddress.TryParse(address, out var parsed)
+            ? parsed.AddressFamily == AddressFamily.InterNetwork ? "IPv4" : "IPv6"
+            : null;
 
     /// <summary>
     /// Initiate a connection on a given socket.

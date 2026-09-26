@@ -6,6 +6,22 @@ namespace Tsonic.CSharp.Node.Tests;
 public class NativeBufferOwnershipTests
 {
     [Fact]
+    public void BufferFromUint8ArrayCopiesExactBytes()
+    {
+        var source = new Tsonic.CSharp.Js.Uint8Array(3);
+        source[0] = 0;
+        source[1] = 128;
+        source[2] = 255;
+        var result = Buffer.from(source);
+        Assert.Equal(3, result.length);
+        Assert.Equal(0, result[0]);
+        Assert.Equal(128, result[1]);
+        Assert.Equal(255, result[2]);
+        source[1] = 4;
+        Assert.Equal(128, result[1]);
+    }
+
+    [Fact]
     public void NestedViewsAliasOnlyTheirSelectedWindow()
     {
         var original = Buffer.from(new byte[] { 1, 2, 3, 4, 5 });

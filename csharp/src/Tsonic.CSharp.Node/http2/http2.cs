@@ -142,13 +142,13 @@ public class Http2Server : EventEmitter
         return this;
     }
 
-    public Http2Server close(Action? callback = null)
+    public Http2Server close(Action<Exception?>? callback = null)
     {
         _http1Server.close(callback);
         return this;
     }
 
-    public Http.AddressInfo? address()
+    public Http.ServerAddress? address()
     {
         return _http1Server.address();
     }

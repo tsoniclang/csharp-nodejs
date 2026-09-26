@@ -166,11 +166,8 @@ export function nodeFsStreamClassCallTargetMembers(): readonly NodejsClassCallTa
       calls.push(classCall(exportName, memberName, [], providerClass(exportName), [], targetTypes[exportName]));
     }
   }
-  calls.push(classCall("ReadStream", "pipe", [
-    { name: "destination", type: providerClass("WriteStream") },
-  ], providerClass("WriteStream"), [
-    targetParameter("destination", targetTypes.WriteStream),
-  ], targetTypes.WriteStream, "pipeTo"));
+  calls.push(classCall("ReadStream", "close", [], voidProviderType, [], voidTargetType));
+  calls.push(classCall("WriteStream", "close", [], voidProviderType, [], voidTargetType));
   return Object.freeze(calls);
 }
 
@@ -184,6 +181,7 @@ export function nodeFsStreamClassPropertyTargetMembers(): readonly NodejsClassPr
     optionProperty("ReadStreamOptions", "end", numberProviderType, nullableLongTargetType),
     optionProperty("ReadStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
     optionProperty("WriteStreamOptions", "flags", writeStreamFlagProviderType, nullableStringTargetType),
+    optionProperty("WriteStreamOptions", "mode", numberProviderType, nullableIntTargetType),
     optionProperty("WriteStreamOptions", "encoding", stringProviderType, nullableStringTargetType),
     optionProperty("WriteStreamOptions", "start", numberProviderType, nullableLongTargetType),
     optionProperty("WriteStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
@@ -220,7 +218,7 @@ function moduleCall(
 }
 
 function classCall(
-  exportName: "FsWatcher" | "StatWatcher" | "ReadStream",
+  exportName: "FsWatcher" | "StatWatcher" | "ReadStream" | "WriteStream",
   memberName: string,
   providerParameters: readonly ProviderParameterDeclaration[],
   providerReturnType: ProviderTypeExpression,

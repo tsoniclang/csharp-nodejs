@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
@@ -11,9 +12,9 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Readable : Stream
 {
-    private readonly Queue<object?> _buffer = new Queue<object?>();
+    private readonly LinkedList<object?> _buffer = new();
     private readonly object _readLock = new();
-    private readonly ManualResetEventSlim _capacityAvailable = new(true);
+    private TaskCompletionSource? _capacityWaiter;
     private readonly int _highWaterMark;
     private long _bufferedSize;
     private bool _ended = false;
@@ -35,6 +36,17 @@ public partial class Readable : Stream
         if (highWaterMark <= 0)
             throw new ArgumentOutOfRangeException(nameof(highWaterMark));
         _highWaterMark = highWaterMark;
+    }
+
+    /// <summary>Creates a finite in-memory binary readable without copying its chunks.</summary>
+    public static Readable from(Buffer[] chunks)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+        var readable = new Readable();
+        foreach (var chunk in chunks)
+            readable.push(chunk ?? throw new ArgumentException("Readable chunks cannot contain null.", nameof(chunks)));
+        readable.push(null);
+        return readable;
     }
 
     /// <summary>
@@ -71,6 +83,8 @@ public partial class Readable : Stream
     /// <returns>The data read, or null if no data is available.</returns>
     public object? read(int? size = null)
     {
+        if (size is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), "Read size must be positive.");
         var requestRead = false;
         lock (_readLock)
         {
@@ -94,10 +108,20 @@ public partial class Readable : Stream
             }
             else
             {
-                chunk = _buffer.Dequeue();
-                _bufferedSize = checked(_bufferedSize - ChunkSize(chunk));
-                if (_bufferedSize < _highWaterMark)
-                    _capacityAvailable.Set();
+                var first = _buffer.First!;
+                if (size is int requested && first.Value is Buffer buffer && requested < buffer.length)
+                {
+                    chunk = buffer.subarray(0, requested);
+                    first.Value = buffer.subarray(requested);
+                    _bufferedSize = checked(_bufferedSize - requested);
+                }
+                else
+                {
+                    chunk = first.Value;
+                    _buffer.RemoveFirst();
+                    _bufferedSize = checked(_bufferedSize - ChunkSize(chunk));
+                }
+                SignalReadCapacityIfAvailable();
                 emitEnd = MarkEndReady();
             }
         }
@@ -111,6 +135,18 @@ public partial class Readable : Stream
     {
         var value = read(size);
         return value is null ? TsValue.undefined() : TsValue.from(value);
+    }
+
+    /// <summary>Reads one binary chunk, or native absence at the current boundary.</summary>
+    public Buffer? readBuffer(int? size = null)
+    {
+        return read(size) switch
+        {
+            null => null,
+            Buffer buffer => buffer,
+            byte[] bytes => Buffer.TakeOwnership(bytes),
+            _ => throw new InvalidOperationException("The selected readable is not in binary mode."),
+        };
     }
 
     /// <summary>
@@ -192,7 +228,8 @@ public partial class Readable : Stream
     }
 
     /// <summary>Pipes this stream into the selected writable destination.</summary>
-    public Writable pipeTo(Writable destination)
+    public TDestination pipeTo<TDestination>(TDestination destination)
+        where TDestination : Writable
     {
         _ = pipe(destination);
         return destination;
@@ -208,22 +245,9 @@ public partial class Readable : Stream
             return;
         lock (_readLock)
         {
-            // Create a new queue with the chunk at the front
-            var newBuffer = new Queue<object?>();
-            newBuffer.Enqueue(chunk);
-            while (_buffer.Count > 0)
-            {
-                newBuffer.Enqueue(_buffer.Dequeue());
-            }
-
-            // Replace buffer
-            while (newBuffer.Count > 0)
-            {
-                _buffer.Enqueue(newBuffer.Dequeue());
-            }
+            _buffer.AddFirst(chunk);
             _bufferedSize = checked(_bufferedSize + ChunkSize(chunk));
-            if (_bufferedSize >= _highWaterMark)
-                _capacityAvailable.Reset();
+            BlockReadCapacityIfNeeded();
         }
     }
 
@@ -258,24 +282,24 @@ public partial class Readable : Stream
                         byte[] bytes => Buffer.from(bytes).toString(_encoding),
                         _ => chunk,
                     };
-                _buffer.Enqueue(normalizedChunk);
+                _buffer.AddLast(normalizedChunk);
                 _bufferedSize = checked(_bufferedSize + ChunkSize(normalizedChunk));
                 if (_flowing)
                 {
                     flowingChunks = new List<object?>(_buffer.Count);
                     while (_buffer.Count > 0)
                     {
-                        var buffered = _buffer.Dequeue();
+                        var buffered = _buffer.First!.Value;
+                        _buffer.RemoveFirst();
                         flowingChunks.Add(buffered);
                         _bufferedSize = checked(_bufferedSize - ChunkSize(buffered));
                     }
-                    _capacityAvailable.Set();
+                    SignalReadCapacityIfAvailable();
                     emitEnd = MarkEndReady();
                 }
                 else
                 {
-                    if (_bufferedSize >= _highWaterMark)
-                        _capacityAvailable.Reset();
+                    BlockReadCapacityIfNeeded();
                     emitReadable = true;
                 }
                 accepted = _bufferedSize < _highWaterMark;
@@ -306,7 +330,7 @@ public partial class Readable : Stream
             _destroyed = true;
             _buffer.Clear();
             _bufferedSize = 0;
-            _capacityAvailable.Set();
+            SignalReadCapacityIfAvailable();
         }
 
         base.destroy(error);
@@ -331,7 +355,18 @@ public partial class Readable : Stream
     /// <summary>Waits until the finite readable buffer can accept more data.</summary>
     protected void WaitForReadCapacity(CancellationToken cancellationToken = default)
     {
-        _capacityAvailable.Wait(cancellationToken);
+        CapacityTask().WaitAsync(cancellationToken).GetAwaiter().GetResult();
+    }
+
+    /// <summary>Asynchronously waits until the finite readable buffer can accept more data.</summary>
+    protected Task WaitForReadCapacityAsync(CancellationToken cancellationToken = default) =>
+        CapacityTask().WaitAsync(cancellationToken);
+
+    /// <summary>Destroys the stream and returns it for the source-level fluent contract.</summary>
+    public Readable destroyChain(Exception? error = null)
+    {
+        destroy(error);
+        return this;
     }
 
     private void EmitEndIfReady()
@@ -349,6 +384,33 @@ public partial class Readable : Stream
             return false;
         _endEmitted = true;
         return true;
+    }
+
+    private Task CapacityTask()
+    {
+        lock (_readLock)
+        {
+            if (_destroyed || _bufferedSize < _highWaterMark)
+                return Task.CompletedTask;
+            _capacityWaiter ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            return _capacityWaiter.Task;
+        }
+    }
+
+    private void BlockReadCapacityIfNeeded()
+    {
+        if (_bufferedSize < _highWaterMark || _destroyed)
+            return;
+        _capacityWaiter ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private void SignalReadCapacityIfAvailable()
+    {
+        if (!_destroyed && _bufferedSize >= _highWaterMark)
+            return;
+        var waiter = _capacityWaiter;
+        _capacityWaiter = null;
+        waiter?.TrySetResult();
     }
 
     private static int ChunkSize(object? chunk)

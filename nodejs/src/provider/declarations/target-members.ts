@@ -11,6 +11,7 @@ export function nodejsModuleCallTargetMetadata(
     targetName: row.targetName,
     providerParameters: row.providerParameters,
     providerReturnType: row.providerReturnType,
+    ...(row.providerTypeParameters === undefined ? {} : { providerTypeParameters: row.providerTypeParameters }),
     ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     member: nodejsTargetMember({
       targetMemberId: row.targetMemberId,
@@ -20,6 +21,7 @@ export function nodejsModuleCallTargetMetadata(
       targetParameters: row.targetParameters,
       targetReturnType: row.targetReturnType,
       declaringType: row.declaringType,
+      ...(row.targetTypeParameters === undefined ? {} : { typeParameters: row.targetTypeParameters }),
       static: true,
     }),
   };
@@ -60,6 +62,7 @@ export function nodejsClassCallTargetMetadata(
     ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     providerParameters: row.providerParameters,
     ...(row.providerReturnType !== undefined ? { providerReturnType: row.providerReturnType } : {}),
+    ...(row.providerTypeParameters === undefined ? {} : { providerTypeParameters: row.providerTypeParameters }),
     ...(row.static === true ? { static: true } : {}),
     member: nodejsTargetMember({
       targetMemberId: row.targetMemberId,
@@ -69,6 +72,7 @@ export function nodejsClassCallTargetMetadata(
       targetParameters: row.targetParameters,
       targetReturnType: row.targetReturnType,
       declaringType: row.declaringType,
+      ...(row.targetTypeParameters === undefined ? {} : { typeParameters: row.targetTypeParameters }),
       ...(row.static === true ? { static: true } : {}),
       ...(row.csharpInvocation === undefined
         ? {}
@@ -115,6 +119,7 @@ function nodejsTargetMember(row: {
   readonly static?: true;
   readonly readonly?: true;
   readonly csharpInvocation?: CsharpTargetInvocation;
+  readonly typeParameters?: CsharpTargetMember["typeParameters"];
 }): CsharpTargetMember {
   return {
     id: row.targetMemberId,
@@ -129,5 +134,6 @@ function nodejsTargetMember(row: {
     ...(row.csharpInvocation === undefined
       ? {}
       : { csharpInvocation: row.csharpInvocation }),
+    ...(row.typeParameters === undefined ? {} : { typeParameters: row.typeParameters }),
   };
 }

@@ -50,11 +50,11 @@ public class Stream : EventEmitter
                 return;
             if (destination is Duplex duplex)
             {
-                duplex.end();
+                duplex.EndChunk();
             }
             else if (destination is Writable writable)
             {
-                writable.end();
+                writable.EndChunk();
             }
         }
 
@@ -86,8 +86,8 @@ public class Stream : EventEmitter
 
                         var accepted = destination switch
                         {
-                            Duplex duplex => duplex.write(chunk),
-                            Writable writable => writable.write(chunk),
+                            Duplex duplex => duplex.WriteChunk(chunk),
+                            Writable writable => writable.WriteChunk(chunk),
                             _ => false,
                         };
                         if (!accepted)

@@ -1,12 +1,11 @@
 using System;
-using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
 /// <summary>
 /// Duplex streams are streams that implement both the Readable and Writable interfaces.
 /// </summary>
-public class Duplex : Readable
+public partial class Duplex : Readable
 {
     private readonly WritableState _writableState;
 
@@ -34,6 +33,12 @@ public class Duplex : Readable
     /// </summary>
     public bool writableEnded => _writableState.Ended;
 
+    /// <summary>Is true after the native writable side has finalized.</summary>
+    public bool writableFinished => _writableState.Finished;
+
+    /// <summary>Is true while producers must wait for the drain event.</summary>
+    public bool writableNeedDrain => _writableState.NeedDrain;
+
     /// <summary>
     /// Number of bytes (or objects) in the write queue ready to be written.
     /// </summary>
@@ -48,32 +53,46 @@ public class Duplex : Readable
     /// Writes data to the stream.
     /// </summary>
     /// <param name="chunk">The data to write.</param>
-    /// <param name="encoding">The encoding if chunk is a string.</param>
-    /// <param name="callback">Callback for when this chunk of data is flushed.</param>
     /// <returns>False if the stream wishes for the calling code to wait for the 'drain' event to be emitted before continuing to write.</returns>
-    public bool write(object? chunk, string? encoding = null, Action? callback = null)
-    {
-        return _writableState.Write(chunk, encoding, callback);
-    }
+    public bool write(string chunk) => WriteChunk(chunk);
 
-    /// <summary>Writes a closed TypeScript value to the writable side of the stream.</summary>
-    public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
-        write(chunk.unwrap(), encoding, callback);
+    /// <summary>Writes one binary chunk to the writable side.</summary>
+    public bool write(Buffer chunk) => WriteChunk(chunk);
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.
     /// </summary>
-    /// <param name="chunk">Optional data to write before ending.</param>
-    /// <param name="encoding">The encoding if chunk is a string.</param>
-    /// <param name="callback">Optional callback for when the stream has finished.</param>
-    public void end(object? chunk = null, string? encoding = null, Action? callback = null)
+    public Duplex end()
     {
-        _writableState.End(chunk, encoding, callback);
+        _writableState.End(null, null, null);
+        return this;
     }
 
-    /// <summary>Finishes the writable side after writing a final closed TypeScript value.</summary>
-    public void end(TsValue chunk, string? encoding = null, Action? callback = null) =>
-        end(chunk.unwrap(), encoding, callback);
+    /// <summary>Finishes the writable side after one final text chunk.</summary>
+    public Duplex end(string chunk)
+    {
+        _writableState.End(chunk, null, null);
+        return this;
+    }
+
+    /// <summary>Finishes the writable side after one final binary chunk.</summary>
+    public Duplex end(Buffer chunk)
+    {
+        _writableState.End(chunk, null, null);
+        return this;
+    }
+
+    /// <summary>Writes a native stream chunk to the writable side.</summary>
+    protected internal bool WriteChunk(
+        object? chunk,
+        string? encoding = null,
+        Action? callback = null) => _writableState.Write(chunk, encoding, callback);
+
+    /// <summary>Finishes the writable side after an optional native chunk.</summary>
+    protected internal void EndChunk(
+        object? chunk = null,
+        string? encoding = null,
+        Action? callback = null) => _writableState.End(chunk, encoding, callback);
 
     /// <summary>
     /// Forces all written data to be buffered in memory. The buffered data will be flushed when uncork() is called.
@@ -99,6 +118,13 @@ public class Duplex : Readable
     {
         _writableState.Destroy();
         base.destroy(error);
+    }
+
+    /// <summary>Destroys both sides and returns this stream.</summary>
+    public new Duplex destroyChain(Exception? error = null)
+    {
+        destroy(error);
+        return this;
     }
 
     /// <summary>

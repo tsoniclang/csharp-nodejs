@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Tsonic.CSharp.Node.Http;
@@ -10,6 +13,73 @@ namespace Tsonic.CSharp.Node.Tests;
 [Collection(JsEventLoopCollection.Name)]
 public class HttpServerTests
 {
+    [Fact]
+    public async Task Server_HeadersDistinctPreservesRepeatedValuesAndSnapshotIsolation()
+    {
+        string[]? first = null;
+        string[]? second = null;
+        string[]? missing = null;
+        var sameCarrier = false;
+        var server = http.createServer((request, response) =>
+        {
+            sameCarrier = ReferenceEquals(request.headers, request.headersDistinct);
+            first = request.headersDistinct["x-item"];
+            first![0] = "changed";
+            second = request.headersDistinct["X-ITEM"];
+            missing = request.headersDistinct["missing"];
+            response.end("ok");
+        });
+        server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
+        try
+        {
+            using var client = new TcpClient();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await client.ConnectAsync("127.0.0.1", server.address()!.address!.port, deadline.Token);
+            var stream = client.GetStream();
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(
+                "GET / HTTP/1.1\r\nHost: localhost\r\nX-Item: one\r\nX-Item: two\r\nConnection: close\r\n\r\n"), deadline.Token);
+            var reply = new byte[256];
+            var read = await stream.ReadAsync(reply, deadline.Token);
+            Assert.True(read > 0);
+            Assert.True(sameCarrier);
+            Assert.Equal(new[] { "changed", "two" }, first);
+            Assert.Equal(new[] { "one", "two" }, second);
+            Assert.Null(missing);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
+    public async Task Server_StreamsBodiesBeyondKestrelDefaultSizeLimit()
+    {
+        const int payloadLength = 30 * 1024 * 1024 + 1;
+        long received = 0;
+        var server = http.createServer((request, response) =>
+        {
+            request.onData(chunk => Interlocked.Add(ref received, chunk.length));
+            request.onEnd(() => response.end(Interlocked.Read(ref received).ToString()));
+        });
+        server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            using var content = new ByteArrayContent(new byte[payloadLength]);
+            using var reply = await client.PostAsync(
+                $"http://127.0.0.1:{server.address()!.address!.port}/upload", content);
+            Assert.Equal(System.Net.HttpStatusCode.OK, reply.StatusCode);
+            Assert.Equal(payloadLength.ToString(), await reply.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
     [Fact]
     public async Task Server_BasicRequest_ReturnsResponse()
     {
@@ -25,10 +95,8 @@ public class HttpServerTests
             receivedMethod = req.method;
             receivedUrl = req.url;
 
-            res.writeHead(200, new System.Collections.Generic.Dictionary<string, string>
-            {
-                { "Content-Type", "text/plain" }
-            });
+            res.setHeader("Content-Type", "text/plain");
+            res.writeHead(200, res.getHeaders());
 
             res.end("Hello World");
         });
@@ -76,7 +144,7 @@ public class HttpServerTests
             var address = server.address();
             Assert.NotNull(address);
             using var client = new HttpClient();
-            var response = await client.GetAsync($"http://127.0.0.1:{address.port}/");
+            var response = await client.GetAsync($"http://127.0.0.1:{address.address!.port}/");
             var body = await response.Content.ReadAsStringAsync();
 
             Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);
@@ -96,11 +164,9 @@ public class HttpServerTests
 
         var server = http.createServer((req, res) =>
         {
-            res.writeHead(200, new System.Collections.Generic.Dictionary<string, string>
-            {
-                { "Content-Type", "application/json" },
-                { "X-Custom-Header", "test-value" }
-            });
+            res.setHeader("Content-Type", "application/json");
+            res.setHeader("X-Custom-Header", "test-value");
+            res.writeHead(200, res.getHeaders());
 
             res.end("{\"status\":\"ok\"}");
         });
@@ -136,7 +202,7 @@ public class HttpServerTests
 
         var server = http.createServer((req, res) =>
         {
-            receivedUserAgent = req.headers.GetValueOrDefault("user-agent");
+            receivedUserAgent = req.headers.get("user-agent");
             res.end("OK");
         });
 
@@ -202,9 +268,9 @@ public class HttpServerTests
             var address = server.address();
 
             Assert.NotNull(address);
-            Assert.Equal(port, address.port);
-            Assert.Equal("127.0.0.1", address.address);
-            Assert.Equal("IPv4", address.family);
+            Assert.Equal(port, address.address!.port);
+            Assert.Equal("127.0.0.1", address.address.address);
+            Assert.Equal("IPv4", address.address.family);
         }
         finally
         {
@@ -225,9 +291,9 @@ public class HttpServerTests
             var address = server.address();
 
             Assert.NotNull(address);
-            Assert.True(address.port > 0);
-            Assert.Equal("127.0.0.1", address.address);
-            Assert.Equal("IPv4", address.family);
+            Assert.True(address.address!.port > 0);
+            Assert.Equal("127.0.0.1", address.address.address);
+            Assert.Equal("IPv4", address.address.family);
         }
         finally
         {
@@ -238,7 +304,7 @@ public class HttpServerTests
     [Fact]
     public async Task Server_Listen_Callback_SeesBoundAddress()
     {
-        Tsonic.CSharp.Node.Http.AddressInfo? callbackAddress = null;
+        Tsonic.CSharp.Node.Http.ServerAddress? callbackAddress = null;
         var callback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var server = http.createServer((req, res) => res.end("OK"));
 
@@ -253,8 +319,8 @@ public class HttpServerTests
         {
             await callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.NotNull(callbackAddress);
-            Assert.True(callbackAddress.port > 0);
-            Assert.Equal("127.0.0.1", callbackAddress.address);
+            Assert.True(callbackAddress.address!.port > 0);
+            Assert.Equal("127.0.0.1", callbackAddress.address.address);
         }
         finally
         {
@@ -369,7 +435,7 @@ public class HttpServerTests
             var address = server.address();
             Assert.NotNull(address);
             using var client = new HttpClient();
-            var responseTask = client.GetAsync($"http://127.0.0.1:{address.port}/");
+            var responseTask = client.GetAsync($"http://127.0.0.1:{address.address!.port}/");
 
             await timeout.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var response = await responseTask;
@@ -400,7 +466,7 @@ public class HttpServerTests
             var address = server.address();
             Assert.NotNull(address);
             using var client = new HttpClient();
-            var responseTask = client.GetAsync($"http://127.0.0.1:{address.port}/");
+            var responseTask = client.GetAsync($"http://127.0.0.1:{address.address!.port}/");
 
             await timeout.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var response = await responseTask;

@@ -173,10 +173,10 @@ public sealed class Http2ServerResponse : Writable
         _trailers.Add(trailers);
     }
 
-    public new bool write(object? chunk, string? encoding = null, Action? callback = null)
+    public bool write(object? chunk, string? encoding = null, Action? callback = null)
     {
         _body.Add(chunk);
-        return base.write(chunk, encoding, callback);
+        return WriteChunk(chunk, encoding, callback);
     }
 
     public Http2ServerResponse setTimeout(int milliseconds, Action? callback = null)

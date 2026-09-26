@@ -137,7 +137,7 @@ public partial class Writable
 
         var writable = new Writable();
         foreach (var chunk in stream.chunks)
-            writable.write(chunk);
+            writable.WriteChunk(chunk);
         return writable;
     }
 }

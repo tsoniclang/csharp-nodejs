@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Tsonic.CSharp.Node;
@@ -27,7 +28,7 @@ public class ServerResponseBufferEndTests
 
         try
         {
-            var port = server.address()!.port;
+            var port = server.address()!.address!.port;
             using var client = new HttpClient();
             var response = await client.GetAsync($"http://127.0.0.1:{port}/binary");
             var body = await response.Content.ReadAsByteArrayAsync();
@@ -57,12 +58,54 @@ public class ServerResponseBufferEndTests
 
         try
         {
-            var port = server.address()!.port;
+            var port = server.address()!.address!.port;
             using var client = new HttpClient();
             var response = await client.GetAsync($"http://127.0.0.1:{port}/");
             var body = await response.Content.ReadAsByteArrayAsync();
 
             Assert.Equal(new byte[] { 1, 2, 3, 250, 251, 252 }, body);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
+    public async Task Write_TracksNativePressureAndEmitsOneDrainBeforeFinish()
+    {
+        var payload = new byte[70_000];
+        Array.Fill(payload, (byte)'x');
+        var pressured = new TaskCompletionSource<(bool Accepted, bool NeedDrain)>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var drained = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var drainCount = 0;
+        var server = http.createServer((req, res) =>
+        {
+            res.once("drain", () =>
+            {
+                Interlocked.Increment(ref drainCount);
+                drained.TrySetResult();
+            });
+            res.setHeader("content-length", payload.Length.ToString());
+            var accepted = res.write(Buffer.from(payload));
+            pressured.TrySetResult((accepted, res.writableNeedDrain));
+            res.end();
+        });
+
+        server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
+        try
+        {
+            var port = server.address()!.address!.port;
+            using var client = new HttpClient();
+            var body = await client.GetByteArrayAsync($"http://127.0.0.1:{port}/pressure");
+            var observed = await pressured.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(observed.Accepted);
+            Assert.True(observed.NeedDrain);
+            Assert.Equal(payload, body);
+            await drained.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(1, Volatile.Read(ref drainCount));
         }
         finally
         {

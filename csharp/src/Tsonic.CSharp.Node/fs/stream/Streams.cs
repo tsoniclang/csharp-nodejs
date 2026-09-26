@@ -7,6 +7,7 @@ namespace Tsonic.CSharp.Node;
 public sealed class ReadStream : Readable
 {
     private readonly FileStream _stream;
+    private readonly CancellationTokenSource _cancellation = new();
     private readonly int _highWaterMark;
     private long? _remaining;
 
@@ -50,40 +51,54 @@ public sealed class ReadStream : Readable
 
     protected override void _read(int size)
     {
+        _ = ReadNextAsync(size);
+    }
+
+    private async Task ReadNextAsync(int size)
+    {
         if (_remaining == 0)
         {
-            _stream.Dispose();
-            push(null);
+            await _stream.DisposeAsync().ConfigureAwait(false);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(null));
             return;
         }
         var requested = System.Math.Max(1, System.Math.Min(size, _highWaterMark));
         if (_remaining is long remaining)
             requested = checked((int)System.Math.Min(requested, remaining));
         var bytes = new byte[requested];
-        var count = _stream.Read(bytes, 0, bytes.Length);
-        if (count == 0)
+        try
         {
-            _stream.Dispose();
-            push(null);
-            return;
+            var count = await _stream.ReadAsync(bytes.AsMemory(), _cancellation.Token).ConfigureAwait(false);
+            if (count == 0)
+            {
+                await _stream.DisposeAsync().ConfigureAwait(false);
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(null));
+                return;
+            }
+            bytesRead += count;
+            if (_remaining is not null)
+                _remaining -= count;
+            var chunk = Buffer.TakeOwnership(bytes.AsMemory(0, count));
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(chunk));
         }
-        if (count != bytes.Length)
-            System.Array.Resize(ref bytes, count);
-        bytesRead += count;
-        if (_remaining is not null)
-            _remaining -= count;
-        push(Buffer.from(bytes));
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(error));
+        }
     }
 
-    public WriteStream pipeTo(WriteStream destination)
-    {
-        _ = pipe(destination);
-        return destination;
-    }
+    public void close() => destroy();
 
     public override void destroy(Exception? error = null)
     {
+        if (destroyed)
+            return;
+        _cancellation.Cancel();
         _stream.Dispose();
+        _cancellation.Dispose();
         base.destroy(error);
     }
 }
@@ -91,6 +106,7 @@ public sealed class ReadStream : Readable
 public sealed class WriteStream : Writable
 {
     private readonly FileStream _stream;
+    private readonly CancellationTokenSource _cancellation = new();
     private readonly string _defaultEncoding;
     private readonly bool _flushToDisk;
 
@@ -103,13 +119,20 @@ public sealed class WriteStream : Writable
         _ = Encoding.GetEncoding(_defaultEncoding);
         _flushToDisk = options?.flush == true;
         var open = FsStreamOpenOptions.ForWrite(options?.flags ?? "w");
-        _stream = new FileStream(
-            path,
-            open.Mode,
-            open.Access,
-            FileShare.ReadWrite | FileShare.Delete,
-            options?.highWaterMark ?? 64 * 1024,
-            open.Options);
+        var mode = options?.mode;
+        if (mode is < 0 or > 0xFFF)
+            throw new ArgumentOutOfRangeException(nameof(options), "WriteStream mode must be a valid Unix permission mask.");
+        var fileOptions = new FileStreamOptions
+        {
+            Mode = open.Mode,
+            Access = open.Access,
+            Share = FileShare.ReadWrite | FileShare.Delete,
+            BufferSize = options?.highWaterMark ?? 64 * 1024,
+            Options = open.Options,
+        };
+        if (mode.HasValue && !OperatingSystem.IsWindows())
+            fileOptions.UnixCreateMode = (UnixFileMode)mode.Value;
+        _stream = new FileStream(path, fileOptions);
         if (open.Append)
             _stream.Seek(0, SeekOrigin.End);
         else if (options?.start is long start)
@@ -127,6 +150,12 @@ public sealed class WriteStream : Writable
     public bool pending { get; private set; }
     public long bytesWritten { get; private set; }
 
+    public void close()
+    {
+        if (writable)
+            end();
+    }
+
     protected override void _write(object? chunk, string? encoding, Action callback)
     {
         ReadOnlyMemory<byte> bytes = chunk switch
@@ -136,21 +165,69 @@ public sealed class WriteStream : Writable
             string value => Encoding.GetEncoding(encoding ?? _defaultEncoding).GetBytes(value),
             _ => throw new ArgumentException("WriteStream accepts Buffer, byte[], or string chunks.", nameof(chunk))
         };
-        _stream.Write(bytes.Span);
-        bytesWritten += bytes.Length;
-        callback();
+        _ = WriteChunkAsync(bytes, callback);
     }
 
     protected override void _final(Action callback)
     {
-        _stream.Flush(_flushToDisk);
-        _stream.Dispose();
-        callback();
+        _ = FinalizeAsync(callback);
     }
 
     public override void destroy(Exception? error = null)
     {
+        if (destroyed)
+            return;
+        _cancellation.Cancel();
         _stream.Dispose();
+        _cancellation.Dispose();
         base.destroy(error);
+    }
+
+    private async Task WriteChunkAsync(ReadOnlyMemory<byte> bytes, Action callback)
+    {
+        try
+        {
+            await _stream.WriteAsync(bytes, _cancellation.Token).ConfigureAwait(false);
+            bytesWritten += bytes.Length;
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+        }
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                destroy(error);
+                callback();
+            });
+        }
+    }
+
+    private async Task FinalizeAsync(Action callback)
+    {
+        try
+        {
+            await _stream.FlushAsync(_cancellation.Token).ConfigureAwait(false);
+            if (_flushToDisk)
+                _stream.Flush(true);
+            await _stream.DisposeAsync().ConfigureAwait(false);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                callback();
+                emit("close");
+            });
+        }
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            {
+                destroy(error);
+                callback();
+            });
+        }
     }
 }

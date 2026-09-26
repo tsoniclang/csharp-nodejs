@@ -3,6 +3,7 @@ import type {
 } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
+  csharpJsTypedArrayTargetType,
 } from "@tsonic/target-csharp/provider";
 import {
   nodeBufferAllocExportName,
@@ -23,6 +24,7 @@ import {
   nodeBufferConcatTargetMemberId,
   nodeBufferFromExportName,
   nodeBufferFromBufferTargetMemberId,
+  nodeBufferFromUint8ArrayTargetMemberId,
   nodeBufferFromNumberArrayTargetMemberId,
   nodeBufferFromStringTargetMemberId,
   nodeBufferIsAsciiExportName,
@@ -86,6 +88,19 @@ export function getNodeBufferFromBufferTargetMember(): CsharpTargetMember {
     targetName: "from",
     kind: "method",
     parameters: [targetParameter("buffer", nodeBufferTargetType)],
+    returnType: nodeBufferTargetType,
+    declaringType: nodeBufferTargetType,
+    static: true,
+  };
+}
+
+export function getNodeBufferFromUint8ArrayTargetMember(): CsharpTargetMember {
+  return {
+    id: nodeBufferFromUint8ArrayTargetMemberId,
+    sourceName: nodeBufferFromExportName,
+    targetName: "from",
+    kind: "method",
+    parameters: [targetParameter("array", csharpJsTypedArrayTargetType("Uint8Array"))],
     returnType: nodeBufferTargetType,
     declaringType: nodeBufferTargetType,
     static: true,

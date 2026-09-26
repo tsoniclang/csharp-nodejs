@@ -51,6 +51,46 @@ test("native V8 flags retain one exact string-to-void runtime boundary", () => {
   }
 });
 
+test("distinct incoming headers retain the indexer and its native carrier", () => {
+  const declarations = nodejsCanonicalProviderExports("node:http");
+  const values = declarations.find((entry) =>
+    entry.name === "IncomingHttpHeaderValues" && entry.exportKind !== "default"
+  );
+  assert.deepEqual(values?.members, [{
+    id: "node:http.IncomingHttpHeaderValues.Item",
+    name: "Item",
+    kind: "indexer",
+    signatures: [{
+      id: "node:http.IncomingHttpHeaderValues.Item(System.String)",
+      parameters: [{ name: "name", type: { kind: "string" } }],
+      returnType: {
+        kind: "union",
+        types: [
+          { kind: "array", elementType: { kind: "string" } },
+          { kind: "undefined" },
+        ],
+      },
+    }],
+  }]);
+  const incoming = declarations.find((entry) =>
+    entry.name === "IncomingMessage" && entry.exportKind !== "default"
+  );
+  assert.deepEqual(incoming?.members.find((member) => member.name === "headersDistinct")?.type, {
+    kind: "provider-ref",
+    moduleSpecifier: "node:http",
+    exportName: "IncomingHttpHeaderValues",
+  });
+  const relations = nodejsProviderTargetRelations().filter((relation) =>
+    relation.kind === "signature" &&
+    relation.source.signatureId === "node:http.IncomingHttpHeaderValues.Item(System.String)"
+  );
+  assert.deepEqual(relations.map((relation) => relation.source.moduleSpecifier).sort(), ["http", "node:http"]);
+  for (const relation of relations) {
+    assert.equal(relation.targetMember.id, "Tsonic.CSharp.Node.Http.IncomingHttpHeaders.Item(System.String)");
+    assert.equal(relation.targetMember.kind, "indexer");
+  }
+});
+
 test("every Node provider signature has legal parameter omission order", () => {
   const violations = [];
 

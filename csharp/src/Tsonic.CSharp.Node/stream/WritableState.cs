@@ -48,9 +48,11 @@ internal sealed class WritableState
 
     public bool Writable { get { lock (_sync) return !_ended && !_destroyed; } }
     public bool Ended { get { lock (_sync) return _ended; } }
+    public bool Finished { get { lock (_sync) return _finalCompleted; } }
     public bool Destroyed { get { lock (_sync) return _destroyed; } }
     public long BufferedSize { get { lock (_sync) return _bufferedSize; } }
     public bool Corked { get { lock (_sync) return _corked; } }
+    public bool NeedDrain { get { lock (_sync) return _needsDrain; } }
 
     public bool Write(object? chunk, string? encoding, Action? callback)
     {

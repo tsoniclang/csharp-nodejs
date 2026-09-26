@@ -207,7 +207,7 @@ public static class readline
         if (stream == null)
             throw new ArgumentNullException(nameof(stream));
 
-        stream.on("data", (Action<object?>)(chunk =>
+        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
         {
             if (rl == null) return;
             var key = chunk?.ToString() ?? string.Empty;

@@ -149,7 +149,7 @@ public class StreamTests
         var stream = new Readable();
         var received = new List<string>();
 
-        stream.on("data", (Action<object?>)(chunk =>
+        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
         {
             if (chunk != null)
                 received.Add(chunk.ToString()!);
@@ -321,7 +321,7 @@ public class StreamTests
         var stream = new Transform();
         var received = new List<string>();
 
-        stream.on("data", (Action<object?>)(chunk =>
+        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
         {
             if (chunk != null)
                 received.Add(chunk.ToString()!);
@@ -351,7 +351,7 @@ public class StreamTests
         var stream = new PassThrough();
         var received = new List<string>();
 
-        stream.on("data", (Action<object?>)(chunk =>
+        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
         {
             if (chunk != null)
                 received.Add(chunk.ToString()!);

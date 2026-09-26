@@ -147,6 +147,9 @@ export function nodeFsPromisesCallTargetMembers(): readonly NodeFsCallTargetMemb
     fsPromiseCall({ exportName: "stat", signatureId: "node:fs/promises.stat(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.stat(System.String)", sourceName: "stat", targetName: "stat", providerParameters: [stringParameter("path")], providerReturnType: promiseProviderType(statsProviderType), targetParameters: [
       targetParameter("path", stringTargetType),
     ], targetReturnType: taskTargetType(statsTargetType) }),
+    fsPromiseCall({ exportName: "lstat", signatureId: "node:fs/promises.lstat(System.String)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.lstat(System.String)", sourceName: "lstat", targetName: "lstat", providerParameters: [stringParameter("path")], providerReturnType: promiseProviderType(statsProviderType), targetParameters: [
+      targetParameter("path", stringTargetType),
+    ], targetReturnType: taskTargetType(statsTargetType) }),
     fsPromiseCall({ exportName: "symlink", signatureId: "node:fs/promises.symlink(System.String,System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.symlink(System.String,System.String,System.String)", sourceName: "symlink", targetName: "symlink", providerParameters: [stringParameter("target"), stringParameter("path"), optionalStringParameter("type")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
       targetParameter("target", stringTargetType),
       targetParameter("path", stringTargetType),

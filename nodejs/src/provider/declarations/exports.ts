@@ -128,6 +128,7 @@ function providerModuleFunctions(
         member.signatureId,
         member.providerParameters,
         member.providerReturnType,
+        member.providerTypeParameters,
       )),
     }),
   );
@@ -142,10 +143,12 @@ function providerClassCallMembers(
       id: first.memberId,
       name: first.memberName,
       kind: first.memberKind,
+      ...(first.static === true ? { static: true } : {}),
       signatures: overloads.map((member) => nodejsProviderSignature(
         member.signatureId,
         member.providerParameters,
         member.providerReturnType,
+        member.providerTypeParameters,
       )),
     };
   });
@@ -155,6 +158,7 @@ export function nodejsProviderSignature(
   signatureId: string,
   parameters: readonly ProviderParameterDeclaration[],
   returnType: ProviderTypeExpression | undefined,
+  typeParameters?: readonly import("@tsonic/tsts").ProviderTypeParameterDeclaration[],
 ): ProviderSignatureDeclaration {
   return {
     id: signatureId,
@@ -181,6 +185,7 @@ export function nodejsProviderSignature(
             `${signatureId}.return`,
           ),
         }),
+    ...(typeParameters === undefined ? {} : { typeParameters }),
   };
 }
 

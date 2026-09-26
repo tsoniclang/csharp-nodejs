@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -12,137 +11,124 @@ using Tsonic.CSharp.Node;
 
 namespace Tsonic.CSharp.Node.Http;
 
-/// <summary>
-/// Implements Node.js http.IncomingMessage.
-/// Represents an incoming HTTP request (server-side) or response (client-side).
-/// Extends EventEmitter and implements readable stream interface.
-/// </summary>
-public partial class IncomingMessage : EventEmitter
+/// <summary>A single-consumer streaming HTTP request or client response.</summary>
+public partial class IncomingMessage : Readable
 {
     private readonly HttpRequest? _serverRequest;
     private readonly HttpResponseMessage? _clientResponse;
-    private bool _isServerSide;
-    private readonly CancellationToken _cancellation;
+    private readonly bool _isServerSide;
+    private readonly CancellationTokenSource _bodyCancellation;
     private readonly Action? _releaseRequest;
-    private int _bodyClaimed;
+    private readonly Socket _socket;
+    private int _bodyStarted;
+    private int _materializerClaimed;
     private int _released;
+    private int _terminal;
     private Timer? _timeoutTimer;
 
-    // Server-side constructor
     internal IncomingMessage(HttpRequest request)
     {
         _serverRequest = request;
         _isServerSide = true;
-
-        // Read headers
-        headers = new Dictionary<string, string>();
-        foreach (var header in request.Headers)
-        {
-            headers[header.Key.ToLowerInvariant()] = header.Value.ToString();
-        }
+        _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(request.HttpContext.RequestAborted);
+        headers = new IncomingHttpHeaders(request.Headers);
+        _socket = Socket.FromHttpConnection(
+            request.HttpContext.Connection,
+            request.HttpContext.Abort,
+            request.HttpContext.RequestAborted);
     }
 
-    // Client-side constructor
-    internal IncomingMessage(HttpResponseMessage response, CancellationToken cancellation, Action releaseRequest)
+    internal IncomingMessage(
+        HttpResponseMessage response,
+        CancellationToken cancellation,
+        Action releaseRequest)
     {
         _clientResponse = response;
-        _cancellation = cancellation;
         _releaseRequest = releaseRequest;
+        _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         ProcessKeepAlive.Acquire();
         _isServerSide = false;
-
-        // Read headers
-        headers = new Dictionary<string, string>();
-        foreach (var header in response.Headers)
-        {
-            headers[header.Key.ToLowerInvariant()] = string.Join(", ", header.Value);
-        }
-        foreach (var header in response.Content.Headers)
-        {
-            headers[header.Key.ToLowerInvariant()] = string.Join(", ", header.Value);
-        }
+        headers = new IncomingHttpHeaders(
+            response.Headers.Select(header =>
+                new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value))
+            .Concat(response.Content.Headers.Select(header =>
+                new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value))));
+        _socket = Socket.FromHttpResponse(response);
     }
 
-    /// <summary>
-    /// Request method (server-side) or null (client-side).
-    /// </summary>
+    /// <summary>Request method, or native absence for a client response.</summary>
     public string? method => _isServerSide ? _serverRequest?.Method : null;
 
-    /// <summary>
-    /// Request URL (server-side) or null (client-side).
-    /// </summary>
-    public string? url => _isServerSide ? _serverRequest?.Path + _serverRequest?.QueryString : null;
+    /// <summary>Request URL, or native absence for a client response.</summary>
+    public string? url => _isServerSide
+        ? _serverRequest?.Path + _serverRequest?.QueryString
+        : null;
 
-    /// <summary>
-    /// HTTP version sent by the client.
-    /// </summary>
-    public string httpVersion
-    {
-        get
-        {
-            if (_isServerSide)
-            {
-                return _serverRequest?.Protocol.Replace("HTTP/", "") ?? "1.1";
-            }
-            else
-            {
-                return _clientResponse?.Version.ToString() ?? "1.1";
-            }
-        }
-    }
+    /// <summary>HTTP protocol version.</summary>
+    public string httpVersion => _isServerSide
+        ? _serverRequest?.Protocol.Replace("HTTP/", "", StringComparison.Ordinal) ?? "1.1"
+        : _clientResponse?.Version.ToString() ?? "1.1";
 
-    /// <summary>
-    /// Response status code (client-side) or null (server-side).
-    /// </summary>
+    /// <summary>Response status code, or native absence for a server request.</summary>
     public int? statusCode => _isServerSide ? null : (int?)_clientResponse?.StatusCode;
 
-    /// <summary>
-    /// Response status message (client-side) or null (server-side).
-    /// </summary>
+    /// <summary>Response reason phrase, or native absence for a server request.</summary>
     public string? statusMessage => _isServerSide ? null : _clientResponse?.ReasonPhrase;
 
-    /// <summary>
-    /// Request/response headers object.
-    /// </summary>
-    public Dictionary<string, string> headers { get; }
+    /// <summary>Case-insensitive live/snapshotted header access.</summary>
+    public IncomingHttpHeaders headers { get; }
 
-    /// <summary>
-    /// Indicates that the underlying connection was closed.
-    /// </summary>
-    public bool complete { get; private set; } = false;
+    /// <summary>Exact repeated header values through the canonical header carrier.</summary>
+    public IncomingHttpHeaders headersDistinct => headers;
 
-    /// <summary>
-    /// Calls destroy() on the socket that received the IncomingMessage.
-    /// </summary>
-    public void destroy()
+    /// <summary>True only after the complete framed body has been received.</summary>
+    public bool complete { get; private set; }
+
+    /// <summary>True when local destruction or transport cancellation interrupts the body.</summary>
+    public bool aborted { get; private set; }
+
+    /// <summary>The request's transport endpoint metadata.</summary>
+    public Socket socket => _socket;
+
+    /// <summary>Destroys the request body and aborts its native transport.</summary>
+    public override void destroy(Exception? error = null)
     {
-        Finish(false);
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+
+        aborted = !complete;
+        _bodyCancellation.Cancel();
+        if (_serverRequest is not null)
+            _serverRequest.HttpContext.Abort();
+        ReleaseNative();
+        if (aborted)
+            emit("aborted");
+        base.destroy(error);
     }
 
-    /// <summary>
-    /// Sets the timeout value in milliseconds for the incoming message.
-    /// </summary>
-    /// <param name="msecs">Timeout in milliseconds.</param>
-    /// <param name="callback">Optional callback for timeout event.</param>
-    /// <returns>The IncomingMessage instance.</returns>
+    /// <summary>Destroys the request and returns it for fluent source code.</summary>
+    public new IncomingMessage destroyChain(Exception? error = null)
+    {
+        destroy(error);
+        return this;
+    }
+
+    /// <summary>Sets a request timeout.</summary>
     public IncomingMessage setTimeout(int msecs, Action? callback = null)
     {
         JsNumeric.RequireNonNegativeInt(msecs, nameof(msecs));
-
-        if (callback != null)
-        {
+        if (callback is not null)
             once("timeout", callback);
-        }
 
         _timeoutTimer?.Dispose();
         if (msecs > 0)
         {
             _timeoutTimer = new Timer(_ =>
             {
-                if (!complete)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                if (Volatile.Read(ref _terminal) == 0)
+                    JsEventLoop.EnqueueReferenced(() =>
                     {
-                        if (!complete)
+                        if (Volatile.Read(ref _terminal) == 0)
                             emit("timeout");
                     });
             }, null, msecs, System.Threading.Timeout.Infinite);
@@ -150,130 +136,219 @@ public partial class IncomingMessage : EventEmitter
         return this;
     }
 
-    // Stream-like interface for reading body
-
-    /// <summary>
-    /// Reads the entire body as a string (simplified implementation).
-    /// In a full implementation, this would be a streaming interface.
-    /// </summary>
-    /// <returns>The body content as a string.</returns>
+    /// <summary>Materializes the body as UTF-8 text through the canonical readable stream.</summary>
     public async Task<string> readAll()
     {
-        ClaimBody();
-        try
+        var buffer = await readAllBuffer().ConfigureAwait(false);
+        return buffer.toString("utf8");
+    }
+
+    /// <summary>Materializes the body through the canonical readable stream.</summary>
+    public Task<Buffer> readAllBuffer()
+    {
+        if (Interlocked.CompareExchange(ref _materializerClaimed, 1, 0) != 0)
+            throw new InvalidOperationException("The message body already has a materializing consumer");
+
+        var completion = new TaskCompletionSource<Buffer>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var chunks = new List<Buffer>();
+        Action<Buffer>? onData = null;
+        Action? onEnd = null;
+        Action<Exception>? onError = null;
+        Action? onAborted = null;
+
+        void Detach()
         {
-            var stream = await BodyStream();
-            using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
-            var body = await reader.ReadToEndAsync(_cancellation);
-            Finish(true);
-            return body;
+            if (onData is not null)
+                off("data", onData);
+            if (onEnd is not null)
+                off("end", onEnd);
+            if (onError is not null)
+                off("error", onError);
+            if (onAborted is not null)
+                off("aborted", onAborted);
         }
-        catch { Finish(false); throw; }
-    }
 
-    /// <summary>
-    /// Event handler for 'data' event.
-    /// Note: In Node.js, this is an event. Here we provide a helper to read chunks.
-    /// </summary>
-    public void onData(Action<Buffer> callback)
-    {
-        on("data", callback);
-    }
-
-    /// <summary>Reads the complete message body into a binary buffer.</summary>
-    public async Task<Buffer> readAllBuffer()
-    {
-        ClaimBody();
-        try
+        onData = chunk => chunks.Add(chunk);
+        onEnd = () =>
         {
-            using var output = new MemoryStream();
-            var stream = await BodyStream();
-            await stream.CopyToAsync(output, _cancellation);
-            if (!output.TryGetBuffer(out var bytes)) throw new InvalidOperationException("Owned body storage is not accessible");
-            var result = Buffer.TakeOwnership(bytes.AsMemory());
-            Finish(true);
-            return result;
-        }
-        catch { Finish(false); throw; }
+            Detach();
+            completion.TrySetResult(Buffer.concat(chunks.ToArray()));
+        };
+        onError = error =>
+        {
+            Detach();
+            completion.TrySetException(error);
+        };
+        onAborted = () =>
+        {
+            Detach();
+            completion.TrySetException(new IOException("The HTTP message was aborted"));
+        };
+        once("end", onEnd);
+        once("error", onError);
+        once("aborted", onAborted);
+        on("data", onData);
+        return completion.Task;
     }
 
-    /// <summary>
-    /// Event handler for 'end' event.
-    /// </summary>
-    public void onEnd(Action callback)
+    /// <summary>Registers a typed body-data listener.</summary>
+    public void onData(Action<Buffer> callback) => on("data", callback);
+
+    /// <summary>Registers a typed body-end listener.</summary>
+    public void onEnd(Action callback) => on("end", callback);
+
+    /// <summary>Registers a typed close listener.</summary>
+    public void onClose(Action callback) => on("close", callback);
+
+    internal void StartClientBody() => StartBodyPump();
+
+    /// <inheritdoc />
+    protected override void _read(int size)
     {
-        on("end", callback);
+        _ = size;
+        StartBodyPump();
     }
 
-    /// <summary>
-    /// Event handler for 'close' event.
-    /// </summary>
-    public void onClose(Action callback)
+    private void StartBodyPump()
     {
-        on("close", callback);
+        if (Volatile.Read(ref _terminal) != 0 ||
+            Interlocked.CompareExchange(ref _bodyStarted, 1, 0) != 0)
+            return;
+        _ = PumpBodyAsync();
     }
 
-    private void ClaimBody()
-    {
-        if (Interlocked.CompareExchange(ref _bodyClaimed, 1, 0) != 0 || Volatile.Read(ref _released) != 0)
-            throw new InvalidOperationException("The message body already has a consumer");
-    }
-
-    private Task<System.IO.Stream> BodyStream() => _serverRequest is not null
-        ? Task.FromResult(_serverRequest.Body)
-        : _clientResponse!.Content.ReadAsStreamAsync(_cancellation);
-
-    internal void StartClientBody()
-    {
-        if (_isServerSide || Volatile.Read(ref _released) != 0 ||
-            Interlocked.CompareExchange(ref _bodyClaimed, 1, 0) != 0) return;
-        _ = StreamClientBody();
-    }
-
-    private async Task StreamClientBody()
+    private async Task PumpBodyAsync()
     {
         try
         {
-            var stream = await BodyStream();
-            while (Volatile.Read(ref _released) == 0)
+            var stream = await BodyStreamAsync().ConfigureAwait(false);
+            while (true)
             {
                 var bytes = new byte[16 * 1024];
-                var count = await stream.ReadAsync(bytes.AsMemory(), _cancellation);
-                if (count == 0) break;
+                var count = await stream.ReadAsync(
+                    bytes.AsMemory(),
+                    _bodyCancellation.Token).ConfigureAwait(false);
+                if (count == 0)
+                    break;
+
                 var chunk = Buffer.TakeOwnership(bytes.AsMemory(0, count));
-                var delivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
-                {
-                    try { if (Volatile.Read(ref _released) == 0) emit("data", chunk); delivered.SetResult(); }
-                    catch (Exception error) { delivered.SetException(error); }
-                });
-                await delivered.Task;
+                var accepted = await PublishChunkAsync(chunk).ConfigureAwait(false);
+                if (!accepted)
+                    await WaitForReadCapacityAsync(_bodyCancellation.Token).ConfigureAwait(false);
             }
-            Finish(true);
+
+            complete = true;
+            await PublishEndAsync().ConfigureAwait(false);
+            FinishNormally();
+        }
+        catch (OperationCanceledException) when (_bodyCancellation.IsCancellationRequested)
+        {
+            AbortFromTransport();
         }
         catch (Exception error)
         {
-            if (Volatile.Read(ref _released) == 0)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", error));
-            Finish(false);
+            FailFromTransport(error);
         }
     }
 
-    private void Finish(bool ended)
+    private Task<System.IO.Stream> BodyStreamAsync() => _serverRequest is not null
+        ? Task.FromResult(_serverRequest.Body)
+        : _clientResponse!.Content.ReadAsStreamAsync(_bodyCancellation.Token);
+
+    private Task<bool> PublishChunkAsync(Buffer chunk)
     {
-        if (Interlocked.Exchange(ref _released, 1) != 0) return;
-        complete = ended;
-        _timeoutTimer?.Dispose();
-        try
+        var published = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        JsEventLoop.EnqueueReferenced(() =>
         {
-            _clientResponse?.Dispose();
-            _releaseRequest?.Invoke();
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            try
             {
-                if (ended) emit("end");
-                emit("close");
-            });
-        }
-        finally { if (!_isServerSide) ProcessKeepAlive.Release(); }
+                published.TrySetResult(Volatile.Read(ref _terminal) == 0 && push(chunk));
+            }
+            catch (Exception error)
+            {
+                published.TrySetException(error);
+            }
+        });
+        return published.Task;
+    }
+
+    private Task PublishEndAsync()
+    {
+        var published = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            try
+            {
+                if (Volatile.Read(ref _terminal) == 0)
+                    push(null);
+                published.TrySetResult();
+            }
+            catch (Exception error)
+            {
+                published.TrySetException(error);
+            }
+        });
+        return published.Task;
+    }
+
+    private void FinishNormally()
+    {
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+        ReleaseNative();
+        JsEventLoop.EnqueueReferenced(() => emit("close"));
+    }
+
+    internal void CloseAfterResponse()
+    {
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+        _bodyCancellation.Cancel();
+        ReleaseNative();
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (!destroyed)
+                base.destroy();
+        });
+    }
+
+    private void AbortFromTransport()
+    {
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+        aborted = !complete;
+        ReleaseNative();
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (aborted)
+                emit("aborted");
+            base.destroy();
+        });
+    }
+
+    private void FailFromTransport(Exception error)
+    {
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+        aborted = !complete;
+        ReleaseNative();
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (aborted)
+                emit("aborted");
+            base.destroy(error);
+        });
+    }
+
+    private void ReleaseNative()
+    {
+        if (Interlocked.Exchange(ref _released, 1) != 0)
+            return;
+        _timeoutTimer?.Dispose();
+        _bodyCancellation.Dispose();
+        _clientResponse?.Dispose();
+        _releaseRequest?.Invoke();
+        if (!_isServerSide)
+            ProcessKeepAlive.Release();
     }
 }

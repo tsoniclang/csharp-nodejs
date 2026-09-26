@@ -9,14 +9,14 @@ import {
   csharpNullableValueTargetType,
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
-  csharpTsValueTargetType,
   csharpVoidTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, undefinedProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, numberProviderType, stringProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../declarations/target-members.js";
 import { nodeBufferProviderType } from "./buffer/provider-types.js";
+import { nodeBufferTargetType } from "./buffer/identities.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../model/target-members.js";
 import type {
   TargetTypeRef,
@@ -30,18 +30,29 @@ const targetTypes = Object.fromEntries(classNames.map((name) => [
   nodejsTargetNamedType("Tsonic.CSharp.Node", name),
 ])) as Record<(typeof classNames)[number], ReturnType<typeof nodejsTargetNamedType>>;
 const stringTargetType = csharpStringTargetType();
-const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
-const tsValueTargetType = csharpTsValueTargetType();
 const actionTargetType = csharpDelegateTargetType("System.Action", []);
-const callbackType = callbackProviderType("node:stream.callback", []);
-const streamChunkProviderType = unionProviderType(
-  stringProviderType,
-  nodeBufferProviderType,
-);
+const errorProviderType = { kind: "source-global", name: "Error" } satisfies ProviderTypeExpression;
+const exceptionTargetType = nodejsTargetNamedType("System", "Exception");
+const bufferArrayProviderType = {
+  kind: "array",
+  elementType: nodeBufferProviderType,
+} satisfies ProviderTypeExpression;
+const bufferArrayTargetType = {
+  kind: "array",
+  element: nodeBufferTargetType,
+} satisfies TargetTypeRef;
+const destinationType = {
+  kind: "type-parameter",
+  name: "TDestination",
+} satisfies ProviderTypeExpression;
+const destinationTargetType = {
+  kind: "type-parameter",
+  name: "TDestination",
+} satisfies TargetTypeRef;
 
 export function nodeStreamExports(): readonly ProviderExportDeclaration[] {
   return nodejsCapabilityModuleExports({
@@ -50,7 +61,6 @@ export function nodeStreamExports(): readonly ProviderExportDeclaration[] {
     classProperties: nodeStreamClassPropertyTargetMembers(),
     classes: classNames,
     classHeritage: {
-      Stream: [providerRef("node:events", "EventEmitter")],
       Readable: [providerRef(nodeStreamModuleSpecifier, "Stream")],
       Writable: [providerRef(nodeStreamModuleSpecifier, "Stream")],
       Duplex: [providerRef(nodeStreamModuleSpecifier, "Readable")],
@@ -63,48 +73,95 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
   const calls: NodejsClassCallTargetMetadata[] = [];
 
   calls.push(
-    classCall("Readable", "read", "read", [optionalNumber("size")], unknownOrUndefined(), [
+    classCall("Readable", "from", "from", [{ name: "chunks", type: bufferArrayProviderType }], providerClass("Readable"), [
+      targetParameter("chunks", bufferArrayTargetType),
+    ], targetTypes.Readable, { targetName: "from", static: true }),
+    classCall("Readable", "read", "read", [optionalNumber("size")], unionProviderType(nodeBufferProviderType, undefinedProviderType), [
       targetParameter("size", nullableIntTargetType, { optional: true }),
-    ], tsValueTargetType, { targetName: "readValue" }),
+    ], csharpNullableTargetType(nodeBufferTargetType), { targetName: "readBuffer" }),
     classCall("Readable", "pause", "pause", [], providerClass("Readable"), [], targetTypes.Readable),
     classCall("Readable", "resume", "resume", [], providerClass("Readable"), [], targetTypes.Readable),
-    classCall("Readable", "setEncoding", "setEncoding", [requiredString("encoding")], providerClass("Readable"), [
-      targetParameter("encoding", stringTargetType),
-    ], targetTypes.Readable),
     classCall("Readable", "pipe", "pipe", [
-      { name: "destination", type: providerClass("Writable") },
-    ], providerClass("Writable"), [
-      targetParameter("destination", targetTypes.Writable),
-    ], targetTypes.Writable, { targetName: "pipeTo" }),
+      { name: "destination", type: destinationType },
+    ], destinationType, [
+      targetParameter("destination", destinationTargetType),
+    ], destinationTargetType, {
+      targetName: "pipeTo",
+      providerTypeParameters: [{
+        name: "TDestination",
+        constraints: [providerClass("Writable")],
+      }],
+      targetTypeParameters: [{
+        name: "TDestination",
+        constraints: [{ kind: "implements", contract: "Tsonic.CSharp.Node.Writable" }],
+      }],
+    }),
+    classCall("Readable", "isPaused", "isPaused", [], booleanProviderType, [], boolTargetType),
   );
+
+  for (const exportName of ["Readable", "Writable", "Duplex"] as const) {
+    calls.push(classCall(exportName, "destroy", "destroy", [{
+      name: "error",
+      type: errorProviderType,
+      optional: true,
+    }], providerClass(exportName), [
+      targetParameter("error", csharpNullableTargetType(exceptionTargetType), { optional: true }),
+    ], targetTypes[exportName], { targetName: "destroyChain" }));
+  }
 
   for (const exportName of ["Writable", "Duplex"] as const) {
     calls.push(
       classCall(exportName, "write", "write", [
-        { name: "chunk", type: streamChunkProviderType },
-        optionalString("encoding"),
-        optionalCallback("callback"),
+        { name: "chunk", type: stringProviderType },
       ], booleanProviderType, [
-        targetParameter("chunk", tsValueTargetType),
-        targetParameter("encoding", nullableStringTargetType, { optional: true }),
-        targetParameter("callback", actionTargetType, { optional: true }),
+        targetParameter("chunk", stringTargetType),
+      ], boolTargetType),
+      classCall(exportName, "write", "writeBuffer", [
+        { name: "chunk", type: nodeBufferProviderType },
+      ], booleanProviderType, [
+        targetParameter("chunk", nodeBufferTargetType),
       ], boolTargetType),
       classCall(exportName, "end", "end", [
-        {
-          name: "chunk",
-          type: unionProviderType(streamChunkProviderType, undefinedProviderType),
-          optional: true,
-        },
-        optionalString("encoding"),
-        optionalCallback("callback"),
       ], providerClass(exportName), [
-        targetParameter("chunk", tsValueTargetType, { optional: true }),
-        targetParameter("encoding", nullableStringTargetType, { optional: true }),
-        targetParameter("callback", actionTargetType, { optional: true }),
+      ], targetTypes[exportName]),
+      classCall(exportName, "end", "endString", [
+        { name: "chunk", type: stringProviderType },
+      ], providerClass(exportName), [
+        targetParameter("chunk", stringTargetType),
+      ], targetTypes[exportName]),
+      classCall(exportName, "end", "endBuffer", [
+        { name: "chunk", type: nodeBufferProviderType },
+      ], providerClass(exportName), [
+        targetParameter("chunk", nodeBufferTargetType),
       ], targetTypes[exportName]),
       classCall(exportName, "cork", "cork", [], voidProviderType, [], voidTargetType),
       classCall(exportName, "uncork", "uncork", [], voidProviderType, [], voidTargetType),
     );
+  }
+
+  calls.push(...streamEventRows(
+    "Readable",
+    [
+      ["data", nodeBufferProviderType, nodeBufferTargetType],
+      ["end", undefined, undefined],
+      ["error", errorProviderType, exceptionTargetType],
+      ["close", undefined, undefined],
+    ],
+  ));
+  for (const exportName of ["Writable", "Duplex"] as const) {
+    calls.push(...streamEventRows(
+      exportName,
+      [
+        ...(exportName === "Duplex" ? [
+          ["data", nodeBufferProviderType, nodeBufferTargetType],
+          ["end", undefined, undefined],
+        ] as const : []),
+        ["drain", undefined, undefined],
+        ["finish", undefined, undefined],
+        ["error", errorProviderType, exceptionTargetType],
+        ["close", undefined, undefined],
+      ],
+    ));
   }
 
   return Object.freeze(calls);
@@ -114,10 +171,17 @@ export function nodeStreamClassPropertyTargetMembers(): readonly NodejsClassProp
   return Object.freeze([
     classProperty("Readable", "readable", booleanProviderType, boolTargetType, true),
     classProperty("Readable", "readableEnded", booleanProviderType, boolTargetType, true),
+    classProperty("Readable", "destroyed", booleanProviderType, boolTargetType, true),
     classProperty("Writable", "writable", booleanProviderType, boolTargetType, true),
     classProperty("Writable", "writableEnded", booleanProviderType, boolTargetType, true),
+    classProperty("Writable", "writableFinished", booleanProviderType, boolTargetType, true),
+    classProperty("Writable", "writableNeedDrain", booleanProviderType, boolTargetType, true),
+    classProperty("Writable", "destroyed", booleanProviderType, boolTargetType, true),
     classProperty("Duplex", "writable", booleanProviderType, boolTargetType, true),
     classProperty("Duplex", "writableEnded", booleanProviderType, boolTargetType, true),
+    classProperty("Duplex", "writableFinished", booleanProviderType, boolTargetType, true),
+    classProperty("Duplex", "writableNeedDrain", booleanProviderType, boolTargetType, true),
+    classProperty("Duplex", "destroyed", booleanProviderType, boolTargetType, true),
   ]);
 }
 
@@ -132,6 +196,9 @@ function classCall(
   options: {
     readonly targetName?: string;
     readonly memberKind?: "constructor" | "method";
+    readonly static?: true;
+    readonly providerTypeParameters?: NodejsClassCallTargetMetadata["providerTypeParameters"];
+    readonly targetTypeParameters?: NodejsClassCallTargetMetadata["member"]["typeParameters"];
   } = {},
 ): NodejsClassCallTargetMetadata {
   const parameterShape = providerParameters.map((parameter) => parameter.name).join(",");
@@ -146,17 +213,62 @@ function classCall(
     memberKind: options.memberKind ?? "method",
     providerParameters,
     ...(providerReturnType === undefined ? {} : { providerReturnType }),
+    ...(options.providerTypeParameters === undefined
+      ? {}
+      : { providerTypeParameters: options.providerTypeParameters }),
     targetParameters,
     targetReturnType,
     declaringType: targetTypes[exportName],
+    ...(options.targetTypeParameters === undefined
+      ? {}
+      : { targetTypeParameters: options.targetTypeParameters }),
+    ...(options.static === true ? { static: true } : {}),
   });
+}
+
+function streamEventRows(
+  exportName: "Readable" | "Writable" | "Duplex",
+  events: readonly (readonly [
+    eventName: string,
+    providerArgument: ProviderTypeExpression | undefined,
+    targetArgument: TargetTypeRef | undefined,
+  ])[],
+): readonly NodejsClassCallTargetMetadata[] {
+  const rows: NodejsClassCallTargetMetadata[] = [];
+  for (const methodName of ["on", "once", "off"] as const) {
+    for (const [eventName, providerArgument, targetArgument] of events) {
+      const providerListener = callbackProviderType(
+        `${nodeStreamModuleSpecifier}.${exportName}.${methodName}.${eventName}.listener`,
+        providerArgument === undefined ? [] : [{ name: "value", type: providerArgument }],
+      );
+      const targetListener = targetArgument === undefined
+        ? actionTargetType
+        : csharpDelegateTargetType("System.Action", [targetArgument]);
+      rows.push(classCall(
+        exportName,
+        methodName,
+        `${methodName}.${eventName}`,
+        [
+          { name: "event", type: { kind: "literal", value: eventName } },
+          { name: "listener", type: providerListener },
+        ],
+        providerClass(exportName),
+        [
+          targetParameter("eventName", stringTargetType),
+          targetParameter("listener", targetListener),
+        ],
+        targetTypes[exportName],
+      ));
+    }
+  }
+  return rows;
 }
 
 function classProperty(
   exportName: "Readable" | "Writable" | "Duplex",
   memberName: string,
   providerType: ProviderTypeExpression,
-  targetReturnType: typeof boolTargetType,
+  targetReturnType: TargetTypeRef,
   readonly: boolean,
 ): NodejsClassPropertyTargetMetadata {
   return nodejsClassPropertyTargetMetadata({
@@ -179,22 +291,6 @@ function providerClass(exportName: (typeof classNames)[number]): ProviderTypeExp
   return providerRef(nodeStreamModuleSpecifier, exportName);
 }
 
-function requiredString(name: string): ProviderParameterDeclaration {
-  return { name, type: stringProviderType };
-}
-
-function optionalString(name: string): ProviderParameterDeclaration {
-  return { name, type: stringProviderType, optional: true };
-}
-
 function optionalNumber(name: string): ProviderParameterDeclaration {
   return { name, type: numberProviderType, optional: true };
-}
-
-function optionalCallback(name: string): ProviderParameterDeclaration {
-  return { name, type: callbackType, optional: true };
-}
-
-function unknownOrUndefined(): ProviderTypeExpression {
-  return unionProviderType(unknownProviderType, undefinedProviderType);
 }

@@ -14,6 +14,7 @@ public sealed class ReadStreamOptions
 public sealed class WriteStreamOptions
 {
     public string? flags { get; set; }
+    public int? mode { get; set; }
     public string? encoding { get; set; }
     public long? start { get; set; }
     public int? highWaterMark { get; set; }

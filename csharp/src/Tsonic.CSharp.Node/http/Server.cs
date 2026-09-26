@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,7 @@ public partial class Server : EventEmitter
 {
     private IWebHost? _host;
     private AddressInfo? _boundAddress;
+    private string? _boundPath;
     private readonly Action<IncomingMessage, ServerResponse>? _requestListener;
     private readonly Action<Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions>? _configureListener;
     private int _maxHeadersCount = 2000;
@@ -141,7 +143,7 @@ public partial class Server : EventEmitter
     /// </summary>
     /// <param name="port">The port number.</param>
     /// <param name="hostname">The hostname. Default: all interfaces</param>
-    /// <param name="backlog">Maximum length of the queue of pending connections (ignored in Kestrel).</param>
+    /// <param name="backlog">Maximum length of the queue of pending connections.</param>
     /// <param name="callback">Optional callback when server has been started.</param>
     /// <returns>The server instance for chaining.</returns>
     public Server listen(int port, string? hostname = null, int? backlog = null, Action? callback = null)
@@ -153,90 +155,21 @@ public partial class Server : EventEmitter
 
         var normalizedPort = JsNumeric.RequirePort(port, nameof(port));
         var resolvedHostname = string.IsNullOrEmpty(hostname) ? null : ResolveHostname(hostname);
-        var listenPort = normalizedPort == 0
-            ? ReserveEphemeralPort(resolvedHostname ?? IPAddress.Loopback)
-            : normalizedPort;
-
         if (backlog.HasValue)
         {
             JsNumeric.RequireNonNegativeInt(backlog.Value, nameof(backlog));
         }
 
-        // Use minimal WebHost setup to avoid file watchers
-        var host = new WebHostBuilder()
-            .UseKestrel(options =>
-            {
-                if (string.IsNullOrEmpty(hostname))
-                {
-                    // Listen on all interfaces
-                    options.ListenAnyIP(listenPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1;
-                        _configureListener?.Invoke(listenOptions);
-                    });
-                }
-                else
-                {
-                    // Listen on specific hostname
-                    options.Listen(resolvedHostname!, listenPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1;
-                        _configureListener?.Invoke(listenOptions);
-                    });
-                }
-
-                // Configure limits
-                options.Limits.MaxRequestHeaderCount = _maxHeadersCount;
-                options.Limits.MaxRequestHeadersTotalSize = http.maxHeaderSize;
-                options.Limits.KeepAliveTimeout = TimeSpan.FromMilliseconds(_keepAliveTimeout);
-                options.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(_headersTimeout);
-            })
-            .SuppressStatusMessages(true)
-            .Configure(app =>
-            {
-                // Main request handler - use async to properly await response writes
-                app.Run(async context =>
-                {
-                    var req = new IncomingMessage(context.Request);
-                    var res = new ServerResponse(context.Response);
-
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("request", req, res));
-
-                    await res.Completion.WaitAsync(context.RequestAborted);
-                    await context.Response.CompleteAsync();
-                });
-            })
-            .Build();
-
-        _host = host;
-
-        try
+        return StartHost(CreateHost(options =>
         {
-            _host.Start();
-            _listening = true;
-            if (Interlocked.Exchange(ref _referenced, 1) == 0)
-                ProcessKeepAlive.Acquire();
-            _boundAddress = ResolveBoundAddress() ?? new AddressInfo
+            if (resolvedHostname is null)
             {
-                address = resolvedHostname?.ToString() ?? IPAddress.Loopback.ToString(),
-                family = (resolvedHostname ?? IPAddress.Loopback).AddressFamily == AddressFamily.InterNetwork ? "IPv4" : "IPv6",
-                port = listenPort
-            };
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
-            {
-                emit("listening");
-                callback?.Invoke();
-            });
-            return this;
-        }
-        catch
-        {
-            _host.Dispose();
-            _host = null;
-            if (Interlocked.Exchange(ref _referenced, 0) != 0)
-                ProcessKeepAlive.Release();
-            throw;
-        }
+                options.ListenAnyIP(normalizedPort, ConfigureListenOptions);
+                return;
+            }
+
+            options.Listen(resolvedHostname, normalizedPort, ConfigureListenOptions);
+        }, backlog), null, callback);
     }
 
     /// <summary>
@@ -258,44 +191,46 @@ public partial class Server : EventEmitter
         return listen(port, hostname, null, callback);
     }
 
+    /// <summary>Begins accepting connections on a Unix-domain socket.</summary>
+    public Server listen(string path, Action? callback = null)
+    {
+        if (_listening)
+            throw new InvalidOperationException("Server is already listening");
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Socket path must not be empty.", nameof(path));
+        if (OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Unix-domain HTTP listeners are not supported on Windows.");
+
+        var absolutePath = Path.GetFullPath(path);
+        return StartHost(CreateHost(options =>
+            options.ListenUnixSocket(absolutePath, listenOptions =>
+                ConfigureListenOptions(listenOptions))), absolutePath, callback);
+    }
+
     /// <summary>
     /// Stops the server from accepting new connections.
     /// </summary>
     /// <param name="callback">Optional callback when server has closed.</param>
     /// <returns>The server instance for chaining.</returns>
-    public Server close(Action? callback = null)
+    public Server close(Action<Exception?>? callback = null)
     {
-        if (_host == null)
+        var host = _host;
+        if (host == null)
         {
-            if (callback != null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+            if (callback is not null)
+            {
+                var error = new InvalidOperationException("Server is not listening");
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error));
+            }
             return this;
         }
 
-        try
-        {
-            using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            _host.StopAsync(shutdownCts.Token).GetAwaiter().GetResult();
-        }
-        catch (OperationCanceledException)
-        {
-            // Fall back to dispose below if graceful shutdown takes too long.
-        }
-        finally
-        {
-            _host.Dispose();
-            _boundAddress = null;
-            _host = null;
-            _listening = false;
-            var releaseServerReference = Interlocked.Exchange(ref _referenced, 0) != 0;
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
-            {
-                emit("close");
-                callback?.Invoke();
-            });
-            if (releaseServerReference)
-                ProcessKeepAlive.Release();
-        }
+        _host = null;
+        _boundAddress = null;
+        _boundPath = null;
+        _listening = false;
+        var releaseServerReference = Interlocked.Exchange(ref _referenced, 0) != 0;
+        _ = CloseAsync(host, callback, releaseServerReference);
 
         return this;
     }
@@ -345,9 +280,86 @@ public partial class Server : EventEmitter
     /// Only useful after 'listening' event.
     /// </summary>
     /// <returns>An object with 'port', 'family', and 'address' properties.</returns>
-    public AddressInfo? address()
+    public ServerAddress? address()
     {
-        return _boundAddress;
+        if (_boundPath is not null)
+            return new ServerAddress { path = _boundPath };
+        return _boundAddress is null ? null : new ServerAddress { address = _boundAddress };
+    }
+
+    private IWebHost CreateHost(Action<KestrelServerOptions> configureEndpoint, int? backlog = null)
+    {
+        return new WebHostBuilder()
+            .UseKestrel(options =>
+            {
+                configureEndpoint(options);
+                options.Limits.MaxRequestHeaderCount = _maxHeadersCount;
+                options.Limits.MaxRequestHeadersTotalSize = http.maxHeaderSize;
+                options.Limits.MaxRequestBodySize = null;
+                options.Limits.KeepAliveTimeout = TimeSpan.FromMilliseconds(_keepAliveTimeout);
+                options.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(_headersTimeout);
+            })
+            .ConfigureServices(services =>
+            {
+                if (backlog.HasValue)
+                    services.Configure<SocketTransportOptions>(options => options.Backlog = backlog.Value);
+            })
+            .SuppressStatusMessages(true)
+            .Configure(app => app.Run(HandleRequestAsync))
+            .Build();
+    }
+
+    private async Task HandleRequestAsync(HttpContext context)
+    {
+        var request = new IncomingMessage(context.Request);
+        var response = new ServerResponse(context.Response);
+        JsEventLoop.EnqueueHandleOwned(() => emit("request", request, response));
+
+        try
+        {
+            await response.Completion.WaitAsync(context.RequestAborted).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            request.CloseAfterResponse();
+        }
+    }
+
+    private Server StartHost(IWebHost host, string? boundPath, Action? callback)
+    {
+        _host = host;
+        try
+        {
+            host.Start();
+            _listening = true;
+            _boundPath = boundPath;
+            _boundAddress = boundPath is null
+                ? ResolveBoundAddress()
+                    ?? throw new InvalidOperationException("Kestrel did not publish its bound address.")
+                : null;
+            if (Interlocked.Exchange(ref _referenced, 1) == 0)
+                ProcessKeepAlive.Acquire();
+            JsEventLoop.EnqueueReferenced(() =>
+            {
+                emit("listening");
+                callback?.Invoke();
+            });
+        }
+        catch (Exception error)
+        {
+            host.Dispose();
+            _host = null;
+            _boundAddress = null;
+            _boundPath = null;
+            _listening = false;
+            if (Interlocked.Exchange(ref _referenced, 0) != 0)
+                ProcessKeepAlive.Release();
+            JsEventLoop.EnqueueReferenced(() => emit("error", error));
+        }
+        return this;
     }
 
     private AddressInfo? ResolveBoundAddress()
@@ -383,18 +395,42 @@ public partial class Server : EventEmitter
         };
     }
 
-    private static int ReserveEphemeralPort(IPAddress address)
+    private void ConfigureListenOptions(
+        Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions listenOptions)
     {
-        var listener = new TcpListener(address, 0);
-        listener.Start();
+        listenOptions.Protocols = HttpProtocols.Http1;
+        _configureListener?.Invoke(listenOptions);
+    }
+
+    private async Task CloseAsync(
+        IWebHost host,
+        Action<Exception?>? callback,
+        bool releaseServerReference)
+    {
+        Exception? failure = null;
         try
         {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
+            using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            await host.StopAsync(shutdownCts.Token).ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            failure = error;
         }
         finally
         {
-            listener.Stop();
+            host.Dispose();
         }
+
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (failure is not null && callback is null)
+                emit("error", failure);
+            emit("close");
+            callback?.Invoke(failure);
+        });
+        if (releaseServerReference)
+            ProcessKeepAlive.Release();
     }
 }
 
@@ -417,4 +453,15 @@ public class AddressInfo
     /// The IP address the server is listening on.
     /// </summary>
     public string address { get; set; } = "";
+}
+
+/// <summary>Closed native result for a TCP or Unix-domain listener.</summary>
+public sealed class ServerAddress
+{
+    /// <summary>The bound TCP address, when applicable.</summary>
+    public AddressInfo? address { get; init; }
+    /// <summary>The bound Unix-domain path, when applicable.</summary>
+    public string? path { get; init; }
+    /// <summary>The bound TCP port, when applicable.</summary>
+    public int? port => address?.port;
 }

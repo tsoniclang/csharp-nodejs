@@ -1,5 +1,4 @@
 using System;
-using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -38,6 +37,16 @@ public partial class Writable : Stream
     public bool writableEnded => _state.Ended;
 
     /// <summary>
+    /// Is true after the native destination has accepted the final write.
+    /// </summary>
+    public bool writableFinished => _state.Finished;
+
+    /// <summary>
+    /// Is true while producers must wait for the drain event before writing again.
+    /// </summary>
+    public bool writableNeedDrain => _state.NeedDrain;
+
+    /// <summary>
     /// Is true after destroy() has been called.
     /// </summary>
     public bool destroyed => _state.Destroyed;
@@ -56,33 +65,46 @@ public partial class Writable : Stream
     /// Writes data to the stream.
     /// </summary>
     /// <param name="chunk">The data to write.</param>
-    /// <param name="encoding">The encoding if chunk is a string.</param>
-    /// <param name="callback">Callback for when this chunk of data is flushed.</param>
     /// <returns>False if the stream wishes for the calling code to wait for the 'drain' event to be emitted before continuing to write.</returns>
-    public bool write(object? chunk, string? encoding = null, Action? callback = null)
-    {
-        return _state.Write(chunk, encoding, callback);
-    }
+    public bool write(string chunk) => WriteChunk(chunk);
 
-    /// <summary>Writes a closed TypeScript value to the stream.</summary>
-    public bool write(TsValue chunk, string? encoding = null, Action? callback = null) =>
-        write(chunk.unwrap(), encoding, callback);
+    /// <summary>Writes one binary chunk.</summary>
+    public bool write(Buffer chunk) => WriteChunk(chunk);
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.
     /// </summary>
-    /// <param name="chunk">Optional data to write before ending.</param>
-    /// <param name="encoding">The encoding if chunk is a string.</param>
-    /// <param name="callback">Optional callback for when the stream has finished.</param>
-    public Writable end(object? chunk = null, string? encoding = null, Action? callback = null)
+    public Writable end()
     {
-        _state.End(chunk, encoding, callback);
+        _state.End(null, null, null);
         return this;
     }
 
-    /// <summary>Finishes the stream after writing a final closed TypeScript value.</summary>
-    public Writable end(TsValue chunk, string? encoding = null, Action? callback = null) =>
-        end(chunk.unwrap(), encoding, callback);
+    /// <summary>Finishes the stream after one final text chunk.</summary>
+    public Writable end(string chunk)
+    {
+        _state.End(chunk, null, null);
+        return this;
+    }
+
+    /// <summary>Finishes the stream after one final binary chunk.</summary>
+    public Writable end(Buffer chunk)
+    {
+        _state.End(chunk, null, null);
+        return this;
+    }
+
+    /// <summary>Writes a native stream chunk.</summary>
+    protected internal bool WriteChunk(
+        object? chunk,
+        string? encoding = null,
+        Action? callback = null) => _state.Write(chunk, encoding, callback);
+
+    /// <summary>Finishes after an optional native stream chunk.</summary>
+    protected internal void EndChunk(
+        object? chunk = null,
+        string? encoding = null,
+        Action? callback = null) => _state.End(chunk, encoding, callback);
 
     /// <summary>
     /// Forces all written data to be buffered in memory. The buffered data will be flushed when uncork() is called.
@@ -110,6 +132,13 @@ public partial class Writable : Stream
             return;
         _state.Destroy();
         base.destroy(error);
+    }
+
+    /// <summary>Destroys the stream and returns it for the source-level fluent contract.</summary>
+    public Writable destroyChain(Exception? error = null)
+    {
+        destroy(error);
+        return this;
     }
 
     /// <summary>

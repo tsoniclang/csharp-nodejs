@@ -1,5 +1,6 @@
 import type {
   ProviderParameterDeclaration,
+  ProviderSignatureDeclaration,
 } from "@tsonic/tsts";
 import {
   csharpQualifiedTypeRenderShape,
@@ -145,6 +146,12 @@ function nodejsProviderTargetRelation(
   const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
   const targetBinding = targetBindingForMember(identity, targetMember, includeJsSurfaceMembers);
   if (source.kind === "signature") {
+    const signature = providerSignature(identity, includeJsSurfaceMembers);
+    const sourceTypeParameterCount = signature.typeParameters?.length ?? 0;
+    const targetTypeParameterCount = targetMember.typeParameters?.length ?? 0;
+    if (sourceTypeParameterCount !== targetTypeParameterCount) {
+      throw new Error(`C# NodeJS provider signature '${identity.signatureId}' has mismatched source and target type-parameter arity.`);
+    }
     return {
       kind: "signature",
       source,
@@ -153,16 +160,19 @@ function nodejsProviderTargetRelation(
       receiver: targetReceiver(identity, targetMember),
       parameters: providerParameterRelations(
         identity,
-        providerSignatureParameters(identity, includeJsSurfaceMembers),
+        signature.parameters,
         targetMember,
         argumentAdapters,
       ),
       bindingTypeParameters: [],
       bindingTypeArgumentSource:
         providerBindingTypeArgumentSource(targetMember),
-      methodTypeParameters: [],
+      methodTypeParameters: Array.from({ length: sourceTypeParameterCount }, (_, sourceTypeParameterIndex) => ({
+        sourceTypeParameterIndex,
+        targetTypeParameterIndex: sourceTypeParameterIndex,
+      })),
       invocationTypeParameters: [],
-      selectedTypeParameterCount: 0,
+      selectedTypeParameterCount: sourceTypeParameterCount,
     };
   }
   if (source.kind === "member") {
@@ -281,10 +291,10 @@ function providerBindingTypeArgumentSource(
       : "receiver";
 }
 
-function providerSignatureParameters(
+function providerSignature(
   identity: NodejsProviderDeclarationIdentity,
   includeJsSurfaceMembers: boolean,
-): readonly ProviderParameterDeclaration[] {
+): ProviderSignatureDeclaration {
   const exports = nodejsCanonicalProviderExports(identity.providerModuleId, includeJsSurfaceMembers);
   const declaration = exports?.find((candidate) =>
     candidate.id === identity.exportId);
@@ -300,7 +310,7 @@ function providerSignatureParameters(
       `C# NodeJS provider relation '${formatProviderIdentity(identity)}' does not identify an exact source signature.`,
     );
   }
-  return signature.parameters;
+  return signature;
 }
 
 function providerSourceIdentityBase(

@@ -41,6 +41,12 @@ public partial class Buffer
         return new Buffer(copy);
     }
 
+    /// <summary>Copies the exact bytes from a Uint8Array into a new Buffer.</summary>
+    public static Buffer from(Tsonic.CSharp.Js.Uint8Array array)
+    {
+        return new Buffer(array.AsMemory().ToArray());
+    }
+
     /// <summary>
     /// Creates a new Buffer from a Buffer (creates a copy).
     /// </summary>

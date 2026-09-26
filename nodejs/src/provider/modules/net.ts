@@ -151,6 +151,8 @@ export function nodeNetClassPropertyTargetMembers(): readonly NodejsClassPropert
     readonlyProperty("Socket", "bytesWritten", numberProviderType, longTargetType),
     readonlyProperty("Socket", "remoteAddress", stringProviderType, nullableStringTargetType),
     readonlyProperty("Socket", "remotePort", numberProviderType, nullableIntTargetType),
+    readonlyProperty("Socket", "localAddress", stringProviderType, nullableStringTargetType),
+    readonlyProperty("Socket", "localPort", numberProviderType, nullableIntTargetType),
     readonlyProperty("Server", "listening", booleanProviderType, boolTargetType),
   ]);
 }

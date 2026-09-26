@@ -1,4 +1,4 @@
-import type { ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
+import type { ProviderParameterDeclaration, ProviderTypeExpression, ProviderTypeParameterDeclaration } from "@tsonic/tsts";
 import type { CsharpTargetMember, TargetParameter, TargetTypeRef } from "@tsonic/target-csharp/provider";
 import type { NodejsClassCallTargetMember, NodejsCallArgumentAdapters, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember } from "./members.js";
 
@@ -11,6 +11,7 @@ export interface NodejsModuleCallTargetMetadata extends NodejsModuleCallTargetMe
   readonly targetName: string;
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType: ProviderTypeExpression;
+  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
 }
 
 export interface NodejsModulePropertyTargetMetadata extends NodejsModulePropertyTargetMember {
@@ -25,6 +26,7 @@ export interface NodejsClassCallTargetMetadata extends NodejsClassCallTargetMemb
   readonly memberKind: "constructor" | "method";
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType?: ProviderTypeExpression;
+  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
   readonly static?: boolean;
 }
 
@@ -45,9 +47,11 @@ export interface NodejsModuleCallTargetMetadataRow extends NodejsCallArgumentAda
   readonly targetName: string;
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType: ProviderTypeExpression;
+  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
   readonly targetParameters: readonly TargetParameter[];
   readonly targetReturnType: TargetTypeRef;
   readonly declaringType: TargetTypeRef;
+  readonly targetTypeParameters?: CsharpTargetMember["typeParameters"];
 }
 
 export interface NodejsModulePropertyTargetMetadataRow {
@@ -71,9 +75,11 @@ export interface NodejsClassCallTargetMetadataRow extends NodejsCallArgumentAdap
   readonly memberKind: "constructor" | "method";
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType?: ProviderTypeExpression;
+  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
   readonly targetParameters: readonly TargetParameter[];
   readonly targetReturnType: TargetTypeRef;
   readonly declaringType: TargetTypeRef;
+  readonly targetTypeParameters?: CsharpTargetMember["typeParameters"];
   readonly static?: boolean;
   readonly csharpInvocation?: CsharpTargetInvocation;
 }

@@ -81,7 +81,7 @@ public partial class Interface : EventEmitter
                 }
             };
 
-            _input.on("data", _dataListener);
+            ((EventEmitter)_input).on("data", _dataListener);
             _input.on("end", _endListener);
         }
     }

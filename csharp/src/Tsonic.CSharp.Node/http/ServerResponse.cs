@@ -1,337 +1,392 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Primitives;
+using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Node;
 
 namespace Tsonic.CSharp.Node.Http;
 
-/// <summary>
-/// Implements Node.js http.ServerResponse.
-/// Wraps ASP.NET Core HttpResponse to provide Node.js-compatible API.
-/// Extends EventEmitter to support events like 'finish', 'close'.
-/// </summary>
+/// <summary>An ordered, pressure-aware HTTP response over Kestrel.</summary>
 public partial class ServerResponse : Writable
 {
     private readonly HttpResponse _response;
-    private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private bool _headersSent = false;
-    private bool _finished = false;
+    private readonly TaskCompletionSource _completion =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly object _headersStartLock = new();
+    private readonly CancellationTokenRegistration _abortRegistration;
+    private Task? _headersStartTask;
+    private int _headersStarted;
+    private int _terminal;
     private Timer? _timeoutTimer;
 
     internal ServerResponse(HttpResponse response)
     {
         _response = response;
+        _abortRegistration = response.HttpContext.RequestAborted.Register(AbortFromTransport);
     }
 
-    /// <summary>
-    /// Gets or sets the HTTP status code that will be sent to the client.
-    /// </summary>
+    /// <summary>HTTP status code sent to the client.</summary>
     public int statusCode
     {
         get => _response.StatusCode;
         set
         {
-            if (_headersSent)
-                throw new InvalidOperationException("Cannot set status code after headers have been sent");
+            EnsureHeadersMutable();
+            if (value < 100 || value > 999)
+                throw new ArgumentOutOfRangeException(nameof(value), "HTTP status code must be 100 through 999.");
             _response.StatusCode = value;
         }
     }
 
-    /// <summary>
-    /// Gets or sets the HTTP status message that will be sent to the client.
-    /// Note: In HTTP/2, status messages are ignored.
-    /// </summary>
-    public string statusMessage { get; set; } = "";
+    /// <summary>HTTP/1 response reason phrase.</summary>
+    public string statusMessage
+    {
+        get => _response.HttpContext.Features.Get<IHttpResponseFeature>()?.ReasonPhrase ?? string.Empty;
+        set
+        {
+            EnsureHeadersMutable();
+            var feature = _response.HttpContext.Features.Get<IHttpResponseFeature>()
+                ?? throw new InvalidOperationException("The native HTTP response feature is unavailable.");
+            feature.ReasonPhrase = value;
+        }
+    }
 
-    /// <summary>
-    /// Boolean indicating if headers were sent.
-    /// Read-only.
-    /// </summary>
-    public bool headersSent => _headersSent;
+    /// <summary>True once native response headers have started.</summary>
+    public bool headersSent => Volatile.Read(ref _headersStarted) != 0 || _response.HasStarted;
 
-    /// <summary>
-    /// Boolean indicating if the response has completed.
-    /// </summary>
-    public bool finished => _finished;
+    /// <summary>Deprecated Node alias for writableEnded.</summary>
+    public bool finished => writableEnded;
 
     internal Task Completion => _completion.Task;
 
-    /// <summary>
-    /// Sends a response header to the request.
-    /// Must be called before end() or write().
-    /// </summary>
-    /// <param name="statusCode">The HTTP status code.</param>
-    /// <param name="statusMessage">Optional status message (ignored in HTTP/2).</param>
-    /// <param name="headers">Optional headers object.</param>
-    /// <returns>The ServerResponse instance for chaining.</returns>
-    public ServerResponse writeHead(int statusCode, string? statusMessage = null, Dictionary<string, string>? headers = null)
-    {
-        if (_headersSent)
-            throw new InvalidOperationException("Headers already sent");
-
-        _response.StatusCode = statusCode;
-
-        if (statusMessage != null)
-            this.statusMessage = statusMessage;
-
-        if (headers != null)
-        {
-            foreach (var header in headers)
-            {
-                _response.Headers[header.Key] = header.Value;
-            }
-        }
-
-        _headersSent = true;
-        return this;
-    }
-
-    /// <summary>
-    /// Sends a response header to the request (overload with just headers).
-    /// </summary>
-    /// <param name="statusCode">The HTTP status code.</param>
-    /// <param name="headers">Headers object.</param>
-    /// <returns>The ServerResponse instance for chaining.</returns>
-    public ServerResponse writeHead(int statusCode, Dictionary<string, string> headers)
-    {
-        return writeHead(statusCode, null, headers);
-    }
-
-    /// <summary>
-    /// Sets a single header value for implicit headers.
-    /// </summary>
-    /// <param name="name">Header name.</param>
-    /// <param name="value">Header value.</param>
-    /// <returns>The ServerResponse instance for chaining.</returns>
+    /// <summary>Sets a single response-header value.</summary>
     public ServerResponse setHeader(string name, string value)
     {
-        if (_headersSent)
-            throw new InvalidOperationException("Headers already sent");
-
-        _response.Headers[name] = value;
+        SetHeaderValues(name, [value]);
         return this;
     }
 
-    /// <summary>
-    /// Gets the value of a header that's already been queued but not sent.
-    /// </summary>
-    /// <param name="name">Header name.</param>
-    /// <returns>Header value or null if not set.</returns>
+    /// <summary>Sets exact repeated response-header values.</summary>
+    public ServerResponse setHeader(string name, string[] values)
+    {
+        SetHeaderValues(name, values);
+        return this;
+    }
+
+    /// <summary>Appends a single response-header value.</summary>
+    public ServerResponse appendHeader(string name, string value)
+    {
+        AppendHeaderValues(name, [value]);
+        return this;
+    }
+
+    /// <summary>Appends exact repeated response-header values.</summary>
+    public ServerResponse appendHeader(string name, string[] values)
+    {
+        AppendHeaderValues(name, values);
+        return this;
+    }
+
+    /// <summary>Returns the first stored header value, or native absence.</summary>
     public string? getHeader(string name)
     {
-        if (_response.Headers.TryGetValue(name, out var value))
-            return value.ToString();
-        return null;
+        http.validateHeaderName(name);
+        return _response.Headers.TryGetValue(name, out var values) && values.Count > 0
+            ? values[0]
+            : null;
     }
 
-    /// <summary>
-    /// Returns an array containing the unique names of the current outgoing headers.
-    /// </summary>
-    /// <returns>Array of header names.</returns>
-    public string[] getHeaderNames()
+    /// <summary>Returns every stored header value.</summary>
+    public string[] getHeaderValues(string name)
     {
-        var names = new List<string>();
-        foreach (var header in _response.Headers)
-        {
-            names.Add(header.Key);
-        }
-        return names.ToArray();
+        http.validateHeaderName(name);
+        return _response.Headers.TryGetValue(name, out var values)
+            ? values.Select(value => value ?? throw new InvalidOperationException("Native HTTP header value is null.")).ToArray()
+            : System.Array.Empty<string>();
     }
 
-    /// <summary>
-    /// Returns a shallow copy of the current outgoing headers.
-    /// </summary>
-    /// <returns>Dictionary of headers.</returns>
-    public Dictionary<string, string> getHeaders()
-    {
-        var headers = new Dictionary<string, string>();
-        foreach (var header in _response.Headers)
-        {
-            headers[header.Key] = header.Value.ToString();
-        }
-        return headers;
-    }
+    /// <summary>Returns the unique stored response-header names.</summary>
+    public string[] getHeaderNames() => _response.Headers.Keys.ToArray();
 
-    /// <summary>
-    /// Returns true if the header identified by name is currently set in the outgoing headers.
-    /// </summary>
-    /// <param name="name">Header name.</param>
-    /// <returns>True if header exists.</returns>
+    /// <summary>Returns an immutable snapshot of all stored response headers.</summary>
+    public OutgoingHttpHeaders getHeaders() =>
+        new(_response.Headers.Select(header =>
+            new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value)));
+
+    /// <summary>Tests whether a response header is stored.</summary>
     public bool hasHeader(string name)
     {
+        http.validateHeaderName(name);
         return _response.Headers.ContainsKey(name);
     }
 
-    /// <summary>
-    /// Removes a header that's queued for implicit sending.
-    /// </summary>
-    /// <param name="name">Header name.</param>
+    /// <summary>Removes a stored response header before native transmission starts.</summary>
     public void removeHeader(string name)
     {
-        if (_headersSent)
-            throw new InvalidOperationException("Headers already sent");
-
+        EnsureHeadersMutable();
+        http.validateHeaderName(name);
         _response.Headers.Remove(name);
     }
 
-    /// <summary>
-    /// Sends a chunk of the response body.
-    /// Writes synchronously using blocking wait to match Node.js semantics.
-    /// </summary>
-    /// <param name="chunk">The data to write.</param>
-    /// <param name="encoding">Optional encoding (ignored, always UTF-8).</param>
-    /// <param name="callback">Optional callback when chunk is flushed.</param>
-    /// <returns>True if entire data was flushed successfully.</returns>
-    public bool write(string chunk, string? encoding = null, Action? callback = null)
+    /// <summary>Writes a status line without changing stored headers.</summary>
+    public ServerResponse writeHead(int statusCode)
     {
-        return base.write(chunk, encoding, callback);
-    }
-
-    /// <summary>
-    /// Sends a chunk of the response body from a Buffer.
-    /// </summary>
-    public bool write(Buffer chunk, Action? callback = null)
-    {
-        return base.write(chunk, callback: callback);
-    }
-
-    /// <summary>
-    /// Sends a chunk of the response body from a byte array.
-    /// </summary>
-    public bool write(byte[] chunk, Action? callback = null)
-    {
-        return base.write(chunk, callback: callback);
-    }
-
-    /// <summary>
-    /// Signals that all response headers and body have been sent.
-    /// Node.js idiomatic: synchronous from caller's perspective, returns this for chaining.
-    /// </summary>
-    /// <returns>This response for chaining.</returns>
-    public ServerResponse end()
-    {
-        base.end();
+        this.statusCode = statusCode;
+        MarkHeadersStarted();
         return this;
     }
 
-    /// <summary>
-    /// Signals response completion with an optional callback and no payload.
-    /// </summary>
-    public ServerResponse end(Action? callback)
+    /// <summary>Writes a status line and exact stored headers.</summary>
+    public ServerResponse writeHead(int statusCode, OutgoingHttpHeaders headers)
     {
-        base.end(callback: callback);
+        this.statusCode = statusCode;
+        ApplyHeaders(headers);
+        MarkHeadersStarted();
         return this;
     }
 
-    /// <summary>
-    /// Signals that all response headers and body have been sent.
-    /// Node.js idiomatic: synchronous from caller's perspective, returns this for chaining.
-    /// </summary>
-    /// <param name="chunk">Final chunk to send.</param>
-    /// <param name="encoding">Optional encoding (ignored, always UTF-8).</param>
-    /// <param name="callback">Optional callback when response is finished.</param>
-    /// <returns>This response for chaining.</returns>
-    public ServerResponse end(string chunk, string? encoding = null, Action? callback = null)
+    /// <summary>Writes a status line, reason phrase and optional exact stored headers.</summary>
+    public ServerResponse writeHead(
+        int statusCode,
+        string statusMessage,
+        OutgoingHttpHeaders? headers = null)
     {
-        base.end(chunk, encoding, callback);
+        this.statusCode = statusCode;
+        this.statusMessage = statusMessage;
+        if (headers is not null)
+            ApplyHeaders(headers);
+        MarkHeadersStarted();
         return this;
     }
 
-    /// <summary>
-    /// Signals response completion with an optional Buffer payload.
-    /// </summary>
-    public ServerResponse end(Buffer chunk, Action? callback = null)
+    /// <summary>Queues a text body chunk.</summary>
+    public new bool write(string chunk) => WriteChunk(chunk);
+
+    /// <summary>Queues a binary body chunk.</summary>
+    public new bool write(Buffer chunk) => WriteChunk(chunk);
+
+    /// <summary>Ends the response without a final body chunk.</summary>
+    public new ServerResponse end()
     {
-        base.end(chunk, callback: callback);
+        EndChunk();
         return this;
     }
 
-    /// <summary>
-    /// Signals response completion with an optional byte-array payload.
-    /// </summary>
-    public ServerResponse end(byte[] chunk, Action? callback = null)
+    /// <summary>Ends the response with a final text chunk.</summary>
+    public new ServerResponse end(string chunk)
     {
-        base.end(chunk, callback: callback);
+        EndChunk(chunk);
         return this;
+    }
+
+    /// <summary>Ends the response with a final binary chunk.</summary>
+    public new ServerResponse end(Buffer chunk)
+    {
+        EndChunk(chunk);
+        return this;
+    }
+
+    /// <summary>Aborts the response and returns it for fluent source code.</summary>
+    public new ServerResponse destroyChain(Exception? error = null)
+    {
+        destroy(error);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public override void destroy(Exception? error = null)
+    {
+        if (Interlocked.Exchange(ref _terminal, 1) != 0)
+            return;
+        _timeoutTimer?.Dispose();
+        _abortRegistration.Dispose();
+        _response.HttpContext.Abort();
+        if (error is null)
+            _completion.TrySetCanceled();
+        else
+            _completion.TrySetException(error);
+        base.destroy(error);
     }
 
     /// <inheritdoc />
     protected override void _write(object? chunk, string? encoding, Action callback)
     {
-        if (!_headersSent)
-            _headersSent = true;
-
-        switch (chunk)
-        {
-            case string text:
-                _response.WriteAsync(text).GetAwaiter().GetResult();
-                break;
-            case Buffer buffer:
-                _response.Body.WriteAsync(buffer.InternalMemory).GetAwaiter().GetResult();
-                break;
-            case byte[] bytes:
-                _response.Body.WriteAsync(bytes).GetAwaiter().GetResult();
-                break;
-            default:
-                throw new ArgumentException("ServerResponse.write requires a string or binary chunk.", nameof(chunk));
-        }
-
-        callback();
+        _ = WriteChunkAsync(chunk, encoding, callback);
     }
 
     /// <inheritdoc />
     protected override void _final(Action callback)
     {
-        _finished = true;
-        _timeoutTimer?.Dispose();
-        _completion.TrySetResult();
-        callback();
+        _ = CompleteResponseAsync(callback);
     }
 
-    /// <summary>
-    /// Sets the timeout value in milliseconds for the response.
-    /// </summary>
-    /// <param name="msecs">Timeout in milliseconds.</param>
-    /// <param name="callback">Optional callback for timeout event.</param>
-    /// <returns>The ServerResponse instance.</returns>
+    /// <summary>Sets the response timeout.</summary>
     public ServerResponse setTimeout(int msecs, Action? callback = null)
     {
         JsNumeric.RequireNonNegativeInt(msecs, nameof(msecs));
-
-        if (callback != null)
-        {
+        if (callback is not null)
             once("timeout", callback);
-        }
 
         _timeoutTimer?.Dispose();
         if (msecs > 0)
         {
             _timeoutTimer = new Timer(_ =>
             {
-                if (!_finished)
-                {
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                if (Volatile.Read(ref _terminal) == 0)
+                    JsEventLoop.EnqueueReferenced(() =>
                     {
-                        if (!_finished)
+                        if (Volatile.Read(ref _terminal) == 0)
                             emit("timeout");
                     });
-                }
             }, null, msecs, System.Threading.Timeout.Infinite);
         }
         return this;
     }
 
-    /// <summary>
-    /// Flushes the response headers.
-    /// </summary>
+    /// <summary>Starts native response headers in the ordered response pipeline.</summary>
     public void flushHeaders()
     {
-        if (!_headersSent)
+        var start = EnsureHeadersStartedAsync();
+        if (!start.IsCompletedSuccessfully)
+            _ = ObserveHeadersStartAsync(start);
+    }
+
+    private void SetHeaderValues(string name, IReadOnlyList<string> values)
+    {
+        EnsureHeadersMutable();
+        ValidateHeaderValues(name, values);
+        _response.Headers[name] = new StringValues(values.ToArray());
+    }
+
+    private void AppendHeaderValues(string name, IReadOnlyList<string> values)
+    {
+        EnsureHeadersMutable();
+        ValidateHeaderValues(name, values);
+        foreach (var value in values)
+            _response.Headers.Append(name, value);
+    }
+
+    private static void ValidateHeaderValues(string name, IReadOnlyList<string> values)
+    {
+        http.validateHeaderName(name);
+        foreach (var value in values)
+            http.validateHeaderValue(name, value);
+    }
+
+    private void ApplyHeaders(OutgoingHttpHeaders headers)
+    {
+        foreach (var name in headers.names())
+            SetHeaderValues(name, headers.getAll(name));
+    }
+
+    private void EnsureHeadersMutable()
+    {
+        if (headersSent)
+            throw new InvalidOperationException("Response headers have already been sent.");
+    }
+
+    private void MarkHeadersStarted()
+    {
+        if (Interlocked.CompareExchange(ref _headersStarted, 1, 0) != 0)
+            throw new InvalidOperationException("Response headers have already been sent.");
+    }
+
+    private Task EnsureHeadersStartedAsync()
+    {
+        Interlocked.Exchange(ref _headersStarted, 1);
+        lock (_headersStartLock)
+            return _headersStartTask ??= _response.StartAsync(_response.HttpContext.RequestAborted);
+    }
+
+    private async Task WriteChunkAsync(object? chunk, string? encoding, Action callback)
+    {
+        try
         {
-            _headersSent = true;
-            _ = _response.StartAsync();
+            await EnsureHeadersStartedAsync().ConfigureAwait(false);
+            var bytes = chunk switch
+            {
+                string text => Buffer.from(text, encoding ?? "utf8").InternalMemory,
+                Buffer buffer => buffer.InternalMemory,
+                byte[] value => value.AsMemory(),
+                _ => throw new ArgumentException(
+                    "ServerResponse.write requires a string or binary chunk.",
+                    nameof(chunk)),
+            };
+            await _response.Body.WriteAsync(
+                bytes,
+                _response.HttpContext.RequestAborted).ConfigureAwait(false);
+            JsEventLoop.EnqueueReferenced(callback);
         }
+        catch (Exception error)
+        {
+            EnqueueFailure(error, callback);
+        }
+    }
+
+    private async Task CompleteResponseAsync(Action callback)
+    {
+        try
+        {
+            await EnsureHeadersStartedAsync().ConfigureAwait(false);
+            await _response.CompleteAsync().ConfigureAwait(false);
+            JsEventLoop.EnqueueReferenced(() =>
+            {
+                if (Interlocked.Exchange(ref _terminal, 1) != 0)
+                    return;
+                _timeoutTimer?.Dispose();
+                _abortRegistration.Dispose();
+                callback();
+                _completion.TrySetResult();
+                emit("close");
+            });
+        }
+        catch (Exception error)
+        {
+            EnqueueFailure(error, callback);
+        }
+    }
+
+    private async Task ObserveHeadersStartAsync(Task start)
+    {
+        try
+        {
+            await start.ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            EnqueueFailure(error);
+        }
+    }
+
+    private void EnqueueFailure(Exception error, Action? stateCallback = null)
+    {
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (Interlocked.Exchange(ref _terminal, 1) != 0)
+                return;
+            _timeoutTimer?.Dispose();
+            _abortRegistration.Dispose();
+            _completion.TrySetException(error);
+            base.destroy(error);
+            stateCallback?.Invoke();
+        });
+    }
+
+    private void AbortFromTransport()
+    {
+        JsEventLoop.EnqueueReferenced(() =>
+        {
+            if (Interlocked.Exchange(ref _terminal, 1) != 0)
+                return;
+            _timeoutTimer?.Dispose();
+            _abortRegistration.Dispose();
+            _completion.TrySetCanceled(_response.HttpContext.RequestAborted);
+            base.destroy();
+        });
     }
 }

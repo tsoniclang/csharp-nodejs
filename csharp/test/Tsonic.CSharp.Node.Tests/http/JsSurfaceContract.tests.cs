@@ -42,7 +42,7 @@ public class HttpJsSurfaceContractTests
         Func<Tsonic.CSharp.Node.Http.IncomingMessage, Tsonic.CSharp.Node.Http.IncomingMessage> incomingSetTimeout = (incoming) => incoming.setTimeout(1000, () => { });
         Func<Tsonic.CSharp.Node.Http.ServerResponse, Tsonic.CSharp.Node.Http.ServerResponse> responseSetTimeout = (response) => response.setTimeout(1000, () => { });
         Func<Tsonic.CSharp.Node.Http.ServerResponse, Tsonic.CSharp.Node.Http.ServerResponse> writeHead = (response) =>
-            response.writeHead(204, "No Content", new Dictionary<string, string>());
+            response.writeHead(204, "No Content", response.getHeaders());
 
         Assert.NotNull(listen);
         Assert.NotNull(serverSetTimeout);

@@ -34,6 +34,10 @@ public partial class Socket : Stream
 
         _stream?.Close();
         _client?.Close();
+        _metadataConnected = false;
+        _metadataCancellation.Dispose();
+        _metadataDestroy?.Invoke();
+        _metadataDestroy = null;
         var releaseSocketReference = Interlocked.Exchange(ref _referenced, 0) != 0;
 
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>

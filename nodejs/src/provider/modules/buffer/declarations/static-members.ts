@@ -22,6 +22,7 @@ import {
   nodeBufferConcatSignatureId,
   nodeBufferFromExportName,
   nodeBufferFromBufferSignatureId,
+  nodeBufferFromUint8ArraySignatureId,
   nodeBufferFromNumberArraySignatureId,
   nodeBufferFromStringMemberId,
   nodeBufferFromStringSignatureId,
@@ -71,6 +72,12 @@ export function nodeBufferStaticMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferFromBufferSignatureId,
         parameters: [
           { name: "buffer", type: nodeBufferProviderType },
+        ],
+        returnType: nodeBufferProviderType,
+      }, {
+        id: nodeBufferFromUint8ArraySignatureId,
+        parameters: [
+          { name: "array", type: { kind: "source-global", name: "Uint8Array" } },
         ],
         returnType: nodeBufferProviderType,
       }],
