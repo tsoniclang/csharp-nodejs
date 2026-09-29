@@ -49,8 +49,10 @@ const destinationType = {
   kind: "type-parameter",
   name: "TDestination",
 } satisfies ProviderTypeExpression;
+const destinationIdentity = "node:stream:Readable:pipe:TDestination";
 const destinationTargetType = {
   kind: "type-parameter",
+  identity: destinationIdentity,
   name: "TDestination",
 } satisfies TargetTypeRef;
 
@@ -92,6 +94,7 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
         constraints: [providerClass("Writable")],
       }],
       targetTypeParameters: [{
+        identity: destinationIdentity,
         name: "TDestination",
         constraints: [{ kind: "implements", contract: "Tsonic.CSharp.Node.Writable" }],
       }],
