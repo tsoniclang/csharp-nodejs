@@ -39,12 +39,12 @@ public partial class Readable : Stream
     }
 
     /// <summary>Creates a finite in-memory binary readable without copying its chunks.</summary>
-    public static Readable from(Buffer[] chunks)
+    public static Readable from(IReadOnlyList<Buffer> chunks)
     {
         ArgumentNullException.ThrowIfNull(chunks);
         var readable = new Readable();
-        foreach (var chunk in chunks)
-            readable.push(chunk ?? throw new ArgumentException("Readable chunks cannot contain null.", nameof(chunks)));
+        for (var index = 0; index < chunks.Count; index++)
+            readable.push(chunks[index] ?? throw new ArgumentException("Readable chunks cannot contain null.", nameof(chunks)));
         readable.push(null);
         return readable;
     }

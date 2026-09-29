@@ -7,6 +7,7 @@ import {
   csharpDelegateTargetType,
   csharpNullableTargetType,
   csharpNullableValueTargetType,
+  csharpReadOnlyListTargetType,
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
   csharpVoidTargetType,
@@ -41,10 +42,7 @@ const bufferArrayProviderType = {
   kind: "array",
   elementType: nodeBufferProviderType,
 } satisfies ProviderTypeExpression;
-const bufferArrayTargetType = {
-  kind: "array",
-  element: nodeBufferTargetType,
-} satisfies TargetTypeRef;
+const bufferArrayTargetType = csharpReadOnlyListTargetType(nodeBufferTargetType);
 const destinationType = {
   kind: "type-parameter",
   name: "TDestination",
