@@ -5,6 +5,9 @@ namespace Tsonic.CSharp.Node;
 
 public partial class Buffer
 {
+    /// <inheritdoc />
+    public override string ToString() => toString();
+
     /// <summary>
     /// Decodes buf to a string according to the specified character encoding.
     /// </summary>

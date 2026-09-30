@@ -6,6 +6,15 @@ namespace Tsonic.CSharp.Node.Tests;
 public class NativeBufferOwnershipTests
 {
     [Fact]
+    public void ClosedStringConversionUsesTheNativeBufferView()
+    {
+        var buffer = Buffer.from("left:text😀:right");
+        var view = buffer.subarray(5, 13);
+        Assert.Equal("text😀", Tsonic.CSharp.Js.Globals.String((object)view));
+        Assert.Equal(view.toString(), view.ToString());
+    }
+
+    [Fact]
     public void BufferFromUint8ArrayCopiesExactBytes()
     {
         var source = new Tsonic.CSharp.Js.Uint8Array(3);
