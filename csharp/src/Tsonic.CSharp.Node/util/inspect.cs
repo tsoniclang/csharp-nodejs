@@ -19,8 +19,7 @@ public static partial class util
 
     private static string inspectClosedCarrier(object? obj)
     {
-        obj = obj is TsValue tsValue ? tsValue.unwrap() : obj;
-        obj = obj is TsUnion union ? union.value() : obj;
+        obj = TsValue.UnwrapClosedValue(obj);
 
         return obj switch
         {

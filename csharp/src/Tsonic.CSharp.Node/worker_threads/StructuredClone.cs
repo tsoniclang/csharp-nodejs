@@ -448,9 +448,7 @@ internal static class StructuredClone
 
     private static object? Unwrap(object? value)
     {
-        while (value is TsValue typed) value = typed.unwrap();
-        while (value is TsUnion union) value = union.unwrap();
-        return value;
+        return TsValue.UnwrapClosedValue(value);
     }
 
     private static IEnumerable<(int Index, object? Value)> DynamicArrayEntries(

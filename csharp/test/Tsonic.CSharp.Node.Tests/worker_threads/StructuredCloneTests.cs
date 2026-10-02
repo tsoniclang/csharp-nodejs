@@ -56,6 +56,23 @@ public class StructuredCloneTests
     }
 
     [Fact]
+    public void NativeUnionProjectionPreservesExactPayloadsAndNestedAliasIdentity()
+    {
+        var array = new Tsonic.CSharp.Js.JSArray<Union<string, ulong>>(new[] {
+            Union<string, ulong>.From1("ready"), Union<string, ulong>.From2(ulong.MaxValue),
+        });
+        var aliases = new TsArray();
+        aliases.WriteDynamicElement(0, Union<int, object>.From2(array));
+        aliases.WriteDynamicElement(1, Union<object, string>.From1(array));
+        var copied = Assert.IsType<TsArray>(Decode(Encode(TsValue.from(aliases))).unwrap());
+        var first = copied.ReadDynamicElement(0);
+        Assert.True(first.IsArray());
+        Assert.Same(first.unwrap(), copied.ReadDynamicElement(1).unwrap());
+        Assert.Equal("ready", first.ReadDynamicElement(0).unwrap());
+        Assert.Equal(ulong.MaxValue, Assert.IsType<ulong>(first.ReadDynamicElement(1).unwrap()));
+    }
+
+    [Fact]
     public void EveryNativeNumericPayloadRejectsTruncationAndTrailingBytes()
     {
         object[] values = [(byte)255, (sbyte)-128, short.MinValue, ushort.MaxValue,

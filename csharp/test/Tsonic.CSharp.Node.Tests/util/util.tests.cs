@@ -38,6 +38,18 @@ public class utilTests
     }
 
     [Fact]
+    public void inspect_ShouldProjectNativeUnionPayloadsWithoutChangingTheirCarriers()
+    {
+        var original = Union<int, string>.From2("ready");
+        Assert.Equal("'ready'", util.inspect(original));
+        Assert.Equal("'ready'", util.inspect(TsValue.from(original)));
+        Assert.Equal("18446744073709551615", util.inspect(Union<double, ulong>.From2(ulong.MaxValue)));
+        Assert.Equal("[ 'ready', null ]", util.inspect(new JSArray<Union<int, string?>>(new[] {
+            Union<int, string?>.From2("ready"), Union<int, string?>.From2(null),
+        })));
+    }
+
+    [Fact]
     public void isArray_ShouldRejectOpenCarrierSemantics()
     {
         var arr = new int[] { 1, 2, 3 };
