@@ -94,7 +94,10 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
       targetTypeParameters: [{
         identity: destinationIdentity,
         name: "TDestination",
-        constraints: [{ kind: "implements", contract: "Tsonic.CSharp.Node.Writable" }],
+        constraints: [
+          { kind: "implements", contract: "Tsonic.CSharp.Node.Stream" },
+          { kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" },
+        ],
       }],
     }),
     classCall("Readable", "isPaused", "isPaused", [], booleanProviderType, [], boolTargetType),

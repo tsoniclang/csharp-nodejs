@@ -5,7 +5,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// Duplex streams are streams that implement both the Readable and Writable interfaces.
 /// </summary>
-public partial class Duplex : Readable
+public partial class Duplex : Readable, IWritableStream
 {
     private readonly WritableState _writableState;
 
@@ -58,6 +58,10 @@ public partial class Duplex : Readable
 
     /// <summary>Writes one binary chunk to the writable side.</summary>
     public bool write(Buffer chunk) => WriteChunk(chunk);
+
+    bool IWritableStream.WriteChunk(object? chunk) => WriteChunk(chunk);
+
+    void IWritableStream.EndChunk() => EndChunk();
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.

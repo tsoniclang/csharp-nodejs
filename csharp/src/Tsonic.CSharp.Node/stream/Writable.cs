@@ -5,7 +5,7 @@ namespace Tsonic.CSharp.Node;
 /// <summary>
 /// A writable stream is an abstraction for a destination to which data is written.
 /// </summary>
-public partial class Writable : Stream
+public partial class Writable : Stream, IWritableStream
 {
     private readonly WritableState _state;
 
@@ -70,6 +70,10 @@ public partial class Writable : Stream
 
     /// <summary>Writes one binary chunk.</summary>
     public bool write(Buffer chunk) => WriteChunk(chunk);
+
+    bool IWritableStream.WriteChunk(object? chunk) => WriteChunk(chunk);
+
+    void IWritableStream.EndChunk() => EndChunk();
 
     /// <summary>
     /// Signals that no more data will be written to the Writable.

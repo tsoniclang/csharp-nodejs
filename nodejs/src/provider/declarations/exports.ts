@@ -11,6 +11,7 @@ import {
   csharpTargetNamedType,
 } from "@tsonic/target-csharp/provider";
 import type {
+  CsharpTargetNamedTypeRef,
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import {
@@ -107,7 +108,7 @@ export function nodejsTargetNamedType(
   namespace: string,
   name: string,
   id = `${namespace}.${name}`,
-): TargetTypeRef {
+): CsharpTargetNamedTypeRef {
   return csharpTargetNamedType(
     id,
     undefined,

@@ -20,9 +20,7 @@ public class Stream : EventEmitter
             throw new InvalidOperationException("pipe() can only be called on Readable streams");
         }
 
-        // Check if destination can be written to (Writable or Duplex)
-        bool canWrite = destination is Writable || destination is Duplex;
-        if (!canWrite)
+        if (destination is not IWritableStream writable)
         {
             throw new InvalidOperationException("pipe() destination must be a Writable stream");
         }
@@ -30,6 +28,7 @@ public class Stream : EventEmitter
         var pumping = false;
         var pumpRequested = false;
         var completed = false;
+        var endRequested = false;
         Action? pump = null;
         Action? onReadable = null;
         Action? onEnd = null;
@@ -39,6 +38,11 @@ public class Stream : EventEmitter
         {
             if (completed)
                 return;
+            if (pumping)
+            {
+                endRequested = true;
+                return;
+            }
             completed = true;
             if (onReadable is not null)
                 readable.off("readable", onReadable);
@@ -48,14 +52,7 @@ public class Stream : EventEmitter
                 destination.off("drain", onDrain);
             if (!end)
                 return;
-            if (destination is Duplex duplex)
-            {
-                duplex.EndChunk();
-            }
-            else if (destination is Writable writable)
-            {
-                writable.EndChunk();
-            }
+            writable.EndChunk();
         }
 
         pump = () =>
@@ -84,12 +81,7 @@ public class Stream : EventEmitter
                             break;
                         }
 
-                        var accepted = destination switch
-                        {
-                            Duplex duplex => duplex.WriteChunk(chunk),
-                            Writable writable => writable.WriteChunk(chunk),
-                            _ => false,
-                        };
+                        var accepted = writable.WriteChunk(chunk);
                         if (!accepted)
                         {
                             readable.pause();
@@ -108,6 +100,8 @@ public class Stream : EventEmitter
             finally
             {
                 pumping = false;
+                if (endRequested)
+                    Complete();
             }
         };
 

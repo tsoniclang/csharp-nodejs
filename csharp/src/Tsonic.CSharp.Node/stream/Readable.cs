@@ -229,7 +229,7 @@ public partial class Readable : Stream
 
     /// <summary>Pipes this stream into the selected writable destination.</summary>
     public TDestination pipeTo<TDestination>(TDestination destination)
-        where TDestination : Writable
+        where TDestination : Stream, IWritableStream
     {
         _ = pipe(destination);
         return destination;

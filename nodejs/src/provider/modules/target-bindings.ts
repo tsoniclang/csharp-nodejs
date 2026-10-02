@@ -7,6 +7,7 @@ import type {
   CsharpTargetNamedTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { nodeChildProcessOptionsTarget } from "./child-process.js";
+import { nodejsTargetNamedType } from "../declarations/exports.js";
 
 export interface NodejsProviderTargetTypeRow {
   readonly moduleSpecifier: string;
@@ -14,6 +15,8 @@ export interface NodejsProviderTargetTypeRow {
   readonly kind: CsharpTargetBindingFact["kind"];
   readonly namespace: string;
   readonly targetName: string;
+  readonly baseType?: CsharpTargetNamedTypeRef;
+  readonly implementedContracts?: CsharpTargetBindingFact["implementedContracts"];
   readonly objectLiteralConstruction?: "object-initializer";
   readonly targetType?: (includeJsSurfaceMembers: boolean) => CsharpTargetNamedTypeRef;
 }
@@ -22,24 +25,24 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncOptions", targetType: js => nodeChildProcessOptionsTarget(js).type, objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncError", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncError" },
   { moduleSpecifier: "node:events", exportName: "EventEmitter", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "EventEmitter" },
-  { moduleSpecifier: "node:stream", exportName: "Stream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Stream" },
-  { moduleSpecifier: "node:stream", exportName: "Readable", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Readable" },
-  { moduleSpecifier: "node:stream", exportName: "Writable", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Writable" },
-  { moduleSpecifier: "node:stream", exportName: "Duplex", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Duplex" },
-  { moduleSpecifier: "node:stream", exportName: "Transform", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Transform" },
+  { moduleSpecifier: "node:stream", exportName: "Stream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Stream", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "EventEmitter") },
+  { moduleSpecifier: "node:stream", exportName: "Readable", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Readable", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Stream") },
+  { moduleSpecifier: "node:stream", exportName: "Writable", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Writable", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Stream"), implementedContracts: [{ kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" }] },
+  { moduleSpecifier: "node:stream", exportName: "Duplex", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Duplex", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Readable"), implementedContracts: [{ kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" }] },
+  { moduleSpecifier: "node:stream", exportName: "Transform", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Transform", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Duplex") },
   { moduleSpecifier: "node:zlib", exportName: "ZlibOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ZlibOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:zlib", exportName: "BrotliOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "BrotliOptions", objectLiteralConstruction: "object-initializer" },
-  { moduleSpecifier: "node:zlib", exportName: "ZlibTransform", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ZlibTransform" },
+  { moduleSpecifier: "node:zlib", exportName: "ZlibTransform", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ZlibTransform", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Transform") },
   { moduleSpecifier: "node:dns", exportName: "LookupOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "LookupOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:dns", exportName: "LookupAllOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "LookupOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:dns", exportName: "LookupAddress", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "LookupAddress" },
   { moduleSpecifier: "node:dns", exportName: "DnsPromises", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "DnsPromises" },
-  { moduleSpecifier: "node:net", exportName: "Socket", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Socket" },
+  { moduleSpecifier: "node:net", exportName: "Socket", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Socket", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Stream") },
   { moduleSpecifier: "node:net", exportName: "Server", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Server" },
   { moduleSpecifier: "node:net", exportName: "ConnectOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ConnectOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:net", exportName: "ListenOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ListenOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:net", exportName: "ServerOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ServerOpts", objectLiteralConstruction: "object-initializer" },
-  { moduleSpecifier: "node:tls", exportName: "TLSSocket", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TLSSocket" },
+  { moduleSpecifier: "node:tls", exportName: "TLSSocket", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TLSSocket", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Socket") },
   { moduleSpecifier: "node:tls", exportName: "Server", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TLSServer" },
   { moduleSpecifier: "node:tls", exportName: "SecureContext", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SecureContext" },
   { moduleSpecifier: "node:tls", exportName: "ConnectionOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ConnectionOptions", objectLiteralConstruction: "object-initializer" },
@@ -62,15 +65,15 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:fs", exportName: "WriteStreamOptions", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "WriteStreamOptions", objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:fs", exportName: "FsWatcher", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "FsWatcher" },
   { moduleSpecifier: "node:fs", exportName: "StatWatcher", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "StatWatcher" },
-  { moduleSpecifier: "node:fs", exportName: "ReadStream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ReadStream" },
-  { moduleSpecifier: "node:fs", exportName: "WriteStream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "WriteStream" },
-  { moduleSpecifier: "node:http", exportName: "IncomingMessage", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "IncomingMessage" },
+  { moduleSpecifier: "node:fs", exportName: "ReadStream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "ReadStream", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Readable") },
+  { moduleSpecifier: "node:fs", exportName: "WriteStream", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "WriteStream", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Writable") },
+  { moduleSpecifier: "node:http", exportName: "IncomingMessage", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "IncomingMessage", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Readable") },
   { moduleSpecifier: "node:http", exportName: "IncomingHttpHeaders", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "IncomingHttpHeaders" },
   { moduleSpecifier: "node:http", exportName: "IncomingHttpHeaderValues", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "IncomingHttpHeaders" },
   { moduleSpecifier: "node:http", exportName: "OutgoingHttpHeaders", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "OutgoingHttpHeaders" },
   { moduleSpecifier: "node:http", exportName: "AddressInfo", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "AddressInfo" },
   { moduleSpecifier: "node:http", exportName: "ServerAddress", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "ServerAddress" },
-  { moduleSpecifier: "node:http", exportName: "ServerResponse", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "ServerResponse" },
+  { moduleSpecifier: "node:http", exportName: "ServerResponse", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "ServerResponse", baseType: nodejsTargetNamedType("Tsonic.CSharp.Node", "Writable") },
   { moduleSpecifier: "node:http", exportName: "Server", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "Server" },
   { moduleSpecifier: "node:http", exportName: "ClientRequest", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "ClientRequest" },
   { moduleSpecifier: "node:http", exportName: "RequestOptions", kind: "class", namespace: "Tsonic.CSharp.Node.Http", targetName: "RequestOptions", objectLiteralConstruction: "object-initializer" },
@@ -103,6 +106,8 @@ const bindingByProviderExport = new Map(
       targetName: targetId,
       target: "csharp" as const,
       kind: row.kind,
+      ...(row.baseType === undefined ? {} : { csharpBaseType: row.baseType }),
+      ...(row.implementedContracts === undefined ? {} : { implementedContracts: row.implementedContracts }),
       csharpType: csharpTargetNamedType(
         targetId,
         undefined,
