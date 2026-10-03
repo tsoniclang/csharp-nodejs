@@ -6,11 +6,12 @@ namespace Tsonic.CSharp.Node;
 public partial class Buffer
 {
     /// <summary>
-    /// Creates a new Buffer containing the bytes decoded from the selected string encoding.
+    /// Creates a new Buffer from a string using the selected encoding.
     /// </summary>
     /// <param name="str">The string to encode.</param>
-    /// <param name="encoding">The character encoding to use.</param>
+    /// <param name="encoding">The string encoding, including hex, base64 and base64url.</param>
     /// <returns>A new Buffer instance.</returns>
+    /// <exception cref="FormatException">Binary input is malformed; hex requires complete byte pairs.</exception>
     public static Buffer from(string str, string encoding = "utf8")
     {
         var bytes = GetStringBytes(str, encoding);
