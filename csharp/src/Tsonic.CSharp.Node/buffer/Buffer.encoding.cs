@@ -13,6 +13,11 @@ public partial class Buffer
     private static Encoding GetEncoding(string encoding)
     {
         var normalized = encoding.ToLowerInvariant().Replace("-", "").Replace("_", "");
+        return GetTextEncoding(normalized, encoding);
+    }
+
+    private static Encoding GetTextEncoding(string normalized, string encoding)
+    {
         return normalized switch
         {
             "utf8" => Encoding.UTF8,
@@ -23,6 +28,18 @@ public partial class Buffer
         };
     }
 
+    private static byte[] GetStringBytes(string value, string encoding)
+    {
+        var normalized = encoding.ToLowerInvariant().Replace("-", "").Replace("_", "");
+        return normalized switch
+        {
+            "hex" => HexToBytes(value),
+            "base64" => Convert.FromBase64String(value),
+            "base64url" => Convert.FromBase64String(Base64UrlToBase64(value)),
+            _ => GetTextEncoding(normalized, encoding).GetBytes(value)
+        };
+    }
+
     /// <summary>
     /// Converts hex string to bytes.
     /// </summary>
@@ -30,15 +47,7 @@ public partial class Buffer
     /// <returns>Byte array.</returns>
     private static byte[] HexToBytes(string hex)
     {
-        // Remove any whitespace
-        hex = hex.Replace(" ", "").Replace("\t", "").Replace("\n", "").Replace("\r", "");
-
-        var bytes = new byte[hex.Length / 2];
-        for (int i = 0; i < bytes.Length; i++)
-        {
-            bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-        }
-        return bytes;
+        return Convert.FromHexString(hex);
     }
 
     /// <summary>

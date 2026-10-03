@@ -6,15 +6,14 @@ namespace Tsonic.CSharp.Node;
 public partial class Buffer
 {
     /// <summary>
-    /// Creates a new Buffer containing the UTF-8 bytes of a string.
+    /// Creates a new Buffer containing the bytes decoded from the selected string encoding.
     /// </summary>
     /// <param name="str">The string to encode.</param>
     /// <param name="encoding">The character encoding to use.</param>
     /// <returns>A new Buffer instance.</returns>
     public static Buffer from(string str, string encoding = "utf8")
     {
-        var enc = GetEncoding(encoding);
-        var bytes = enc.GetBytes(str);
+        var bytes = GetStringBytes(str, encoding);
         return new Buffer(bytes);
     }
 
