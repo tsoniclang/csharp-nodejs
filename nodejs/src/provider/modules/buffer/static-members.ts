@@ -4,6 +4,7 @@ import type {
 import {
   targetParameter,
   csharpJsTypedArrayTargetType,
+  csharpReadOnlyListTargetType,
 } from "@tsonic/target-csharp/provider";
 import {
   nodeBufferAllocExportName,
@@ -185,7 +186,7 @@ export function getNodeBufferConcatTargetMember(): CsharpTargetMember {
     targetName: "concat",
     kind: "method",
     parameters: [
-      targetParameter("list", { kind: "array", element: nodeBufferTargetType }),
+      targetParameter("list", csharpReadOnlyListTargetType(nodeBufferTargetType)),
       targetParameter("totalLength", nodeBufferNullableIntTargetType(), { optional: true }),
     ],
     returnType: nodeBufferTargetType,

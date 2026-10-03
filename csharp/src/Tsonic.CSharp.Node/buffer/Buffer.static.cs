@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace Tsonic.CSharp.Node;
 
@@ -67,20 +67,26 @@ public partial class Buffer
     /// <param name="list">List of Buffer instances to concatenate.</param>
     /// <param name="totalLength">Total length of the Buffer instances in list when concatenated.</param>
     /// <returns>A new concatenated Buffer.</returns>
-    public static Buffer concat(Buffer[] list, int? totalLength = null)
+    public static Buffer concat(IReadOnlyList<Buffer> list, int? totalLength = null)
     {
-        if (list.Length == 0)
+        if (list.Count == 0)
             return alloc(0);
 
-        var length = totalLength ?? list.Sum(b => b.length);
+        var length = totalLength ?? 0;
+        if (totalLength is null)
+        {
+            for (var index = 0; index < list.Count; index++)
+                length = checked(length + list[index].length);
+        }
         var result = alloc(length);
         var offset = 0;
 
-        foreach (var buf in list)
+        for (var index = 0; index < list.Count; index++)
         {
             if (offset >= length)
                 break;
 
+            var buf = list[index];
             var copyLength = Math.Min(buf.length, length - offset);
             buf._data.Slice(0, copyLength).CopyTo(result._data.Slice(offset));
             offset += copyLength;
