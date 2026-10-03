@@ -34,3 +34,33 @@ test("native callback errors do not promise mutable source Error storage", () =>
     assert.equal(compiled.result.artifacts.length, 0);
   }
 });
+
+test("last-use native errors preserve exception identity and later control-flow uses", { timeout: 300_000 }, () => {
+  const compiled = compileCsharpSource({ surface: "js", targetOptions: { outputType: "Library" },
+    capabilities: [createTsonicPlugin()], sourceText: nativeNodeErrorSource,
+  });
+  assert.equal(compiled.sourceDiagnosticsText, "");
+  assert.deepEqual(compiled.result.diagnostics, []);
+  const execution = executeCsharpConstruction(compiled, "native-node-error-cost", false, false, [
+    fileURLToPath(new URL("../../../csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj", import.meta.url)),
+  ], `
+var original = new System.Exception("retained message");
+Tsonic.Generated.Index.consume(null);
+for (var index = 0; index < 10000; index++) {
+    try { Tsonic.Generated.Index.consume(original); }
+    catch (System.Exception caught) {
+        if (!System.Object.ReferenceEquals(original, caught)) throw new System.Exception("native identity lost");
+        continue;
+    }
+    throw new System.Exception("native error not thrown");
+}
+if (Tsonic.Generated.Index.retained(original) != "retained message" ||
+    Tsonic.Generated.Index.finalized(original) != "retained message" ||
+    Tsonic.Generated.Index.repeated(original) != "retained message" ||
+    !Tsonic.Generated.Index.captured(original)) {
+    throw new System.Exception("retained control-flow storage lost");
+}
+System.Console.WriteLine("native identity retained");
+`);
+  assert.match(execution, /native identity retained/u);
+});
