@@ -14,10 +14,11 @@ import {
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { numberProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
+import { numberProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
 
 export const nodeZlibModuleSpecifier = "node:zlib";
 
@@ -31,18 +32,18 @@ const brotliOptionsTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "Bro
 const transformTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "ZlibTransform");
 const zlibTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "zlib");
 const exceptionTargetType = csharpNullableTargetType(
-  nodejsTargetNamedType("System", "Exception"),
+  nodeErrorTargetType,
 );
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const voidTargetType = csharpVoidTargetType();
 const callbackProvider = callbackProviderType("node:zlib.callback", [
-  { name: "error", type: unknownProviderType },
-  { name: "result", type: bufferProviderType },
+  { name: "error", type: optionalNodeErrorProviderType },
+  { name: "result", type: unionProviderType(bufferProviderType, undefinedProviderType) },
 ]);
 const callbackTarget = csharpDelegateTargetType("System.Action", [
   exceptionTargetType,
-  bufferTargetType,
+  csharpNullableTargetType(bufferTargetType),
 ]);
 const codecs = [
   { name: "gzip", options: "zlib" },

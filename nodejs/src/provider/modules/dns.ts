@@ -18,9 +18,10 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
+import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
 
 export const nodeDnsModuleSpecifier = "node:dns";
 export const nodeDnsPromisesModuleSpecifier = "node:dns/promises";
@@ -42,9 +43,9 @@ const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const nullableBoolTargetType = csharpNullableValueTargetType(boolTargetType);
 const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 const voidTargetType = csharpVoidTargetType();
-const exceptionTargetType = csharpNullableTargetType(nodejsTargetNamedType("System", "Exception"));
+const exceptionTargetType = csharpNullableTargetType(nodeErrorTargetType);
 const lookupCallbackProviderType = callbackProviderType("node:dns.lookup.callback", [
-  { name: "error", type: unknownProviderType },
+  { name: "error", type: optionalNodeErrorProviderType },
   { name: "address", type: stringProviderType },
   { name: "family", type: numberProviderType },
 ]);
@@ -54,7 +55,7 @@ const lookupCallbackTargetType = csharpDelegateTargetType("System.Action", [
   intTargetType,
 ]);
 const lookupAllCallbackProviderType = callbackProviderType("node:dns.lookup-all.callback", [
-  { name: "error", type: unknownProviderType },
+  { name: "error", type: optionalNodeErrorProviderType },
   { name: "addresses", type: lookupAddressArrayProviderType },
 ]);
 const lookupAllCallbackTargetType = csharpDelegateTargetType("System.Action", [

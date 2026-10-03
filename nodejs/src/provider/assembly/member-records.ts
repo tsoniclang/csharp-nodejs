@@ -12,6 +12,7 @@ import { nodeProcessClassPropertyTargetMembers, nodeProcessCallTargetMembers, no
 import { nodeTimersCallTargetMembers, nodeTimersModuleSpecifier } from "../modules/timers.js";
 import { nodeUtilCallTargetMembers, nodeUtilModuleSpecifier, nodeUtilUnsupportedTargetIdentities } from "../modules/util/declarations.js";
 import { nodeUtilTextDecoderClassCallTargetMembers, nodeUtilTextDecoderClassPropertyTargetMembers } from "../modules/util/text-decoder.js";
+import { nodeErrorClassPropertyTargetMembers } from "../modules/util/node-error.js";
 import { nodeUrlCallTargetMembers, nodeUrlClassCallTargetMembers, nodeUrlClassPropertyTargetMembers, nodeUrlModuleSpecifier, nodeUrlUnsupportedTargetIdentities } from "../modules/url/index.js";
 import { nodeEventsClassCallTargetMembers, nodeEventsModuleSpecifier } from "../modules/events.js";
 import { nodeStreamClassCallTargetMembers, nodeStreamClassPropertyTargetMembers, nodeStreamModuleSpecifier } from "../modules/stream.js";
@@ -87,6 +88,7 @@ export function nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers = true
     ...moduleCallRecords(nodeUtilModuleSpecifier, nodeUtilCallTargetMembers()),
     ...classCallRecords(nodeUtilModuleSpecifier, nodeUtilTextDecoderClassCallTargetMembers()),
     ...classPropertyRecords(nodeUtilModuleSpecifier, nodeUtilTextDecoderClassPropertyTargetMembers()),
+    ...classPropertyRecords(nodeUtilModuleSpecifier, nodeErrorClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeUrlModuleSpecifier, nodeUrlCallTargetMembers()),
     ...classCallRecords(nodeUrlModuleSpecifier, nodeUrlClassCallTargetMembers()),
     ...classPropertyRecords(nodeUrlModuleSpecifier, nodeUrlClassPropertyTargetMembers()),

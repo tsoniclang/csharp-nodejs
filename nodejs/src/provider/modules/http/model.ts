@@ -29,6 +29,7 @@ import {
 import {
   nodeBufferTargetType,
 } from "../buffer/identities.js";
+import { nodeErrorProviderType, nodeErrorTargetType } from "../util/node-error.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
 export const nodeHttpIncomingMessageExportName = "IncomingMessage";
@@ -127,11 +128,7 @@ const socketTargetType = csharpTargetNamedType(
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Socket"),
 );
-const exceptionTargetType = csharpTargetNamedType(
-  "System.Exception",
-  undefined,
-  csharpQualifiedTypeRenderShape("System", "Exception"),
-);
+const exceptionTargetType = nodeErrorTargetType;
 const incomingMessageProviderType = providerRef(nodeHttpIncomingMessageExportName);
 const serverResponseProviderType = providerRef(nodeHttpServerResponseExportName);
 const serverProviderType = providerRef(nodeHttpServerExportName);
@@ -147,10 +144,7 @@ const socketProviderType = {
   moduleSpecifier: "node:net",
   exportName: "Socket",
 } satisfies ProviderTypeExpression;
-const errorProviderType = {
-  kind: "source-global",
-  name: "Error",
-} satisfies ProviderTypeExpression;
+const errorProviderType = nodeErrorProviderType;
 const responseListenerProviderType = (id: string): ProviderTypeExpression =>
   callbackProviderType(id, [
     { name: "response", type: incomingMessageProviderType },

@@ -22,6 +22,7 @@ import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata }
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
+import { nodeErrorProviderType, nodeErrorTargetType } from "./util/node-error.js";
 
 export const nodeStreamModuleSpecifier = "node:stream";
 
@@ -36,8 +37,8 @@ const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
 const actionTargetType = csharpDelegateTargetType("System.Action", []);
-const errorProviderType = { kind: "source-global", name: "Error" } satisfies ProviderTypeExpression;
-const exceptionTargetType = nodejsTargetNamedType("System", "Exception");
+const errorProviderType = nodeErrorProviderType;
+const exceptionTargetType = nodeErrorTargetType;
 const bufferArrayProviderType = {
   kind: "array",
   elementType: nodeBufferProviderType,

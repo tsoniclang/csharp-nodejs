@@ -45,6 +45,43 @@ public class ZlibExtendedTests
     }
 
     [Fact]
+    public void AsyncDecompression_DistinguishesFailureFromSuccessfulEmptyOutput()
+    {
+        var invalid = Buffer.from("invalid compressed data");
+        var gzip = zlib.gzipSync(Buffer.alloc(0));
+        var deflate = zlib.deflateSync(Buffer.alloc(0));
+        var failures = 0;
+        var successes = 0;
+        Action<Exception?, Buffer?> failure = (error, output) =>
+        {
+            Assert.NotNull(error);
+            Assert.NotEmpty(error.Message);
+            Assert.Null(output);
+            failures++;
+        };
+        Action<Exception?, Buffer?> success = (error, output) =>
+        {
+            Assert.Null(error);
+            Assert.NotNull(output);
+            Assert.Equal(0, output.length);
+            successes++;
+        };
+
+        zlib.gunzip(invalid, failure);
+        zlib.inflate(invalid, failure);
+        zlib.gunzip(invalid, new ZlibOptions(), failure);
+        zlib.inflate(invalid, new ZlibOptions(), failure);
+        zlib.gunzip(gzip, success);
+        zlib.inflate(deflate, success);
+        zlib.gunzip(gzip, new ZlibOptions(), success);
+        zlib.inflate(deflate, new ZlibOptions(), success);
+        JsEventLoop.Run();
+
+        Assert.Equal(4, failures);
+        Assert.Equal(4, successes);
+    }
+
+    [Fact]
     public void CreateGzipTransform_RoundTrips()
     {
         var gzip = zlib.createGzip();

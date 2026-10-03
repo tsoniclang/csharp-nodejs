@@ -89,24 +89,24 @@ public static partial class zlib
     public static Buffer unzipSync(Buffer buffer, ZlibOptions? options = null) => Buffer.TakeOwnership(UnzipBytes(BufferBytes(buffer), options));
     public static Buffer brotliCompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.TakeOwnership(BrotliCompressBytes(BufferBytes(buffer), options));
     public static Buffer brotliDecompressSync(Buffer buffer, BrotliOptions? options = null) => Buffer.TakeOwnership(BrotliDecompressBytes(BufferBytes(buffer), options));
-    public static void gzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer), callback);
-    public static void gzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gzipSync(buffer, options), callback);
-    public static void gunzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gunzipSync(buffer), callback);
-    public static void gunzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => gunzipSync(buffer, options), callback);
-    public static void deflate(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => deflateSync(buffer), callback);
-    public static void deflate(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => deflateSync(buffer, options), callback);
-    public static void inflate(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => inflateSync(buffer), callback);
-    public static void inflate(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => inflateSync(buffer, options), callback);
-    public static void deflateRaw(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => deflateRawSync(buffer), callback);
-    public static void deflateRaw(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => deflateRawSync(buffer, options), callback);
-    public static void inflateRaw(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => inflateRawSync(buffer), callback);
-    public static void inflateRaw(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => inflateRawSync(buffer, options), callback);
-    public static void unzip(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => unzipSync(buffer), callback);
-    public static void unzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => unzipSync(buffer, options), callback);
-    public static void brotliCompress(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliCompressSync(buffer), callback);
-    public static void brotliCompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliCompressSync(buffer, options), callback);
-    public static void brotliDecompress(Buffer buffer, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliDecompressSync(buffer), callback);
-    public static void brotliDecompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer> callback) => CompleteBuffer(() => brotliDecompressSync(buffer, options), callback);
+    public static void gzip(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => gzipSync(buffer), callback);
+    public static void gzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => gzipSync(buffer, options), callback);
+    public static void gunzip(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => gunzipSync(buffer), callback);
+    public static void gunzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => gunzipSync(buffer, options), callback);
+    public static void deflate(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => deflateSync(buffer), callback);
+    public static void deflate(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => deflateSync(buffer, options), callback);
+    public static void inflate(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => inflateSync(buffer), callback);
+    public static void inflate(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => inflateSync(buffer, options), callback);
+    public static void deflateRaw(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => deflateRawSync(buffer), callback);
+    public static void deflateRaw(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => deflateRawSync(buffer, options), callback);
+    public static void inflateRaw(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => inflateRawSync(buffer), callback);
+    public static void inflateRaw(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => inflateRawSync(buffer, options), callback);
+    public static void unzip(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => unzipSync(buffer), callback);
+    public static void unzip(Buffer buffer, ZlibOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => unzipSync(buffer, options), callback);
+    public static void brotliCompress(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => brotliCompressSync(buffer), callback);
+    public static void brotliCompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => brotliCompressSync(buffer, options), callback);
+    public static void brotliDecompress(Buffer buffer, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => brotliDecompressSync(buffer), callback);
+    public static void brotliDecompress(Buffer buffer, BrotliOptions options, Action<Exception?, Buffer?> callback) => CompleteBuffer(() => brotliDecompressSync(buffer, options), callback);
     public static ZlibTransform createDeflate(ZlibOptions? options = null) => new(ZlibMode.Deflate, options);
     public static ZlibTransform createInflate(ZlibOptions? options = null) => new(ZlibMode.Inflate, options);
     public static ZlibTransform createGzip(ZlibOptions? options = null) => new(ZlibMode.Gzip, options);
@@ -122,7 +122,7 @@ public static partial class zlib
         return buffer.InternalMemory;
     }
 
-    private static void CompleteBuffer(Func<Buffer> operation, Action<Exception?, Buffer> callback)
+    private static void CompleteBuffer(Func<Buffer> operation, Action<Exception?, Buffer?> callback)
     {
         _ = BackgroundDispatch.RunReferenced(() =>
         {
@@ -133,7 +133,7 @@ public static partial class zlib
             }
             catch (Exception error)
             {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error, null!));
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error, null));
             }
         });
     }

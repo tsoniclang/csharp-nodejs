@@ -16,9 +16,10 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
 
 export const nodeNetModuleSpecifier = "node:net";
 
@@ -48,10 +49,10 @@ const socketListenerProviderType = callbackProviderType("node:net.connection-lis
 ]);
 const socketListenerTargetType = csharpDelegateTargetType("System.Action", [targetTypes.Socket]);
 const errorCallbackProviderType = callbackProviderType("node:net.error-callback", [
-  { name: "error", type: unknownProviderType },
+  { name: "error", type: optionalNodeErrorProviderType },
 ]);
 const errorCallbackTargetType = csharpDelegateTargetType("System.Action", [
-  csharpNullableTargetType(nodejsTargetNamedType("System", "Exception")),
+  csharpNullableTargetType(nodeErrorTargetType),
 ]);
 
 export function nodeNetExports(): readonly ProviderExportDeclaration[] {
