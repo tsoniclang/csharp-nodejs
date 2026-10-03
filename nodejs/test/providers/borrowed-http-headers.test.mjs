@@ -14,6 +14,14 @@ test("HTTP header indexer exposes exact unboxed native readonly backing, not an 
   assert.equal(carrier.csharpIndexableLengthMemberName, "Count");
   assert.deepEqual(carrier.csharpReadOnlyIndexableElementType, carrier.csharpEnumerableElementType);
   assert.equal(carrier.csharpDenseMutableElementType, undefined);
+  const read = carrier.csharpIndexableReadMember;
+  assert.equal(read.declaringType.id, "Tsonic.CSharp.Node.Http.HeaderValues");
+  assert.equal(read.static, true);
+  assert.equal(read.readonly, true);
+  assert.equal(read.parameters[0].type.id, carrier.id);
+  assert.equal(read.parameters[0].type.csharpIndexableReadMember, undefined);
+  assert.equal(read.parameters[1].type.name, "int32");
+  assert.deepEqual(read.returnType, carrier.csharpReadOnlyIndexableElementType);
   const declaration = nodeHttpExports().find(entry => entry.name === "IncomingHttpHeaderValues");
   assert.deepEqual(declaration.members[0].signatures[0].returnType, member.providerType);
   assert.equal(member.providerType.types[0].name, "ReadonlyArray");

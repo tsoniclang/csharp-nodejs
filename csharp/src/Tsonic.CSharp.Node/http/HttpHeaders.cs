@@ -47,9 +47,6 @@ public sealed class IncomingHttpHeaders
             {
                 if (!headers.TryGetValue(name, out var values) || values.Count == 0)
                     return null;
-                for (var index = 0; index < values.Count; index++)
-                    if (values[index] is null)
-                        throw new InvalidOperationException("Native HTTP header value is null.");
                 return values;
             }
             if (_snapshot!.TryGetValue(name, out var snapshot) && snapshot.Length > 0)
@@ -76,9 +73,14 @@ public sealed class IncomingHttpHeaders
     {
         http.validateHeaderName(name);
         if (_requestHeaders is { } headers)
-            return headers.TryGetValue(name, out var values)
-                ? values.Select(value => value ?? throw new InvalidOperationException("Native HTTP header value is null.")).ToArray()
-                : Array.Empty<string>();
+        {
+            if (!headers.TryGetValue(name, out var values) || values.Count == 0)
+                return Array.Empty<string>();
+            var result = new string[values.Count];
+            for (var index = 0; index < result.Length; index++)
+                result[index] = HeaderValues.read(values, index);
+            return result;
+        }
         return _snapshot!.TryGetValue(name, out var snapshot)
             ? [.. snapshot]
             : Array.Empty<string>();

@@ -15,6 +15,7 @@ import {
 } from "@tsonic/target-csharp/provider";
 import type {
   TargetTypeRef,
+  CsharpTargetMember,
   CsharpProviderArgumentAdapter,
 } from "@tsonic/target-csharp/provider";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
@@ -76,13 +77,34 @@ const stringArrayTargetType = { kind: "array", element: stringTargetType } satis
 const borrowedHeaderValuesProviderType = {
   kind: "source-global", name: "ReadonlyArray", typeArguments: [stringProviderType],
 } satisfies ProviderTypeExpression;
-const borrowedHeaderValuesTargetType = csharpTargetNamedType(
+const headerValuesStorageType = csharpTargetNamedType(
   "Microsoft.Extensions.Primitives.StringValues", undefined,
   csharpQualifiedTypeRenderShape("Microsoft.Extensions.Primitives", "StringValues"), {
     valueType: true,
     enumerableElementType: stringTargetType,
     readOnlyIndexableElementType: stringTargetType,
     indexableLengthMemberName: "Count",
+  },
+);
+const headerValuesReadMember = {
+  id: "Tsonic.CSharp.Node.Http.HeaderValues.read(Microsoft.Extensions.Primitives.StringValues,System.Int32)",
+  sourceName: "read",
+  targetName: "read",
+  kind: "method",
+  static: true,
+  readonly: true,
+  declaringType: csharpTargetNamedType("Tsonic.CSharp.Node.Http.HeaderValues", undefined,
+    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "HeaderValues")),
+  parameters: [targetParameter("values", headerValuesStorageType), targetParameter("index", intTargetType)],
+  returnType: stringTargetType,
+} satisfies CsharpTargetMember;
+const borrowedHeaderValuesTargetType = csharpTargetNamedType(
+  headerValuesStorageType.id, undefined, headerValuesStorageType.csharpRender, {
+    valueType: true,
+    enumerableElementType: stringTargetType,
+    readOnlyIndexableElementType: stringTargetType,
+    indexableLengthMemberName: "Count",
+    indexableReadMember: headerValuesReadMember,
   },
 );
 const incomingMessageTargetType = csharpTargetNamedType(
