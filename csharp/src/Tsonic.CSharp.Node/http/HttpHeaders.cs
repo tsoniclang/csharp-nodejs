@@ -52,9 +52,9 @@ public sealed class IncomingHttpHeaders
                         throw new InvalidOperationException("Native HTTP header value is null.");
                 return values;
             }
-            return _snapshot!.TryGetValue(name, out var snapshot) && snapshot.Length > 0
-                ? new StringValues(snapshot)
-                : null;
+            if (_snapshot!.TryGetValue(name, out var snapshot) && snapshot.Length > 0)
+                return new StringValues(snapshot);
+            return null;
         }
     }
 
