@@ -78,7 +78,7 @@ function headerValuesDeclaration(): ProviderExportDeclaration {
       parameters: [{ name: "name", type: { kind: "string" } }],
       returnType: {
         kind: "union",
-        types: [{ kind: "array", elementType: { kind: "string" } }, { kind: "undefined" }],
+        types: [{ kind: "source-global", name: "ReadonlyArray", typeArguments: [{ kind: "string" }] }, { kind: "undefined" }],
       },
     }],
   }]);

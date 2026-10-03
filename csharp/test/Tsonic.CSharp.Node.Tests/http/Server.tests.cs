@@ -23,10 +23,10 @@ public class HttpServerTests
         var server = http.createServer((request, response) =>
         {
             sameCarrier = ReferenceEquals(request.headers, request.headersDistinct);
-            first = request.headersDistinct["x-item"];
+            first = request.headersDistinct.getAll("x-item");
             first![0] = "changed";
-            second = request.headersDistinct["X-ITEM"];
-            missing = request.headersDistinct["missing"];
+            second = request.headersDistinct.getAll("X-ITEM");
+            missing = request.headersDistinct["missing"] is null ? null : throw new InvalidOperationException();
             response.end("ok");
         });
         server.listen(0, "127.0.0.1", (Action?)null);

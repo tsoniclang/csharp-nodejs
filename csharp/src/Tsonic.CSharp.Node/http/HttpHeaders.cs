@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace Tsonic.CSharp.Node.Http;
 
@@ -37,12 +38,23 @@ public sealed class IncomingHttpHeaders
     }
 
     /// <summary>Returns the repeated values for a header, or native absence.</summary>
-    public string[]? this[string name]
+    public StringValues? this[string name]
     {
         get
         {
-            var values = getAll(name);
-            return values.Length == 0 ? null : values;
+            http.validateHeaderName(name);
+            if (_requestHeaders is { } headers)
+            {
+                if (!headers.TryGetValue(name, out var values) || values.Count == 0)
+                    return null;
+                for (var index = 0; index < values.Count; index++)
+                    if (values[index] is null)
+                        throw new InvalidOperationException("Native HTTP header value is null.");
+                return values;
+            }
+            return _snapshot!.TryGetValue(name, out var snapshot) && snapshot.Length > 0
+                ? new StringValues(snapshot)
+                : null;
         }
     }
 

@@ -73,6 +73,18 @@ const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
 const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const stringArrayTargetType = { kind: "array", element: stringTargetType } satisfies TargetTypeRef;
+const borrowedHeaderValuesProviderType = {
+  kind: "source-global", name: "ReadonlyArray", typeArguments: [stringProviderType],
+} satisfies ProviderTypeExpression;
+const borrowedHeaderValuesTargetType = csharpTargetNamedType(
+  "Microsoft.Extensions.Primitives.StringValues", undefined,
+  csharpQualifiedTypeRenderShape("Microsoft.Extensions.Primitives", "StringValues"), {
+    valueType: true,
+    enumerableElementType: stringTargetType,
+    readOnlyIndexableElementType: stringTargetType,
+    indexableLengthMemberName: "Count",
+  },
+);
 const incomingMessageTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.IncomingMessage",
   undefined,
@@ -506,9 +518,9 @@ export function nodeHttpClassPropertyTargetMembers(): readonly NodejsClassProper
       sourceName: "Item",
       targetName: "Item",
       memberKind: "indexer",
-      providerType: { kind: "union", types: [stringArrayProviderType, undefinedProviderType] },
+      providerType: { kind: "union", types: [borrowedHeaderValuesProviderType, undefinedProviderType] },
       targetParameters: [targetParameter("name", stringTargetType)],
-      targetReturnType: csharpNullableTargetType(stringArrayTargetType),
+      targetReturnType: csharpNullableTargetType(borrowedHeaderValuesTargetType),
       declaringType: incomingHeadersTargetType,
       readonly: true,
     }),
