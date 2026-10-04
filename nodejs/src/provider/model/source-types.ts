@@ -6,3 +6,4 @@ export const booleanProviderType = Object.freeze({ kind: "boolean" }) satisfies 
 export const voidProviderType = Object.freeze({ kind: "void" }) satisfies ProviderTypeExpression;
 export const unknownProviderType = Object.freeze({ kind: "unknown" }) satisfies ProviderTypeExpression;
 export const undefinedProviderType = Object.freeze({ kind: "undefined" }) satisfies ProviderTypeExpression;
+export const errorProviderType = Object.freeze({ kind: "source-global", name: "Error" }) satisfies ProviderTypeExpression;

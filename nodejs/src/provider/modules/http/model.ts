@@ -31,6 +31,7 @@ import {
   nodeBufferTargetType,
 } from "../buffer/identities.js";
 import { nodeErrorProviderType, nodeErrorTargetType } from "../util/node-error.js";
+import { errorProviderType as retainedErrorProviderType } from "../../model/source-types.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
 export const nodeHttpIncomingMessageExportName = "IncomingMessage";
@@ -621,7 +622,7 @@ function incomingMessageLifecycleCallTargetMembers(): readonly NodejsClassCallTa
       sourceName: "destroy",
       targetName: "destroyChain",
       memberKind: "method",
-      providerParameters: [{ name: "error", type: errorProviderType, optional: true }],
+      providerParameters: [{ name: "error", type: retainedErrorProviderType, optional: true }],
       providerReturnType: incomingMessageProviderType,
       targetParameters: [targetParameter("error", csharpNullableTargetType(exceptionTargetType), { optional: true })],
       targetReturnType: incomingMessageTargetType,
@@ -633,7 +634,7 @@ function incomingMessageLifecycleCallTargetMembers(): readonly NodejsClassCallTa
       incomingMessageTargetType,
       [
         ["data", [{ name: "chunk", provider: nodeBufferProviderType, target: nodeBufferTargetType }]],
-        ["error", [{ name: "error", provider: errorProviderType, target: exceptionTargetType }]],
+        ["error", [{ name: "error", provider: retainedErrorProviderType, target: exceptionTargetType }]],
         ["end", []],
         ["aborted", []],
         ["close", []],
@@ -726,7 +727,7 @@ function serverResponseHeaderCallTargetMembers(): readonly NodejsClassCallTarget
     serverResponseProviderType,
     serverResponseTargetType,
     [
-      ["error", [{ name: "error", provider: errorProviderType, target: exceptionTargetType }]],
+      ["error", [{ name: "error", provider: retainedErrorProviderType, target: exceptionTargetType }]],
       ["drain", []],
       ["finish", []],
       ["close", []],

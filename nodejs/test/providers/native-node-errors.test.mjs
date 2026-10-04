@@ -4,9 +4,11 @@ import { nodejsCanonicalProviderExports } from "../../../dist/provider/assembly/
 import { nodejsProviderTargetRelations } from "../../../dist/provider/target-relations.js";
 import { nodejsProviderTargetTypeRows } from "../../../dist/provider/modules/target-bindings.js";
 
-test("native NodeError exposes only its readonly native message contract", () => {
+test("native NodeError exposes its readonly native Error contract", () => {
   const declaration = nodejsCanonicalProviderExports("node:util").find(entry => entry.name === "NodeError");
   assert.equal(declaration.kind, "interface");
+  assert.deepEqual(declaration.heritage, [{ kind: "extends", type: { kind: "source-global", name: "Readonly",
+    typeArguments: [{ kind: "source-global", name: "Error" }] } }]);
   assert.deepEqual(declaration.members, [{
     id: "node:util.NodeError.message", name: "message", kind: "property",
     readonly: true, type: { kind: "string" },

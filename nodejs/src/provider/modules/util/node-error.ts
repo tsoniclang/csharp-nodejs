@@ -13,6 +13,9 @@ export function nodeErrorExportDeclaration(): ProviderExportDeclaration {
     id: "node:util.NodeError",
     name: "NodeError",
     kind: "interface",
+    heritage: [{ kind: "extends", type: { kind: "source-global", name: "Readonly", typeArguments: [
+      { kind: "source-global", name: "Error" },
+    ] } }],
     members: [{
       id: "node:util.NodeError.message",
       name: "message",

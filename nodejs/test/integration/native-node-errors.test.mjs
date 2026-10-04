@@ -23,10 +23,10 @@ test("native callback errors do not promise mutable source Error storage", () =>
   for (const sourceText of [
     `import type { NodeError } from "node:util";
      export function change(error: NodeError): void { error.message = "changed"; }`,
-    `import type { Readable } from "node:stream";
-     export function observe(source: Readable): void {
-       source.on("error", (error: Error) => { console.log(error.stack); });
-     }`,
+    `import type { NodeError } from "node:util";
+     export function change(error: NodeError): void { error.name = "changed"; }`,
+    `import type { NodeError } from "node:util";
+     export function change(error: NodeError): void { error.stack = "changed"; }`,
   ]) {
     const compiled = compileCsharpSource({ surface: "js", capabilities: [createTsonicPlugin()], sourceText });
     assert.notEqual(compiled.sourceDiagnosticsText, "");

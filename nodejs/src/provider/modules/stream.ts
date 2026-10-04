@@ -14,7 +14,7 @@ import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, errorProviderType, numberProviderType, stringProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../declarations/target-members.js";
 import { nodeBufferProviderType } from "./buffer/provider-types.js";
 import { nodeBufferTargetType } from "./buffer/identities.js";
@@ -22,7 +22,7 @@ import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata }
 import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
-import { nodeErrorProviderType, nodeErrorTargetType } from "./util/node-error.js";
+import { nodeErrorTargetType } from "./util/node-error.js";
 
 export const nodeStreamModuleSpecifier = "node:stream";
 
@@ -37,7 +37,6 @@ const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
 const actionTargetType = csharpDelegateTargetType("System.Action", []);
-const errorProviderType = nodeErrorProviderType;
 const exceptionTargetType = nodeErrorTargetType;
 const bufferArrayProviderType = {
   kind: "array",
