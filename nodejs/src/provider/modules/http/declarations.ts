@@ -13,6 +13,8 @@ import {
   nodeHttpCallTargetMembers,
   nodeHttpClassCallTargetMembers,
   nodeHttpClassPropertyTargetMembers,
+} from "./model.js";
+import {
   nodeHttpClientRequestExportName,
   nodeHttpAddressInfoExportName,
   nodeHttpServerAddressExportName,
@@ -24,7 +26,7 @@ import {
   nodeHttpRequestOptionsExportName,
   nodeHttpServerExportName,
   nodeHttpServerResponseExportName,
-} from "./model.js";
+} from "./types.js";
 
 export function nodeHttpExports(): readonly ProviderExportDeclaration[] {
   const exports = [
