@@ -164,18 +164,18 @@ export const responseListenerProviderType = (id: string): ProviderTypeExpression
   callbackProviderType(id, [
     { name: "response", type: incomingMessageProviderType },
   ], voidProviderType);
-export const responseListenerTargetType = csharpDelegateTargetType(
+export const responseListenerTargetType: TargetTypeRef = csharpDelegateTargetType(
   "System.Action",
   [incomingMessageTargetType],
 );
 export const voidCallbackProviderType = callbackProviderType("node:http.listen.callback", [], voidProviderType);
 export const voidListenHostnameCallbackProviderType = callbackProviderType("node:http.listen-hostname.callback", [], voidProviderType);
-export const voidCallbackTargetType = csharpDelegateTargetType("System.Action", []);
+export const voidCallbackTargetType: TargetTypeRef = csharpDelegateTargetType("System.Action", []);
 export const requestListenerProviderType = callbackProviderType("node:http.request-listener", [
   { name: "request", type: incomingMessageProviderType },
   { name: "response", type: serverResponseProviderType },
 ], voidProviderType);
-export const requestListenerTargetType = csharpDelegateTargetType(
+export const requestListenerTargetType: TargetTypeRef = csharpDelegateTargetType(
   "System.Action",
   [incomingMessageTargetType, serverResponseTargetType],
 );
