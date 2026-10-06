@@ -50,6 +50,73 @@ public class WorkerThreadsTests
     }
 
     [Fact]
+    public void SharedMessagePort_PreservesInterleavedRegistrationAcrossAliases()
+    {
+        var channel = new MessageChannel();
+        var first = channel.port2;
+        var second = channel.port2;
+        var order = new List<int>();
+        first.on<TsValue>("message", _ => order.Add(1));
+        second.on<TsValue>("message", _ => order.Add(2));
+        first.on<TsValue>("message", _ => order.Add(3));
+        channel.port1.postMessage(TsValue.from(1));
+        channel.port1.postMessage(TsValue.from(2));
+        JsEventLoop.Run();
+        Assert.Equal([1, 2, 3, 1, 2, 3], order);
+        Assert.True(channel.port2.receiveMessageOnPort().isUndefined());
+        channel.port1.close();
+        channel.port2.close();
+        JsEventLoop.Run();
+    }
+
+    [Fact]
+    public void SharedMessagePort_CancellationPreservesCurrentSnapshotOnly()
+    {
+        var channel = new MessageChannel();
+        var first = channel.port2;
+        var second = channel.port2;
+        var order = new List<int>();
+        Action<TsValue> canceled = _ => order.Add(2);
+        first.on<TsValue>("message", _ =>
+        {
+            order.Add(1);
+            first.off("message", canceled);
+        });
+        second.on("message", canceled);
+        channel.port1.postMessage(TsValue.from(1));
+        channel.port1.postMessage(TsValue.from(2));
+        JsEventLoop.Run();
+        Assert.Equal([1, 2, 1], order);
+        Assert.Equal(1, first.listenerCount("message"));
+        channel.port1.close();
+        channel.port2.close();
+        JsEventLoop.Run();
+    }
+
+    [Fact]
+    public void SharedMessagePort_OriginalFailureKeepsUninvokedOnceListenerAndNextMessage()
+    {
+        var channel = new MessageChannel();
+        var first = channel.port2;
+        var second = channel.port2;
+        var original = new InvalidOperationException("original shared port failure");
+        var calls = 0;
+        first.once<TsValue>("message", _ => throw original);
+        second.once<TsValue>("message", _ => calls++);
+        channel.port1.postMessage(TsValue.from(1));
+        channel.port1.postMessage(TsValue.from(2));
+        Assert.Same(original, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run()));
+        Assert.Equal(0, calls);
+        Assert.Equal(1, first.listenerCount("message"));
+        JsEventLoop.Run();
+        Assert.Equal(1, calls);
+        Assert.Equal(0, second.listenerCount("message"));
+        channel.port1.close();
+        channel.port2.close();
+        JsEventLoop.Run();
+    }
+
+    [Fact]
     public void EnvironmentData_UsesProcessEnvironment()
     {
         worker_threads.setEnvironmentData("TSONIC_NODE_TEST", TsValue.from("ok"));
