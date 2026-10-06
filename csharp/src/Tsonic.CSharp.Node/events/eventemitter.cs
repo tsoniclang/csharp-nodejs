@@ -25,9 +25,13 @@ public partial class EventEmitter
         public Delegate Original { get; }
         public Action<object?[]> Invoke { get; }
         public bool Once { get; }
+        public bool Consumed { get; set; }
+        public bool Registered { get; set; } = true;
     }
 
-    private readonly Dictionary<object, EventListener[]> _events = new();
+    private readonly record struct EventListeners(EventListener[] Entries, int Count);
+
+    private readonly Dictionary<object, EventListeners> _events = new();
     private readonly object _eventLock = new();
     private int _maxListeners = _defaultMaxListeners;
     private static int _defaultMaxListeners = 10;
@@ -89,11 +93,18 @@ public partial class EventEmitter
         int count;
         lock (_eventLock)
         {
-            var listeners = _events.GetValueOrDefault(eventName) ?? [];
-            var updated = new EventListener[listeners.Length + 1];
-            listeners.CopyTo(updated, prepend ? 1 : 0);
-            updated[prepend ? 0 : listeners.Length] = listener;
-            _events[eventName] = updated;
+            var listeners = _events.TryGetValue(eventName, out var registered)
+                ? registered : new EventListeners([], 0);
+            var updated = new EventListener[listeners.Count + 1];
+            var destination = prepend ? 1 : 0;
+            if (listeners.Entries.Length == listeners.Count)
+                listeners.Entries.CopyTo(updated, destination);
+            else
+                foreach (var entry in listeners.Entries)
+                    if (entry.Registered)
+                        updated[destination++] = entry;
+            updated[prepend ? 0 : listeners.Count] = listener;
+            _events[eventName] = new EventListeners(updated, updated.Length);
             count = updated.Length;
         }
 
@@ -144,35 +155,46 @@ public partial class EventEmitter
         };
     }
 
-    private static Delegate[] ListenerDelegates(IReadOnlyCollection<EventListener> listeners)
+    private static Delegate[] ListenerDelegates(EventListeners listeners)
     {
-        return listeners.Select(listener => listener.Original).ToArray();
+        var delegates = new Delegate[listeners.Count];
+        var index = 0;
+        foreach (var listener in listeners.Entries)
+            if (listener.Registered)
+                delegates[index++] = listener.Original;
+        return delegates;
     }
 
-    private void removeStoredListener(object eventName, EventListener listener)
+    private void CompactListeners(object eventName)
     {
         lock (_eventLock)
         {
-            if (!_events.TryGetValue(eventName, out var listeners))
+            if (!_events.TryGetValue(eventName, out var listeners)
+                || listeners.Entries.Length == listeners.Count)
                 return;
-
-            var index = System.Array.IndexOf(listeners, listener);
-            if (index >= 0)
-                removeStoredListenerAt(eventName, listeners, index);
+            var retained = new EventListener[listeners.Count];
+            var destination = 0;
+            foreach (var listener in listeners.Entries)
+                if (listener.Registered)
+                    retained[destination++] = listener;
+            _events[eventName] = new EventListeners(retained, retained.Length);
         }
     }
 
-    private void removeStoredListenerAt(object eventName, EventListener[] listeners, int index)
+    private void removeStoredListenerAt(object eventName, EventListeners listeners, int index)
     {
-        if (listeners.Length == 1)
+        listeners.Entries[index].Registered = false;
+        if (listeners.Count == 1)
         {
             _events.Remove(eventName);
             return;
         }
-        var updated = new EventListener[listeners.Length - 1];
-        listeners.AsSpan(0, index).CopyTo(updated);
-        listeners.AsSpan(index + 1).CopyTo(updated.AsSpan(index));
-        _events[eventName] = updated;
+        var updated = new EventListener[listeners.Count - 1];
+        var destination = 0;
+        foreach (var listener in listeners.Entries)
+            if (listener.Registered)
+                updated[destination++] = listener;
+        _events[eventName] = new EventListeners(updated, updated.Length);
     }
 
     private static object EventKey(string eventName)

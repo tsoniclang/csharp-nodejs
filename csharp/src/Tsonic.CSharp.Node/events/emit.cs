@@ -26,21 +26,13 @@ public partial class EventEmitter
         EventListener[]? listeners;
         lock (_eventLock)
         {
-            if (!_events.TryGetValue(eventName, out var registered) || registered.Length == 0)
+            if (!_events.TryGetValue(eventName, out var registered))
             {
                 listeners = null;
             }
             else
             {
-                listeners = registered;
-                if (System.Array.Exists(registered, static listener => listener.Once))
-                {
-                    var retained = System.Array.FindAll(registered, static listener => !listener.Once);
-                    if (retained.Length == 0)
-                        _events.Remove(eventName);
-                    else
-                        _events[eventName] = retained;
-                }
+                listeners = registered.Entries;
             }
         }
 
@@ -56,9 +48,47 @@ public partial class EventEmitter
             return false;
         }
 
-        foreach (var listener in listeners)
-            listener.Invoke(args);
+        var dispatched = false;
+        var consumed = false;
+        try
+        {
+            foreach (var listener in listeners)
+            {
+                if (listener.Once)
+                {
+                    if (!ConsumeOnceListener(eventName, listener))
+                        continue;
+                    consumed = true;
+                }
+                listener.Invoke(args);
+                dispatched = true;
+            }
+        }
+        finally
+        {
+            if (consumed)
+                CompactListeners(eventName);
+        }
 
-        return true;
+        return dispatched;
+    }
+
+    private bool ConsumeOnceListener(object eventName, EventListener listener)
+    {
+        lock (_eventLock)
+        {
+            if (listener.Consumed)
+                return false;
+            listener.Consumed = true;
+            if (listener.Registered && _events.TryGetValue(eventName, out var registered))
+            {
+                listener.Registered = false;
+                if (registered.Count == 1)
+                    _events.Remove(eventName);
+                else
+                    _events[eventName] = registered with { Count = registered.Count - 1 };
+            }
+            return true;
+        }
     }
 }

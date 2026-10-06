@@ -30,9 +30,9 @@ public partial class EventEmitter
             if (!_events.TryGetValue(eventName, out var listeners))
                 return this;
 
-            for (var index = listeners.Length - 1; index >= 0; index--)
+            for (var index = listeners.Entries.Length - 1; index >= 0; index--)
             {
-                if (!Equals(listeners[index].Original, listener))
+                if (!listeners.Entries[index].Registered || !Equals(listeners.Entries[index].Original, listener))
                     continue;
                 removeStoredListenerAt(eventName, listeners, index);
                 removed = true;

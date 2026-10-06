@@ -38,12 +38,15 @@ public partial class EventEmitter
         {
             if (!_events.TryGetValue(eventName, out var registered))
                 return this;
-            listeners = registered;
+            listeners = registered.Entries;
+            foreach (var listener in registered.Entries)
+                listener.Registered = false;
             _events.Remove(eventName);
         }
         if (!IsEvent(eventName, "removeListener"))
-            foreach (var listener in listeners.Reverse())
-                emit("removeListener", EventValue(eventName), listener.Original);
+            for (var index = listeners.Length - 1; index >= 0; index--)
+                if (!listeners[index].Consumed)
+                    emit("removeListener", EventValue(eventName), listeners[index].Original);
         return this;
     }
 }
