@@ -42,7 +42,11 @@ public class NativeStreamLifecycleTests
             errors++;
             throw expected;
         });
-        transform.on("close", () => closes++);
+        transform.on("close", () =>
+        {
+            closes++;
+            throw new InvalidOperationException("later native close listener failure");
+        });
         Assert.Same(expected, Assert.Throws<InvalidOperationException>(() =>
             transform.destroy(new Exception("native supplied error"))));
         transform.destroy();
@@ -51,6 +55,24 @@ public class NativeStreamLifecycleTests
         Assert.True(transform.destroyed);
         Assert.False(transform.readable);
         Assert.False(transform.writable);
+    }
+
+    [Fact]
+    public void ErrorCallbacks_CanChangeTheSubsequentSharedCloseSubscription()
+    {
+        var transform = new Transform();
+        Readable projection = transform;
+        var closes = 0;
+        Action removed = () => throw new InvalidOperationException("removed close listener was invoked");
+        transform.once("close", removed);
+        transform.once<Exception>("error", _ =>
+        {
+            projection.off("close", removed);
+            projection.once("close", () => closes++);
+        });
+        projection.destroy(new Exception("native lifecycle error"));
+        Assert.Equal(1, closes);
+        Assert.True(transform.destroyed);
     }
 
     [Fact]

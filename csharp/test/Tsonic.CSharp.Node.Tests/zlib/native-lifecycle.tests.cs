@@ -42,6 +42,77 @@ public class NativeCodecLifecycleTests
         Assert.Equal(0, errors);
     }
 
+    [Theory]
+    [InlineData(ZlibMode.Gzip)]
+    [InlineData(ZlibMode.Gunzip)]
+    [InlineData(ZlibMode.Deflate)]
+    [InlineData(ZlibMode.Inflate)]
+    [InlineData(ZlibMode.DeflateRaw)]
+    [InlineData(ZlibMode.InflateRaw)]
+    [InlineData(ZlibMode.BrotliCompress)]
+    [InlineData(ZlibMode.BrotliDecompress)]
+    [InlineData(ZlibMode.Unzip)]
+    public void NormalCodecCompletion_QueuesFinalAcknowledgementBeforeReleasingTheProcessor(ZlibMode mode)
+    {
+        var codec = new ZlibTransform(mode);
+        var plain = Buffer.from("native completed codec");
+        var input = mode switch
+        {
+            ZlibMode.Gunzip or ZlibMode.Unzip => zlib.gzipSync(plain),
+            ZlibMode.Inflate => zlib.deflateSync(plain),
+            ZlibMode.InflateRaw => zlib.deflateRawSync(plain),
+            ZlibMode.BrotliDecompress => zlib.brotliCompressSync(plain),
+            _ => plain,
+        };
+        var chunks = new List<Buffer>();
+        var errors = new List<Exception>();
+        var finishes = 0;
+        codec.on<Buffer>("data", chunks.Add);
+        codec.on<Exception>("error", errors.Add);
+        codec.once("finish", () => finishes++);
+        codec.write(Buffer.alloc(0));
+        codec.write(input);
+        codec.write(Buffer.alloc(0));
+        codec.end();
+        DrainEventLoop();
+        var output = Buffer.concat(chunks);
+        var decoded = mode switch
+        {
+            ZlibMode.Gzip => zlib.gunzipSync(output),
+            ZlibMode.Deflate => zlib.inflateSync(output),
+            ZlibMode.DeflateRaw => zlib.inflateRawSync(output),
+            ZlibMode.BrotliCompress => zlib.brotliDecompressSync(output),
+            _ => output,
+        };
+        Assert.Equal(plain.toString(), decoded.toString());
+        Assert.Empty(errors);
+        Assert.Equal(1, finishes);
+        Assert.True(codec.writableFinished);
+        Assert.True(codec.readableEnded);
+        Assert.Equal(0, codec.writableLength);
+    }
+
+    [Fact]
+    public void CodecInputFailure_ClosesItsProcessorWithoutSuccessfulFinish()
+    {
+        var codec = zlib.createGunzip();
+        var errors = new List<Exception>();
+        var closes = 0;
+        var finishes = 0;
+        codec.once<Exception>("error", errors.Add);
+        codec.once("close", () => closes++);
+        codec.on("finish", () => finishes++);
+        codec.end(Buffer.from("not compressed data"));
+        DrainEventLoop();
+        Assert.Single(errors);
+        Assert.Equal(1, closes);
+        Assert.Equal(0, finishes);
+        Assert.True(codec.destroyed);
+        Assert.False(codec.writableFinished);
+        Assert.Equal(0, codec.writableLength);
+        Assert.Throws<InvalidOperationException>(() => codec.write(Buffer.from("late input")));
+    }
+
     [Fact]
     public void PendingCodecInputAndPublication_AbortRetainsOneErrorAndNoFinish()
     {
@@ -110,6 +181,38 @@ public class NativeCodecLifecycleTests
         codec.end(Buffer.from("native callback identity"));
         DrainEventLoop();
         Assert.Collection(errors, error => Assert.Same(expected, error));
+        Assert.Equal(1, closes);
+        Assert.True(codec.destroyed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DestructionInsideOutputCallback_DoesNotHideAThrowingErrorListener(bool throwsCancellation)
+    {
+        var codec = zlib.createGzip();
+        var supplied = new Exception("native supplied error");
+        Exception expected = throwsCancellation
+            ? new OperationCanceledException("native error listener failure")
+            : new InvalidOperationException("native error listener failure");
+        var closes = 0;
+        codec.on("close", () => closes++);
+        codec.once<Exception>("error", error =>
+        {
+            Assert.Same(supplied, error);
+            throw expected;
+        });
+        codec.on<Buffer>("data", _ => codec.destroy(supplied));
+        codec.end(Buffer.from("native nested destruction"));
+        try
+        {
+            Assert.Same(expected, Assert.ThrowsAny<Exception>(DrainEventLoop));
+        }
+        finally
+        {
+            codec.destroy();
+            DrainEventLoop();
+        }
         Assert.Equal(1, closes);
         Assert.True(codec.destroyed);
     }

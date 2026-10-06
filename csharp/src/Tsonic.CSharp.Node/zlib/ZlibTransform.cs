@@ -14,10 +14,12 @@ public class ZlibTransform : Transform
     private readonly ZlibMode _mode;
     private readonly ZlibOptions? _zlibOptions;
     private readonly BrotliOptions? _brotliOptions;
-    private readonly Task _processor;
+    private readonly object _completionSync = new();
     private readonly CancellationTokenSource _stopping = new();
     private Exception? _processorError;
-    private int _flushStarted;
+    private Action<Exception?>? _flushCallback;
+    private bool _processorCompleted;
+    private bool _flushStarted;
     private int _destroyStarted;
 
     /// <summary>Creates a transform for the selected codec and validated options.</summary>
@@ -30,7 +32,7 @@ public class ZlibTransform : Transform
         _mode = mode;
         _zlibOptions = zlibOptions;
         _brotliOptions = brotliOptions;
-        _processor = BackgroundDispatch.RunReferenced(Process);
+        _ = BackgroundDispatch.RunReferenced(Process);
     }
 
     /// <summary>Gets the codec mode selected for this transform.</summary>
@@ -74,15 +76,19 @@ public class ZlibTransform : Transform
     /// <inheritdoc />
     protected override void _flush(Action<Exception?> callback)
     {
-        if (Interlocked.Exchange(ref _flushStarted, 1) != 0)
-            throw new InvalidOperationException("Zlib transform was finalized more than once.");
-
+        bool completed;
+        lock (_completionSync)
+        {
+            if (_flushStarted)
+                throw new InvalidOperationException("Zlib transform was finalized more than once.");
+            _flushStarted = true;
+            completed = _processorCompleted;
+            if (!completed)
+                _flushCallback = callback;
+        }
         _input.Complete();
-        _ = _processor.ContinueWith(
-            _ => Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(Volatile.Read(ref _processorError))),
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
+        if (completed)
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(Volatile.Read(ref _processorError)));
     }
 
     private void Process()
@@ -103,6 +109,18 @@ public class ZlibTransform : Transform
             _input.Fail(failure);
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(failure));
         }
+        finally
+        {
+            Action<Exception?>? callback;
+            lock (_completionSync)
+            {
+                _processorCompleted = true;
+                callback = _flushCallback;
+                _flushCallback = null;
+            }
+            if (callback is not null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(Volatile.Read(ref _processorError)));
+        }
     }
 
     private void PublishOutput(byte[] bytes)
@@ -111,18 +129,30 @@ public class ZlibTransform : Transform
         var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
-            try
-            {
-                _stopping.Token.ThrowIfCancellationRequested();
-                completed.TrySetResult(push(Buffer.TakeOwnership(bytes)));
-            }
-            catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
+            if (_stopping.IsCancellationRequested)
             {
                 completed.TrySetCanceled(_stopping.Token);
+                return;
+            }
+            try
+            {
+                completed.TrySetResult(push(Buffer.TakeOwnership(bytes)));
             }
             catch (Exception error)
             {
-                completed.TrySetException(error);
+                if (destroyed)
+                {
+                    completed.TrySetCanceled(_stopping.Token);
+                    throw;
+                }
+                try
+                {
+                    destroy(error);
+                }
+                finally
+                {
+                    completed.TrySetCanceled(_stopping.Token);
+                }
             }
         });
         var accepted = completed.Task.WaitAsync(_stopping.Token).GetAwaiter().GetResult();
@@ -370,11 +400,15 @@ public class ZlibTransform : Transform
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            ArgumentNullException.ThrowIfNull(buffer);
+            var source = buffer.AsSpan(offset, count);
+            if (count == 0)
+                return;
             var nextLength = checked(_length + count);
             if (_maximumLength is long maximum && nextLength > maximum)
                 throw new InvalidDataException("Codec output exceeds maxOutputLength.");
             var bytes = new byte[count];
-            Array.Copy(buffer, offset, bytes, 0, count);
+            source.CopyTo(bytes);
             _publish(bytes);
             _length = nextLength;
         }
