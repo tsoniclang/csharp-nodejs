@@ -265,6 +265,8 @@ public partial class Readable : Stream
         var accepted = false;
         lock (_readLock)
         {
+            if (_destroyed)
+                return false;
             if (chunk == null)
             {
                 _reading = false;

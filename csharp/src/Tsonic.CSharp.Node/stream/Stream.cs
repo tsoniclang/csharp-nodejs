@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 
 namespace Tsonic.CSharp.Node;
 
@@ -120,11 +121,24 @@ public class Stream : EventEmitter
     /// <param name="error">Optional error to emit.</param>
     public virtual void destroy(Exception? error = null)
     {
-        if (error != null)
+        Exception? failure = null;
+        try
         {
-            emit("error", error);
+            if (error != null)
+                emit("error", error);
         }
-
-        emit("close");
+        catch (Exception callbackError)
+        {
+            failure = callbackError;
+        }
+        try
+        {
+            emit("close");
+        }
+        catch (Exception) when (failure is not null)
+        {
+        }
+        if (failure is not null)
+            ExceptionDispatchInfo.Capture(failure).Throw();
     }
 }

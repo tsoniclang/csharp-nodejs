@@ -39,10 +39,21 @@ public class Transform : Duplex
     {
         _transform(chunk, encoding, (error, data) =>
         {
+            if (destroyed)
+            {
+                callback();
+                return;
+            }
             if (error != null)
             {
-                emit("error", error);
-                callback();
+                try
+                {
+                    destroy(error);
+                }
+                finally
+                {
+                    callback();
+                }
                 return;
             }
 
@@ -60,10 +71,19 @@ public class Transform : Duplex
     {
         _flush(error =>
         {
-            if (error != null)
-                emit("error", error);
-            push(null);
-            callback();
+            try
+            {
+                if (destroyed)
+                    return;
+                if (error != null)
+                    destroy(error);
+                else
+                    push(null);
+            }
+            finally
+            {
+                callback();
+            }
         });
     }
 }

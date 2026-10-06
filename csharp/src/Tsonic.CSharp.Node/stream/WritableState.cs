@@ -27,6 +27,7 @@ internal sealed class WritableState
     private bool _draining;
     private bool _ended;
     private bool _finalized;
+    private bool _finalCallbackCompleted;
     private bool _finalCompleted;
     private bool _needsDrain;
     private bool _writing;
@@ -113,6 +114,8 @@ internal sealed class WritableState
             _destroyed = true;
             _buffer.Clear();
             _bufferedSize = 0;
+            _needsDrain = false;
+            _corked = false;
         }
     }
 
@@ -233,11 +236,12 @@ internal sealed class WritableState
     {
         lock (_sync)
         {
-            if (_finalCompleted)
+            if (_finalCallbackCompleted)
                 throw new InvalidOperationException("Writable final callback was invoked more than once.");
-            _finalCompleted = true;
+            _finalCallbackCompleted = true;
             if (_destroyed)
                 return;
+            _finalCompleted = true;
         }
         _emit("finish");
     }

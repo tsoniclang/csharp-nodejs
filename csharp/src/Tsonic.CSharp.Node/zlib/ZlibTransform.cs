@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
@@ -15,8 +15,10 @@ public class ZlibTransform : Transform
     private readonly ZlibOptions? _zlibOptions;
     private readonly BrotliOptions? _brotliOptions;
     private readonly Task _processor;
+    private readonly CancellationTokenSource _stopping = new();
     private Exception? _processorError;
     private int _flushStarted;
+    private int _destroyStarted;
 
     /// <summary>Creates a transform for the selected codec and validated options.</summary>
     public ZlibTransform(
@@ -33,6 +35,18 @@ public class ZlibTransform : Transform
 
     /// <summary>Gets the codec mode selected for this transform.</summary>
     public ZlibMode mode => _mode;
+
+    /// <inheritdoc />
+    public override void destroy(Exception? error = null)
+    {
+        if (Interlocked.Exchange(ref _destroyStarted, 1) != 0)
+            return;
+
+        var failure = error ?? Volatile.Read(ref _processorError);
+        _stopping.Cancel();
+        _input.Fail(failure ?? new OperationCanceledException(_stopping.Token));
+        base.destroy(failure);
+    }
 
     /// <inheritdoc />
     protected override void _transform(
@@ -82,36 +96,38 @@ public class ZlibTransform : Transform
         }
         catch (Exception error)
         {
-            Volatile.Write(ref _processorError, error);
-            _input.Fail(error);
+            if (_stopping.IsCancellationRequested)
+                return;
+
+            var failure = Interlocked.CompareExchange(ref _processorError, error, null) ?? error;
+            _input.Fail(failure);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(failure));
         }
     }
 
     private void PublishOutput(byte[] bytes)
     {
-        Exception? failure = null;
-        var accepted = false;
-        var completed = new ManualResetEventSlim(false);
+        _stopping.Token.ThrowIfCancellationRequested();
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
         {
             try
             {
-                accepted = push(Buffer.TakeOwnership(bytes));
+                _stopping.Token.ThrowIfCancellationRequested();
+                completed.TrySetResult(push(Buffer.TakeOwnership(bytes)));
+            }
+            catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
+            {
+                completed.TrySetCanceled(_stopping.Token);
             }
             catch (Exception error)
             {
-                failure = error;
-            }
-            finally
-            {
-                completed.Set();
+                completed.TrySetException(error);
             }
         });
-        completed.Wait();
-        if (failure is not null)
-            throw failure;
+        var accepted = completed.Task.WaitAsync(_stopping.Token).GetAwaiter().GetResult();
         if (!accepted)
-            WaitForReadCapacity();
+            WaitForReadCapacity(_stopping.Token);
     }
 
     private void RunCodec(System.IO.Stream input, System.IO.Stream output)
@@ -230,60 +246,102 @@ public class ZlibTransform : Transform
 
     private sealed class CodecInputStream : System.IO.Stream
     {
-        private sealed record Chunk(ReadOnlyMemory<byte>? Data, Action<Exception?>? Consumed);
+        private sealed record Chunk(ReadOnlyMemory<byte> Data, Action<Exception?> Consumed);
 
-        private readonly BlockingCollection<Chunk> _chunks = new();
+        private readonly Queue<Chunk> _chunks = new();
+        private readonly object _sync = new();
         private Chunk? _current;
         private int _offset;
-        private int _completed;
+        private bool _completed;
+        private Exception? _failure;
 
         public void Enqueue(ReadOnlyMemory<byte> bytes, Action<Exception?> consumed)
         {
-            if (Volatile.Read(ref _completed) != 0)
-                throw new InvalidOperationException("Cannot write after the codec input has completed.");
-            _chunks.Add(new Chunk(bytes, consumed));
+            Exception? failure;
+            lock (_sync)
+            {
+                failure = _failure;
+                if (failure is null)
+                {
+                    if (_completed)
+                        throw new InvalidOperationException("Cannot write after the codec input has completed.");
+                    if (!bytes.IsEmpty)
+                    {
+                        _chunks.Enqueue(new Chunk(bytes, consumed));
+                        Monitor.PulseAll(_sync);
+                        return;
+                    }
+                }
+            }
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => consumed(failure));
         }
 
         public void Complete()
         {
-            if (Interlocked.Exchange(ref _completed, 1) == 0)
-                _chunks.Add(new Chunk(null, null));
+            lock (_sync)
+            {
+                _completed = true;
+                Monitor.PulseAll(_sync);
+            }
         }
 
         public void Fail(Exception error)
         {
-            Interlocked.Exchange(ref _completed, 1);
-            var current = Interlocked.Exchange(ref _current, null);
-            if (current?.Consumed is not null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => current.Consumed(error));
-            while (_chunks.TryTake(out var chunk))
-                if (chunk.Consumed is not null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => chunk.Consumed(error));
+            List<Chunk> pending;
+            lock (_sync)
+            {
+                if (_failure is not null)
+                    return;
+                _failure = error;
+                _completed = true;
+                pending = new List<Chunk>(_chunks.Count + (_current is null ? 0 : 1));
+                if (_current is not null)
+                {
+                    pending.Add(_current);
+                    _current = null;
+                }
+                while (_chunks.TryDequeue(out var chunk))
+                    pending.Add(chunk);
+                Monitor.PulseAll(_sync);
+            }
+            foreach (var chunk in pending)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => chunk.Consumed(error));
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             ArgumentNullException.ThrowIfNull(buffer);
-            while (_current is null)
-            {
-                var next = _chunks.Take();
-                if (next.Data is null)
-                    return 0;
-                _current = next;
-                _offset = 0;
-            }
+            var destination = buffer.AsSpan(offset, count);
+            if (count == 0)
+                return 0;
 
-            var current = _current;
-            var available = current.Data!.Value.Length - _offset;
-            var copied = Math.Min(count, available);
-            current.Data!.Value.Span.Slice(_offset, copied).CopyTo(buffer.AsSpan(offset));
-            _offset += copied;
-            if (_offset == current.Data.Value.Length)
+            Action<Exception?>? consumed = null;
+            int copied;
+            lock (_sync)
             {
-                _current = null;
-                if (current.Consumed is not null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => current.Consumed(null));
+                while (_current is null && _chunks.Count == 0 && !_completed)
+                    Monitor.Wait(_sync);
+                if (_failure is not null)
+                    throw _failure;
+                if (_current is null)
+                {
+                    if (!_chunks.TryDequeue(out _current))
+                        return 0;
+                    _offset = 0;
+                }
+
+                var current = _current;
+                copied = Math.Min(count, current.Data.Length - _offset);
+                current.Data.Span.Slice(_offset, copied).CopyTo(destination);
+                _offset += copied;
+                if (_offset == current.Data.Length)
+                {
+                    _current = null;
+                    consumed = current.Consumed;
+                }
             }
+            if (consumed is not null)
+                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => consumed(null));
             return copied;
         }
 
