@@ -42,7 +42,10 @@ public class ZlibTransform : Transform
     public override void destroy(Exception? error = null)
     {
         if (Interlocked.Exchange(ref _destroyStarted, 1) != 0)
+        {
+            base.destroy(error);
             return;
+        }
 
         var failure = error ?? Volatile.Read(ref _processorError);
         _stopping.Cancel();

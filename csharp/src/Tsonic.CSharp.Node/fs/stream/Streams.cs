@@ -94,11 +94,12 @@ public sealed class ReadStream : Readable
 
     public override void destroy(Exception? error = null)
     {
-        if (destroyed)
-            return;
-        _cancellation.Cancel();
-        _stream.Dispose();
-        _cancellation.Dispose();
+        if (!destroyed)
+        {
+            _cancellation.Cancel();
+            _stream.Dispose();
+            _cancellation.Dispose();
+        }
         base.destroy(error);
     }
 }
@@ -175,11 +176,12 @@ public sealed class WriteStream : Writable
 
     public override void destroy(Exception? error = null)
     {
-        if (destroyed)
-            return;
-        _cancellation.Cancel();
-        _stream.Dispose();
-        _cancellation.Dispose();
+        if (!destroyed)
+        {
+            _cancellation.Cancel();
+            _stream.Dispose();
+            _cancellation.Dispose();
+        }
         base.destroy(error);
     }
 

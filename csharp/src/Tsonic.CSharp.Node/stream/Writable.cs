@@ -132,8 +132,6 @@ public partial class Writable : Stream, IWritableStream
     /// <param name="error">Optional error to emit.</param>
     public override void destroy(Exception? error = null)
     {
-        if (_state.Destroyed)
-            return;
         _state.Destroy();
         base.destroy(error);
     }

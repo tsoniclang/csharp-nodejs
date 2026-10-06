@@ -37,6 +37,7 @@ public class NativeStreamLifecycleTests
         var expected = new InvalidOperationException("native destruction listener");
         var closes = 0;
         var errors = 0;
+        var closeFailure = new InvalidOperationException("later native close listener failure");
         projection.on<Exception>("error", _ =>
         {
             errors++;
@@ -45,10 +46,12 @@ public class NativeStreamLifecycleTests
         transform.on("close", () =>
         {
             closes++;
-            throw new InvalidOperationException("later native close listener failure");
+            throw closeFailure;
         });
         Assert.Same(expected, Assert.Throws<InvalidOperationException>(() =>
             transform.destroy(new Exception("native supplied error"))));
+        Assert.Equal(0, closes);
+        Assert.Same(closeFailure, Assert.Throws<InvalidOperationException>(() => transform.destroy()));
         transform.destroy();
         Assert.Equal(1, errors);
         Assert.Equal(1, closes);

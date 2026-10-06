@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.ExceptionServices;
 
 namespace Tsonic.CSharp.Node;
 
@@ -8,6 +7,18 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Stream : EventEmitter
 {
+    private bool _destroyStarted;
+    private bool _closeEmitted;
+    private Exception? _destroyError;
+
+    internal void BeginDestroy(Exception? error)
+    {
+        if (_destroyStarted)
+            return;
+        _destroyStarted = true;
+        _destroyError = error;
+    }
+
     /// <summary>
     /// Pipes the output of this readable stream into a writable stream destination.
     /// </summary>
@@ -121,24 +132,15 @@ public class Stream : EventEmitter
     /// <param name="error">Optional error to emit.</param>
     public virtual void destroy(Exception? error = null)
     {
-        Exception? failure = null;
-        try
+        BeginDestroy(error);
+        var pendingError = _destroyError;
+        _destroyError = null;
+        if (pendingError is not null)
+            emit("error", pendingError);
+        if (!_closeEmitted)
         {
-            if (error != null)
-                emit("error", error);
-        }
-        catch (Exception callbackError)
-        {
-            failure = callbackError;
-        }
-        try
-        {
+            _closeEmitted = true;
             emit("close");
         }
-        catch (Exception) when (failure is not null)
-        {
-        }
-        if (failure is not null)
-            ExceptionDispatchInfo.Capture(failure).Throw();
     }
 }

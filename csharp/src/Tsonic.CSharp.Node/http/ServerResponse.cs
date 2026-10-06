@@ -202,7 +202,10 @@ public partial class ServerResponse : Writable
     public override void destroy(Exception? error = null)
     {
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
+        {
+            base.destroy(error);
             return;
+        }
         _timeoutTimer?.Dispose();
         _abortRegistration.Dispose();
         _response.HttpContext.Abort();

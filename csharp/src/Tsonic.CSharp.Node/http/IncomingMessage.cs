@@ -94,13 +94,18 @@ public partial class IncomingMessage : Readable
     public override void destroy(Exception? error = null)
     {
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
+        {
+            base.destroy(error);
             return;
+        }
 
         aborted = !complete;
         _bodyCancellation.Cancel();
         if (_serverRequest is not null)
             _serverRequest.HttpContext.Abort();
         ReleaseNative();
+        DestroyInput();
+        BeginDestroy(error);
         if (aborted)
             emit("aborted");
         base.destroy(error);

@@ -325,6 +325,12 @@ public partial class Readable : Stream
     /// <param name="error">Optional error to emit.</param>
     public override void destroy(Exception? error = null)
     {
+        DestroyInput();
+        base.destroy(error);
+    }
+
+    internal void DestroyInput()
+    {
         lock (_readLock)
         {
             if (_destroyed)
@@ -334,8 +340,6 @@ public partial class Readable : Stream
             _bufferedSize = 0;
             SignalReadCapacityIfAvailable();
         }
-
-        base.destroy(error);
     }
 
     /// <summary>
