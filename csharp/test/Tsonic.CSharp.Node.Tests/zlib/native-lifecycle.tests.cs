@@ -93,6 +93,39 @@ public class NativeCodecLifecycleTests
     }
 
     [Fact]
+    public void ConcurrentIdleCodecs_DoNotBlockIndependentCodecProgress()
+    {
+        var idle = new ZlibTransform[12];
+        for (var index = 0; index < idle.Length; index++)
+            idle[index] = zlib.createGzip();
+        var active = zlib.createGzip();
+        var finishes = 0;
+        var chunks = new List<Buffer>();
+        active.on<Buffer>("data", chunks.Add);
+        active.once("finish", () =>
+        {
+            finishes++;
+            foreach (var codec in idle)
+                codec.destroy();
+        });
+        try
+        {
+            active.end(Buffer.from("independent native progress"));
+            DrainEventLoop();
+        }
+        finally
+        {
+            foreach (var codec in idle)
+                codec.destroy();
+            active.destroy();
+            DrainEventLoop();
+        }
+        Assert.Equal(1, finishes);
+        Assert.Equal("independent native progress", zlib.gunzipSync(Buffer.concat(chunks)).toString());
+        Assert.All(idle, codec => Assert.True(codec.destroyed));
+    }
+
+    [Fact]
     public void CodecInputFailure_ClosesItsProcessorWithoutSuccessfulFinish()
     {
         var codec = zlib.createGunzip();
