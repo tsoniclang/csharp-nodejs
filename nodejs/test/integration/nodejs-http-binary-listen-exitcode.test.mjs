@@ -45,9 +45,19 @@ test("ServerResponse.end declares the exact Buffer overload", () => {
         typeOnly: true,
       },
       {
+        moduleSpecifier: "node:net",
+        namedImports: [{ exportedName: "Socket", kind: "type" }],
+        typeOnly: true,
+      },
+      {
         moduleSpecifier: "node:stream",
-        namedImports: [{ exportedName: "Writable", kind: "value" }],
+        namedImports: [{ exportedName: "Readable", kind: "value" }, { exportedName: "Writable", kind: "value" }],
         typeOnly: false,
+      },
+      {
+        moduleSpecifier: "node:util",
+        namedImports: [{ exportedName: "NodeError", kind: "type" }],
+        typeOnly: true,
       },
     ],
   );
@@ -61,10 +71,12 @@ test("Server.listen declares the exact hostname overload", () => {
     listen.signatures.map((signature) => signature.id),
     [
       "node:http.Server.listen(System.Int32,System.Action)",
+      "node:http.Server.listen(System.Int32,System.String,System.Int32,System.Action)",
       "node:http.Server.listen(System.Int32,System.String,System.Action)",
+      "node:http.Server.listen(System.String,System.Action)",
     ],
   );
-  const hostnameSignature = listen.signatures[1];
+  const hostnameSignature = listen.signatures[2];
   assert.deepEqual(
     hostnameSignature.parameters.map((parameter) => [parameter.name, parameter.type.kind, parameter.optional === true]),
     [
