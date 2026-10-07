@@ -15,13 +15,13 @@ import {
   nodeBufferUnsupportedClassMemberDeclarations,
 } from "../unsupported.js";
 
-export function nodeBufferClassExport(): ProviderExportDeclaration {
+export function nodeBufferClassExport(includeJsSurfaceMembers = true): ProviderExportDeclaration {
   return {
     id: "node:buffer.Buffer",
     name: nodeBufferExportName,
     kind: "class",
     members: [
-      ...nodeBufferStaticMemberDeclarations(),
+      ...nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers),
       ...nodeBufferInstanceMemberDeclarations(),
       ...nodeBufferUnsupportedClassMemberDeclarations(),
     ],

@@ -1,3 +1,4 @@
+import { assertNoTargetDiagnostics } from "../../../../tsonic/test/scripts/diagnostic-assertions.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -27,7 +28,7 @@ test("native pipe preserves writable, transform and HTTP destination types and i
     }
     if (!run()) throw new Error("native destination identity");
   ` });
-  assert.deepEqual(compiled.result.diagnostics, []);
+  assertNoTargetDiagnostics(compiled.result.diagnostics);
   executeCsharpConstruction(compiled, "native-stream-destinations", false, false, [
     fileURLToPath(new URL("../../../csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj", import.meta.url)),
   ]);

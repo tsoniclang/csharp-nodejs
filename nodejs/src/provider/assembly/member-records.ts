@@ -54,7 +54,7 @@ export function nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers = true
     ...moduleCallRecords(nodeBufferModuleSpecifier, nodeBufferModuleCallTargetMembers()),
     ...moduleCallRecords(nodeChildProcessModuleSpecifier, nodeChildProcessCallTargetMembers(includeJsSurfaceMembers)),
     ...classPropertyRecords(nodeChildProcessModuleSpecifier, nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembers)),
-    ...classCallRecords(nodeBufferModuleSpecifier, nodeBufferClassCallTargetMembers()),
+    ...classCallRecords(nodeBufferModuleSpecifier, nodeBufferClassCallTargetMembers(includeJsSurfaceMembers)),
     ...classPropertyRecords(nodeBufferModuleSpecifier, nodeBufferClassPropertyTargetMembers()),
     ...moduleCallRecords(nodeAssertModuleSpecifier, nodeAssertCallTargetMembers()),
     ...moduleCallRecords(nodePathModuleSpecifier, nodePathCallTargetMembers()),

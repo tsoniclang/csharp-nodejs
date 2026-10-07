@@ -123,6 +123,7 @@ export function nodejsCanonicalProviderExports(
 ): readonly ProviderExportDeclaration[] | undefined {
   if (moduleSpecifier === nodeFsModuleSpecifier) return nodeFsExports({ includeJsSurfaceMembers });
   if (moduleSpecifier === nodeChildProcessModuleSpecifier) return nodeChildProcessExports(includeJsSurfaceMembers);
+  if (moduleSpecifier === nodeBufferModuleSpecifier) return nodeBufferExports(includeJsSurfaceMembers);
   return canonicalModules.get(moduleSpecifier);
 }
 

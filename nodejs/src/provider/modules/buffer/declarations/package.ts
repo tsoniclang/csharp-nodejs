@@ -14,9 +14,9 @@ import {
   nodejsDefaultModuleObjectExports,
 } from "../../../declarations/defaults.js";
 
-export function nodeBufferExports(): readonly ProviderExportDeclaration[] {
+export function nodeBufferExports(includeJsSurfaceMembers = true): readonly ProviderExportDeclaration[] {
   const declarations = [
-    nodeBufferClassExport(),
+    nodeBufferClassExport(includeJsSurfaceMembers),
     ...nodeBufferFunctionExports(),
   ];
   return [

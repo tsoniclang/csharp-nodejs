@@ -1,5 +1,6 @@
 import type {
   ProviderExportDeclaration,
+  ProviderSignatureDeclaration,
 } from "@tsonic/tsts";
 import {
   nodeBufferAllocExportName,
@@ -48,7 +49,7 @@ import {
 
 type ProviderClassMembers = NonNullable<ProviderExportDeclaration["members"]>;
 
-export function nodeBufferStaticMemberDeclarations(): ProviderClassMembers {
+export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = true): ProviderClassMembers {
   return [
     {
       id: nodeBufferFromStringMemberId,
@@ -74,13 +75,13 @@ export function nodeBufferStaticMemberDeclarations(): ProviderClassMembers {
           { name: "buffer", type: nodeBufferProviderType },
         ],
         returnType: nodeBufferProviderType,
-      }, {
+      }, ...(includeJsSurfaceMembers ? [{
         id: nodeBufferFromUint8ArraySignatureId,
         parameters: [
           { name: "array", type: { kind: "source-global", name: "Uint8Array" } },
         ],
         returnType: nodeBufferProviderType,
-      }],
+      } satisfies ProviderSignatureDeclaration] : [])],
     },
     {
       id: nodeBufferAllocMemberId,

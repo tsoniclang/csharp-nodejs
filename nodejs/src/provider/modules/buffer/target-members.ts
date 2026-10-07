@@ -140,12 +140,12 @@ export function nodeBufferModuleCallTargetMembers(): readonly NodejsModuleCallTa
   ];
 }
 
-export function nodeBufferClassCallTargetMembers(): readonly NodejsClassCallTargetMember[] {
+export function nodeBufferClassCallTargetMembers(includeJsSurfaceMembers = true): readonly NodejsClassCallTargetMember[] {
   return [
     nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromStringSignatureId, getNodeBufferFromStringTargetMember()),
     nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromNumberArraySignatureId, getNodeBufferFromNumberArrayTargetMember()),
     nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromBufferSignatureId, getNodeBufferFromBufferTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromUint8ArraySignatureId, getNodeBufferFromUint8ArrayTargetMember()),
+    ...(includeJsSurfaceMembers ? [nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromUint8ArraySignatureId, getNodeBufferFromUint8ArrayTargetMember())] : []),
     nodeBufferStaticClassCallTargetMember(nodeBufferAllocExportName, nodeBufferAllocMemberId, nodeBufferAllocSignatureId, getNodeBufferAllocTargetMember()),
     nodeBufferStaticClassCallTargetMember(nodeBufferAllocUnsafeExportName, nodeBufferAllocUnsafeMemberId, nodeBufferAllocUnsafeSignatureId, getNodeBufferAllocUnsafeTargetMember()),
     nodeBufferStaticClassCallTargetMember(nodeBufferAllocUnsafeSlowExportName, nodeBufferAllocUnsafeSlowMemberId, nodeBufferAllocUnsafeSlowSignatureId, getNodeBufferAllocUnsafeSlowTargetMember()),
