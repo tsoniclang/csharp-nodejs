@@ -24,6 +24,8 @@ public partial class Readable : Stream
     private bool _reading;
     private bool _endEmitted;
     private bool _flowScheduled;
+    private bool _flowActive;
+    private bool _flowRequested;
 
     /// <summary>Creates a readable stream with the default finite buffer limit.</summary>
     public Readable()
@@ -84,6 +86,11 @@ public partial class Readable : Stream
     /// <returns>The data read, or null if no data is available.</returns>
     public object? read(int? size = null)
     {
+        return ReadCore(size, true);
+    }
+
+    private object? ReadCore(int? size, bool deliverEnd)
+    {
         if (size is <= 0)
             throw new ArgumentOutOfRangeException(nameof(size), "Read size must be positive.");
         var requestRead = false;
@@ -104,7 +111,7 @@ public partial class Readable : Stream
         {
             if (_buffer.Count == 0)
             {
-                emitEnd = MarkEndReady();
+                emitEnd = deliverEnd && MarkEndReady();
                 chunk = null;
             }
             else
@@ -123,6 +130,7 @@ public partial class Readable : Stream
                     _bufferedSize = checked(_bufferedSize - ChunkSize(chunk));
                 }
                 SignalReadCapacityIfAvailable();
+                emitEnd = deliverEnd && MarkEndReady();
             }
         }
         if (emitEnd)
@@ -195,20 +203,47 @@ public partial class Readable : Stream
 
     private void Flow()
     {
-        while (true)
+        lock (_readLock)
+        {
+            _flowRequested = true;
+            if (_flowActive)
+                return;
+            _flowActive = true;
+        }
+        try
+        {
+            while (true)
+            {
+                lock (_readLock)
+                    _flowRequested = false;
+                while (true)
+                {
+                    lock (_readLock)
+                    {
+                        if (_paused || _destroyed)
+                            break;
+                    }
+                    var chunk = ReadCore(null, false);
+                    if (chunk == null)
+                        break;
+                    emit("data", chunk);
+                }
+                EmitEndIfReady();
+                lock (_readLock)
+                {
+                    if (_flowRequested)
+                        continue;
+                    _flowActive = false;
+                    return;
+                }
+            }
+        }
+        catch
         {
             lock (_readLock)
-            {
-                if (_paused || _destroyed)
-                    break;
-            }
-            var chunk = read();
-            if (chunk == null)
-                break;
-            emit("data", chunk);
+                _flowActive = false;
+            throw;
         }
-
-        EmitEndIfReady();
     }
 
     /// <summary>
@@ -266,7 +301,7 @@ public partial class Readable : Stream
     {
         var emitReadable = false;
         var emitEnd = false;
-        List<object?>? flowingChunks = null;
+        var flow = false;
         var accepted = false;
         lock (_readLock)
         {
@@ -276,7 +311,8 @@ public partial class Readable : Stream
             {
                 _reading = false;
                 _ended = true;
-                emitEnd = MarkEndReady();
+                flow = _flowing;
+                emitEnd = !flow && MarkEndReady();
             }
             else
             {
@@ -291,20 +327,8 @@ public partial class Readable : Stream
                     };
                 _buffer.AddLast(normalizedChunk);
                 _bufferedSize = checked(_bufferedSize + ChunkSize(normalizedChunk));
-                if (_flowing)
-                {
-                    flowingChunks = new List<object?>(_buffer.Count);
-                    while (_buffer.Count > 0)
-                    {
-                        var buffered = _buffer.First!.Value;
-                        _buffer.RemoveFirst();
-                        flowingChunks.Add(buffered);
-                        _bufferedSize = checked(_bufferedSize - ChunkSize(buffered));
-                    }
-                    SignalReadCapacityIfAvailable();
-                    emitEnd = MarkEndReady();
-                }
-                else
+                flow = _flowing;
+                if (!flow)
                 {
                     BlockReadCapacityIfNeeded();
                     emitReadable = true;
@@ -313,9 +337,12 @@ public partial class Readable : Stream
             }
         }
 
-        if (flowingChunks != null)
-            foreach (var data in flowingChunks)
-                emit("data", data);
+        if (flow)
+        {
+            Flow();
+            lock (_readLock)
+                accepted = _bufferedSize < _highWaterMark;
+        }
         if (emitReadable)
             emit("readable");
         if (emitEnd)

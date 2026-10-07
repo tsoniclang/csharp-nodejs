@@ -9,6 +9,59 @@ namespace Tsonic.CSharp.Node.Tests;
 public class BufferedReadableFlowTests
 {
     [Fact]
+    public void SynchronousInputUsesOneNonrecursiveConsumptionPump()
+    {
+        var input = new SynchronousInput();
+        var received = 0;
+        var ends = 0;
+        input.on<Buffer>("data", chunk =>
+        {
+            Assert.Same(input.Chunk, chunk);
+            Assert.Equal(0, ends);
+            received++;
+            input.pause();
+            input.resume();
+        });
+        input.on("end", () => ends++);
+        JsEventLoop.Run();
+        Assert.Equal(10_000, received);
+        Assert.Equal(1, input.MaximumDepth);
+        Assert.Equal(1, ends);
+        Assert.False(ProcessKeepAlive.HasReferences);
+    }
+
+    [Fact]
+    public void FinalExplicitConsumptionEmitsEndOnceAndAfterAllBytes()
+    {
+        var input = Readable.from(new[] { Buffer.from("data") });
+        var endings = 0;
+        input.on("end", (Action)(() => {
+            endings++;
+            Assert.Equal(0, input.readableLength);
+            Assert.Null(input.read());
+        }));
+        Assert.Equal("da", input.readBuffer(2)!.toString());
+        Assert.Equal(0, endings);
+        Assert.Equal("ta", input.readBuffer(2)!.toString());
+        Assert.Equal(1, endings);
+        Assert.Null(input.read());
+        Assert.Equal(1, endings);
+    }
+
+    [Fact]
+    public void EmptyFinalChunkStillHasOneConsumptionAndOneEnd()
+    {
+        var chunk = Buffer.from("");
+        var input = Readable.from(new[] { chunk });
+        var endings = 0;
+        input.on("end", (Action)(() => endings++));
+        Assert.Same(chunk, input.read());
+        Assert.Equal(1, endings);
+        Assert.Null(input.read());
+        Assert.Equal(1, endings);
+    }
+
+    [Fact]
     public void BufferedDataWaitsForRegistrationAndPrecedesEnd()
     {
         var chunk = Buffer.from("answer\n");
@@ -61,5 +114,27 @@ public class BufferedReadableFlowTests
         Assert.Same(expected, Assert.Throws<InvalidOperationException>(JsEventLoop.Run));
         reader.close();
         JsEventLoop.Run();
+    }
+
+    private sealed class SynchronousInput : Readable
+    {
+        private int _remaining = 10_000;
+        private int _depth;
+        public Buffer Chunk { get; } = Buffer.from("x");
+        public int MaximumDepth { get; private set; }
+
+        protected override void _read(int size)
+        {
+            _depth++;
+            MaximumDepth = System.Math.Max(MaximumDepth, _depth);
+            try
+            {
+                push(_remaining-- > 0 ? Chunk : null);
+            }
+            finally
+            {
+                _depth--;
+            }
+        }
     }
 }

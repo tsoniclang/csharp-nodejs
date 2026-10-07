@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class FsMoreSyncTests : FsTestBase
 {
     [Fact]

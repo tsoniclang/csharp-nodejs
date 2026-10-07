@@ -1,4 +1,5 @@
 using System.Text;
+using Tsonic.CSharp.Js;
 
 namespace Tsonic.CSharp.Node;
 
@@ -56,18 +57,19 @@ public sealed class ReadStream : Readable
 
     private async Task ReadNextAsync(int size)
     {
-        if (_remaining == 0)
-        {
-            await _stream.DisposeAsync().ConfigureAwait(false);
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(null));
-            return;
-        }
-        var requested = System.Math.Max(1, System.Math.Min(size, _highWaterMark));
-        if (_remaining is long remaining)
-            requested = checked((int)System.Math.Min(requested, remaining));
-        var bytes = new byte[requested];
+        ProcessKeepAlive.Acquire();
         try
         {
+            if (_remaining == 0)
+            {
+                await _stream.DisposeAsync().ConfigureAwait(false);
+                JsEventLoop.EnqueueReferenced(() => push(null));
+                return;
+            }
+            var requested = System.Math.Max(1, System.Math.Min(size, _highWaterMark));
+            if (_remaining is long remaining)
+                requested = checked((int)System.Math.Min(requested, remaining));
+            var bytes = new byte[requested];
             var count = await _stream.ReadAsync(bytes.AsMemory(), _cancellation.Token).ConfigureAwait(false);
             if (count == 0)
             {
@@ -87,6 +89,10 @@ public sealed class ReadStream : Readable
         catch (Exception error)
         {
             Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(error));
+        }
+        finally
+        {
+            ProcessKeepAlive.Release();
         }
     }
 
@@ -187,6 +193,7 @@ public sealed class WriteStream : Writable
 
     private async Task WriteChunkAsync(ReadOnlyMemory<byte> bytes, Action callback)
     {
+        ProcessKeepAlive.Acquire();
         try
         {
             await _stream.WriteAsync(bytes, _cancellation.Token).ConfigureAwait(false);
@@ -204,10 +211,15 @@ public sealed class WriteStream : Writable
                 callback();
             });
         }
+        finally
+        {
+            ProcessKeepAlive.Release();
+        }
     }
 
     private async Task FinalizeAsync(Action callback)
     {
+        ProcessKeepAlive.Acquire();
         try
         {
             await _stream.FlushAsync(_cancellation.Token).ConfigureAwait(false);
@@ -230,6 +242,10 @@ public sealed class WriteStream : Writable
                 destroy(error);
                 callback();
             });
+        }
+        finally
+        {
+            ProcessKeepAlive.Release();
         }
     }
 }
