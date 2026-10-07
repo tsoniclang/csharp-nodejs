@@ -113,7 +113,7 @@ export function nodeReadlineClassPropertyTargetMembers(): readonly NodejsClassPr
     ["Interface", "line", stringProviderType, stringTargetType, false, true],
     ["Interface", "cursor", numberProviderType, intTargetType, false, true],
     ["ReadLineOptions", "input", providerRef("node:stream", "Readable"), targetTypes.Readable, false, false],
-    ["ReadLineOptions", "output", providerRef("node:stream", "Writable"), targetTypes.Writable, true, false],
+    ["ReadLineOptions", "output", providerRef("node:stream", "Writable"), csharpNullableTargetType(targetTypes.Writable), true, false],
     ["ReadLineOptions", "terminal", booleanProviderType, nullableBoolTargetType, true, false],
     ["ReadLineOptions", "prompt", stringProviderType, nullableStringTargetType, true, false],
     ["ReadLineOptions", "historySize", numberProviderType, nullableIntTargetType, true, false],

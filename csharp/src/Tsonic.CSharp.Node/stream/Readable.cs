@@ -23,6 +23,7 @@ public partial class Readable : Stream
     private bool _paused = true;
     private bool _reading;
     private bool _endEmitted;
+    private bool _flowScheduled;
 
     /// <summary>Creates a readable stream with the default finite buffer limit.</summary>
     public Readable()
@@ -122,7 +123,6 @@ public partial class Readable : Stream
                     _bufferedSize = checked(_bufferedSize - ChunkSize(chunk));
                 }
                 SignalReadCapacityIfAvailable();
-                emitEnd = MarkEndReady();
             }
         }
         if (emitEnd)
@@ -188,6 +188,13 @@ public partial class Readable : Stream
             _flowing = true;
         }
 
+        Flow();
+
+        return this;
+    }
+
+    private void Flow()
+    {
         while (true)
         {
             lock (_readLock)
@@ -202,8 +209,6 @@ public partial class Readable : Stream
         }
 
         EmitEndIfReady();
-
-        return this;
     }
 
     /// <summary>
@@ -354,8 +359,41 @@ public partial class Readable : Stream
     /// <inheritdoc />
     protected override void OnListenerAdded(object eventName)
     {
-        if (eventName is string text && string.Equals(text, "data", StringComparison.Ordinal))
-            resume();
+        if (eventName is not string text || !string.Equals(text, "data", StringComparison.Ordinal))
+            return;
+        lock (_readLock)
+        {
+            if (_destroyed || _flowing || _flowScheduled)
+                return;
+            _paused = false;
+            _flowing = true;
+            _flowScheduled = true;
+        }
+        try
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(FlowFromListener);
+        }
+        catch
+        {
+            lock (_readLock)
+            {
+                _flowScheduled = false;
+                _flowing = false;
+                _paused = true;
+            }
+            throw;
+        }
+    }
+
+    private void FlowFromListener()
+    {
+        lock (_readLock)
+        {
+            _flowScheduled = false;
+            if (_paused || _destroyed)
+                return;
+        }
+        Flow();
     }
 
     /// <summary>Waits until the finite readable buffer can accept more data.</summary>

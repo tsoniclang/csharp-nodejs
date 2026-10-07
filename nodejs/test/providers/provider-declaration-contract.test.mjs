@@ -66,7 +66,7 @@ test("distinct incoming headers retain the indexer and its native carrier", () =
       returnType: {
         kind: "union",
         types: [
-          { kind: "array", elementType: { kind: "string" } },
+          { kind: "source-global", name: "ReadonlyArray", typeArguments: [{ kind: "string" }] },
           { kind: "undefined" },
         ],
       },

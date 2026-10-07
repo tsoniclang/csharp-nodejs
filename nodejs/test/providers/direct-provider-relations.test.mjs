@@ -31,7 +31,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 1840);
+  assert.equal(relations.length, 2142);
   assert.equal(rejections.length, 166);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -424,7 +424,7 @@ test("Node numeric API parameters validate floating inputs at native integer bou
   assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
-    /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), \(\) =>/u,
+    /Tsonic\.CSharp\.Node\.Http\.Server (?<receiver>\w+) = server;\s+int (?<port>\w+) = Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\);\s+void (?<callback>\w+)\(\)\s+\{\s*\}\s+\k<receiver>\.listen\(\k<port>, new Action\(\k<callback>\)\);/u,
   );
 
   const relations = nodejsProviderTargetRelations().filter(
@@ -527,7 +527,7 @@ test("Node provider relations declare every source-number target adapter exactly
     }
   }
 
-  assert.equal(adapterCount, 288);
+  assert.equal(adapterCount, 296);
 });
 
 function findSourceSignature(relation) {

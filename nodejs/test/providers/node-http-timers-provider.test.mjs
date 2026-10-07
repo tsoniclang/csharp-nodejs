@@ -22,7 +22,7 @@ test("every canonical Node provider target type has one exact C# render binding"
     relation.source.moduleSpecifier === relation.source.providerModuleId
   );
 
-  assert.equal(relations.length, 68);
+  assert.equal(relations.length, 74);
   assert.deepEqual(relations.filter(relation => relation.source.providerModuleId === "node:child_process")
     .map(relation => relation.source.exportName).sort(), [
       "SpawnSyncError", "SpawnSyncOptionsWithBufferEncoding",
@@ -63,6 +63,11 @@ test("Node HTTP and timer modules expose exact provider-owned declarations", () 
       .filter((entry) => entry.exportKind !== "default")
       .map((entry) => entry.name),
     [
+      "IncomingHttpHeaders",
+      "IncomingHttpHeaderValues",
+      "OutgoingHttpHeaders",
+      "AddressInfo",
+      "ServerAddress",
       "IncomingMessage",
       "ServerResponse",
       "Server",
@@ -77,7 +82,7 @@ test("Node HTTP and timer modules expose exact provider-owned declarations", () 
     timersModel.exports
       .filter((entry) => entry.exportKind !== "default")
       .map((entry) => entry.name),
-    ["Timeout", "setTimeout", "setInterval"],
+    ["Timeout", "setTimeout", "setInterval", "clearTimeout", "clearInterval"],
   );
   assert.equal(
     httpModel.exports.find((entry) => entry.exportKind === "default")?.name,
@@ -143,7 +148,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
     source,
     /Tsonic\.CSharp\.Node\.Http\.http\.createServer/u,
   );
-  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\),/u);
+  assert.match(source, /Tsonic\.CSharp\.Node\.Http\.Server (?<receiver>\w+) = server;\s+int (?<port>\w+) = Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\);\s+void (?<callback>\w+)\(\)\s+\{\s*\}\s+\k<receiver>\.listen\(\k<port>, new Action\(\k<callback>\)\);/u);
   assert.match(
     source,
     /Tsonic\.CSharp\.Node\.timers\.setInterval/u,

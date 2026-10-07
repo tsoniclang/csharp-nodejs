@@ -7,6 +7,7 @@ import {
   csharpDelegateTargetType,
   csharpQualifiedTypeRenderShape,
   csharpSourcePrimitiveTargetType,
+  csharpVoidTargetType,
   csharpTargetNamedType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
@@ -76,6 +77,19 @@ export function nodeTimersCallTargetMembers(): readonly NodejsModuleCallTargetMe
   return [
     nodeTimersCall("setTimeout", "node:timers.setTimeout(Function,System.Int32)"),
     nodeTimersCall("setInterval", "node:timers.setInterval(Function,System.Int32)"),
+    ...(["clearTimeout", "clearInterval"] as const).map((name) =>
+      nodejsModuleCallTargetMetadata({
+        exportName: name,
+        signatureId: `node:timers.${name}(Timeout)`,
+        targetMemberId: `Tsonic.CSharp.Node.timers.${name}(Tsonic.CSharp.Node.Timeout)`,
+        sourceName: name,
+        targetName: name,
+        providerParameters: [{ name: "timeout", type: timeoutProviderType }],
+        providerReturnType: voidProviderType,
+        targetParameters: [targetParameter("timeout", timeoutTargetType)],
+        targetReturnType: csharpVoidTargetType(),
+        declaringType: timersTargetType,
+      })),
   ];
 }
 
