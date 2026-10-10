@@ -12,7 +12,7 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Readable : Stream
 {
-    private readonly LinkedList<object?> _buffer = new();
+    private readonly ReadableChunkQueue _buffer = new();
     private readonly object _readLock = new();
     private TaskCompletionSource? _capacityWaiter;
     private readonly int _highWaterMark;
@@ -116,18 +116,18 @@ public partial class Readable : Stream
             }
             else
             {
-                var first = _buffer.First!;
+                ref var first = ref _buffer.First;
                 if (size is int requested && first.Value is Buffer buffer && requested < buffer.length)
                 {
                     chunk = buffer.subarray(0, requested);
-                    first.Value = buffer.subarray(requested);
+                    first = new ReadableChunk(buffer.subarray(requested), first.Size - requested);
                     _bufferedSize = checked(_bufferedSize - requested);
                 }
                 else
                 {
                     chunk = first.Value;
+                    _bufferedSize = checked(_bufferedSize - first.Size);
                     _buffer.RemoveFirst();
-                    _bufferedSize = checked(_bufferedSize - ChunkSize(chunk));
                 }
                 SignalReadCapacityIfAvailable();
                 emitEnd = deliverEnd && MarkEndReady();
@@ -285,8 +285,10 @@ public partial class Readable : Stream
             return;
         lock (_readLock)
         {
-            _buffer.AddFirst(chunk);
-            _bufferedSize = checked(_bufferedSize + ChunkSize(chunk));
+            var size = ChunkSize(chunk);
+            var bufferedSize = checked(_bufferedSize + size);
+            _buffer.AddFirst(new ReadableChunk(chunk, size));
+            _bufferedSize = bufferedSize;
             BlockReadCapacityIfNeeded();
         }
     }
@@ -325,8 +327,10 @@ public partial class Readable : Stream
                         byte[] bytes => Buffer.from(bytes).toString(_encoding),
                         _ => chunk,
                     };
-                _buffer.AddLast(normalizedChunk);
-                _bufferedSize = checked(_bufferedSize + ChunkSize(normalizedChunk));
+                var size = ChunkSize(normalizedChunk);
+                var bufferedSize = checked(_bufferedSize + size);
+                _buffer.AddLast(new ReadableChunk(normalizedChunk, size));
+                _bufferedSize = bufferedSize;
                 flow = _flowing;
                 if (!flow)
                 {
