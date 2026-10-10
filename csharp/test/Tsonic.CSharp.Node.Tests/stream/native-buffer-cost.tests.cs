@@ -95,6 +95,57 @@ public class NativeReadableBufferCostTests
     }
 
     [Theory]
+    [InlineData("utf8", "A\0��")]
+    [InlineData("UTF-8", "A\0��")]
+    [InlineData("ascii", "A\0??")]
+    [InlineData("latin1", "A\0\u0080ÿ")]
+    [InlineData("binary", "A\0\u0080ÿ")]
+    [InlineData("utf16le", "A\uff80")]
+    [InlineData("UCS-2", "A\uff80")]
+    [InlineData("hex", "410080ff")]
+    [InlineData("base64", "QQCA/w==")]
+    [InlineData("base64url", "QQCA_w")]
+    public void EncodedByteChunksUseTheCanonicalNativeDecoder(string encoding, string expected)
+    {
+        var source = new Readable().setEncoding(encoding);
+        var bytes = new byte[] { 0x41, 0x00, 0x80, 0xff };
+        source.push(bytes);
+        bytes[0] = 0;
+        Assert.Equal(expected, source.read());
+        Assert.Equal(0, source.readableLength);
+        source.push(Array.Empty<byte>());
+        Assert.Equal(string.Empty, source.read());
+        Assert.Equal(0, source.readableLength);
+    }
+
+    [Fact]
+    public void EncodedByteChunksAllocateOnlyTheNativeDecodedString()
+    {
+        var bytes = new byte[4096];
+        Array.Fill(bytes, (byte)'x');
+        var source = new Readable().setEncoding("utf8");
+        for (var index = 0; index < 100; index++)
+        {
+            GC.KeepAlive(Encoding.UTF8.GetString(bytes));
+            source.push(bytes);
+            GC.KeepAlive(source.read());
+        }
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 100; index++)
+            GC.KeepAlive(Encoding.UTF8.GetString(bytes));
+        var nativeAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < 100; index++)
+        {
+            source.push(bytes);
+            GC.KeepAlive(source.read());
+        }
+        var streamAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(nativeAllocated, streamAllocated);
+        Assert.Equal(0, source.readableLength);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void RemovedAndDestroyedChunksDoNotRemainRootedInReusableSlots(bool destroy)

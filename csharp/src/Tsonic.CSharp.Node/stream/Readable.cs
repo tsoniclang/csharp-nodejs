@@ -324,7 +324,7 @@ public partial class Readable : Stream
                     : chunk switch
                     {
                         Buffer buffer => buffer.toString(_encoding),
-                        byte[] bytes => Buffer.from(bytes).toString(_encoding),
+                        byte[] bytes => Buffer.Decode(bytes, _encoding),
                         _ => chunk,
                     };
                 var size = ChunkSize(normalizedChunk);

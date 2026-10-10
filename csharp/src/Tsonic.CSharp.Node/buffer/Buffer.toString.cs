@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 
 namespace Tsonic.CSharp.Node;
 
@@ -23,26 +22,7 @@ public partial class Buffer
         if (endIndex > length) endIndex = length;
         if (start >= endIndex) return string.Empty;
 
-        var normalized = encoding.ToLowerInvariant().Replace("-", "").Replace("_", "");
-
-        if (normalized == "hex")
-        {
-            return BytesToHex(_data, start, endIndex);
-        }
-        else if (normalized == "base64")
-        {
-            return Convert.ToBase64String(_data.Slice(start, endIndex - start));
-        }
-        else if (normalized == "base64url")
-        {
-            var base64 = Convert.ToBase64String(_data.Slice(start, endIndex - start));
-            return Base64ToBase64Url(base64);
-        }
-        else
-        {
-            var enc = GetEncoding(encoding);
-            return enc.GetString(_data.Slice(start, endIndex - start));
-        }
+        return Decode(_data.Slice(start, endIndex - start), encoding);
     }
 
     /// <summary>

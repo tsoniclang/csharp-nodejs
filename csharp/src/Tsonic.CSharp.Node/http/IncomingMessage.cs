@@ -177,7 +177,7 @@ public partial class IncomingMessage : Readable
         onEnd = () =>
         {
             Detach();
-            completion.TrySetResult(Buffer.concat(chunks.ToArray()));
+            completion.TrySetResult(Buffer.concat(chunks));
         };
         onError = error =>
         {

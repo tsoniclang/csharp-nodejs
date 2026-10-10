@@ -40,6 +40,20 @@ public partial class Buffer
         };
     }
 
+    internal static string Decode(ReadOnlySpan<byte> bytes, string encoding)
+    {
+        if (bytes.IsEmpty)
+            return string.Empty;
+        var normalized = encoding.ToLowerInvariant().Replace("-", "").Replace("_", "");
+        return normalized switch
+        {
+            "hex" => Convert.ToHexStringLower(bytes),
+            "base64" => Convert.ToBase64String(bytes),
+            "base64url" => Base64ToBase64Url(Convert.ToBase64String(bytes)),
+            _ => GetTextEncoding(normalized, encoding).GetString(bytes)
+        };
+    }
+
     /// <summary>
     /// Converts hex string to bytes.
     /// </summary>
@@ -48,18 +62,6 @@ public partial class Buffer
     private static byte[] HexToBytes(string hex)
     {
         return Convert.FromHexString(hex);
-    }
-
-    /// <summary>
-    /// Converts bytes to hex string.
-    /// </summary>
-    /// <param name="bytes">Bytes to convert.</param>
-    /// <param name="start">Start offset.</param>
-    /// <param name="end">End offset.</param>
-    /// <returns>Hex string.</returns>
-    private static string BytesToHex(ReadOnlySpan<byte> bytes, int start, int end)
-    {
-        return Convert.ToHexStringLower(bytes.Slice(start, end - start));
     }
 
     /// <summary>
