@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
@@ -14,7 +13,6 @@ public partial class Readable : Stream
 {
     private readonly ReadableChunkQueue _buffer = new();
     private readonly object _readLock = new();
-    private TaskCompletionSource? _capacityWaiter;
     private readonly int _highWaterMark;
     private long _bufferedSize;
     private bool _ended = false;
@@ -427,16 +425,6 @@ public partial class Readable : Stream
         Flow();
     }
 
-    /// <summary>Waits until the finite readable buffer can accept more data.</summary>
-    protected void WaitForReadCapacity(CancellationToken cancellationToken = default)
-    {
-        CapacityTask().WaitAsync(cancellationToken).GetAwaiter().GetResult();
-    }
-
-    /// <summary>Asynchronously waits until the finite readable buffer can accept more data.</summary>
-    protected Task WaitForReadCapacityAsync(CancellationToken cancellationToken = default) =>
-        CapacityTask().WaitAsync(cancellationToken);
-
     /// <summary>Destroys the stream and returns it for the source-level fluent contract.</summary>
     public Readable destroyChain(Exception? error = null)
     {
@@ -459,33 +447,6 @@ public partial class Readable : Stream
             return false;
         _endEmitted = true;
         return true;
-    }
-
-    private Task CapacityTask()
-    {
-        lock (_readLock)
-        {
-            if (_destroyed || _bufferedSize < _highWaterMark)
-                return Task.CompletedTask;
-            _capacityWaiter ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            return _capacityWaiter.Task;
-        }
-    }
-
-    private void BlockReadCapacityIfNeeded()
-    {
-        if (_bufferedSize < _highWaterMark || _destroyed)
-            return;
-        _capacityWaiter ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    }
-
-    private void SignalReadCapacityIfAvailable()
-    {
-        if (!_destroyed && _bufferedSize >= _highWaterMark)
-            return;
-        var waiter = _capacityWaiter;
-        _capacityWaiter = null;
-        waiter?.TrySetResult();
     }
 
     private static int ChunkSize(object? chunk)
