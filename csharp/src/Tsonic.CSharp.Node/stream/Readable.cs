@@ -21,9 +21,12 @@ public partial class Readable : Stream
     private bool _paused = true;
     private bool _reading;
     private bool _endEmitted;
+    private bool _endScheduled;
+    private bool _didRead;
     private bool _flowScheduled;
     private bool _flowActive;
     private bool _flowRequested;
+    private Action? _flowDispatch;
 
     /// <summary>Creates a readable stream with the default finite buffer limit.</summary>
     public Readable()
@@ -53,12 +56,12 @@ public partial class Readable : Stream
     /// <summary>
     /// Is true if it is safe to call read().
     /// </summary>
-    public bool readable { get { lock (_readLock) return !_ended && !_destroyed; } }
+    public bool readable { get { lock (_readLock) return !_endEmitted && !_destroyed; } }
 
     /// <summary>
     /// Becomes true when 'end' event is emitted.
     /// </summary>
-    public bool readableEnded { get { lock (_readLock) return _ended; } }
+    public bool readableEnded { get { lock (_readLock) return _endEmitted; } }
 
     /// <summary>
     /// This property reflects the current state of a Readable stream.
@@ -84,16 +87,18 @@ public partial class Readable : Stream
     /// <returns>The data read, or null if no data is available.</returns>
     public object? read(int? size = null)
     {
-        return ReadCore(size, true);
+        return ReadCore(size);
     }
 
-    private object? ReadCore(int? size, bool deliverEnd)
+    private object? ReadCore(int? size)
     {
         if (size is <= 0)
             throw new ArgumentOutOfRangeException(nameof(size), "Read size must be positive.");
         var requestRead = false;
         lock (_readLock)
         {
+            if (_destroyed) return null;
+            _didRead = true;
             if (_buffer.Count == 0 && !_ended && !_reading)
             {
                 _reading = true;
@@ -104,12 +109,10 @@ public partial class Readable : Stream
             _read(size ?? 64 * 1024);
 
         object? chunk;
-        var emitEnd = false;
         lock (_readLock)
         {
             if (_buffer.Count == 0)
             {
-                emitEnd = deliverEnd && MarkEndReady();
                 chunk = null;
             }
             else
@@ -128,11 +131,9 @@ public partial class Readable : Stream
                     _buffer.RemoveFirst();
                 }
                 SignalReadCapacityIfAvailable();
-                emitEnd = deliverEnd && MarkEndReady();
             }
         }
-        if (emitEnd)
-            emit("end");
+        ScheduleEndIfReady();
         return chunk;
     }
 
@@ -194,7 +195,7 @@ public partial class Readable : Stream
             _flowing = true;
         }
 
-        Flow();
+        RequestFlow();
 
         return this;
     }
@@ -221,12 +222,12 @@ public partial class Readable : Stream
                         if (_paused || _destroyed)
                             break;
                     }
-                    var chunk = ReadCore(null, false);
+                    var chunk = ReadCore(null);
                     if (chunk == null)
                         break;
                     emit("data", chunk);
                 }
-                EmitEndIfReady();
+                ScheduleEndIfReady();
                 lock (_readLock)
                 {
                     if (_flowRequested)
@@ -300,7 +301,6 @@ public partial class Readable : Stream
     public bool push(object? chunk, string? encoding = null)
     {
         var emitReadable = false;
-        var emitEnd = false;
         var flow = false;
         var accepted = false;
         lock (_readLock)
@@ -312,7 +312,6 @@ public partial class Readable : Stream
                 _reading = false;
                 _ended = true;
                 flow = _flowing;
-                emitEnd = !flow && MarkEndReady();
             }
             else
             {
@@ -341,14 +340,13 @@ public partial class Readable : Stream
 
         if (flow)
         {
-            Flow();
+            RequestFlow();
             lock (_readLock)
                 accepted = _bufferedSize < _highWaterMark;
         }
         if (emitReadable)
             emit("readable");
-        if (emitEnd)
-            emit("end");
+        ScheduleEndIfReady();
 
         return chunk != null && accepted;
     }
@@ -392,23 +390,34 @@ public partial class Readable : Stream
             return;
         lock (_readLock)
         {
-            if (_destroyed || _flowing || _flowScheduled)
+            if (_destroyed || _flowing)
                 return;
             _paused = false;
             _flowing = true;
+        }
+        RequestFlow();
+    }
+
+    private void RequestFlow()
+    {
+        Action dispatch;
+        lock (_readLock)
+        {
+            if (_destroyed || _paused) return;
+            _flowRequested = true;
+            if (_flowActive || _flowScheduled) return;
             _flowScheduled = true;
+            dispatch = _flowDispatch ??= FlowFromListener;
         }
         try
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(FlowFromListener);
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(dispatch);
         }
         catch
         {
             lock (_readLock)
             {
                 _flowScheduled = false;
-                _flowing = false;
-                _paused = true;
             }
             throw;
         }
@@ -432,21 +441,34 @@ public partial class Readable : Stream
         return this;
     }
 
-    private void EmitEndIfReady()
+    private void ScheduleEndIfReady()
     {
-        bool emitEnd;
         lock (_readLock)
-            emitEnd = MarkEndReady();
-        if (emitEnd)
-            emit("end");
+        {
+            if (!_didRead || _destroyed || !_ended || _buffer.Count != 0 || _endEmitted || _endScheduled)
+                return;
+            _endScheduled = true;
+        }
+        try
+        {
+            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(DeliverEnd);
+        }
+        catch
+        {
+            lock (_readLock) _endScheduled = false;
+            throw;
+        }
     }
 
-    private bool MarkEndReady()
+    private void DeliverEnd()
     {
-        if (!_ended || _buffer.Count != 0 || _endEmitted)
-            return false;
-        _endEmitted = true;
-        return true;
+        lock (_readLock)
+        {
+            _endScheduled = false;
+            if (_destroyed || !_ended || _buffer.Count != 0 || _endEmitted) return;
+            _endEmitted = true;
+        }
+        emit("end");
     }
 
     private static int ChunkSize(object? chunk)

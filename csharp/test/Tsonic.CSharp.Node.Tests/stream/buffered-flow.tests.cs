@@ -43,7 +43,11 @@ public class BufferedReadableFlowTests
         Assert.Equal("da", input.readBuffer(2)!.toString());
         Assert.Equal(0, endings);
         Assert.Equal("ta", input.readBuffer(2)!.toString());
+        Assert.Equal(0, endings);
+        Assert.False(input.readableEnded);
+        JsEventLoop.Run();
         Assert.Equal(1, endings);
+        Assert.True(input.readableEnded);
         Assert.Null(input.read());
         Assert.Equal(1, endings);
     }
@@ -56,6 +60,8 @@ public class BufferedReadableFlowTests
         var endings = 0;
         input.on("end", (Action)(() => endings++));
         Assert.Same(chunk, input.read());
+        Assert.Equal(0, endings);
+        JsEventLoop.Run();
         Assert.Equal(1, endings);
         Assert.Null(input.read());
         Assert.Equal(1, endings);
@@ -78,6 +84,44 @@ public class BufferedReadableFlowTests
         Assert.Equal(new[] { "data", "end" }, events);
         JsEventLoop.Run();
         Assert.Equal(2, events.Count);
+    }
+
+    [Fact]
+    public void EmptyStreamsWaitForConsumptionAndLateOnceDoesNotReplay()
+    {
+        var input = Readable.from(System.Array.Empty<Buffer>());
+        var endings = 0;
+        input.on("end", (Action)(() => endings++));
+        Assert.Equal(0, endings);
+        Assert.Null(input.read());
+        Assert.Equal(0, endings);
+        JsEventLoop.Run();
+        Assert.Equal(1, endings);
+        input.once("end", (Action)(() => endings++));
+        Assert.Equal(1, endings);
+        JsEventLoop.Run();
+        Assert.Equal(1, endings);
+    }
+
+    [Fact]
+    public void ResumeWithoutDataListenerDrainsAndDestructionCancelsQueuedEnd()
+    {
+        var input = Readable.from(new[] { Buffer.from("discard") });
+        var endings = 0;
+        input.on("end", (Action)(() => endings++));
+        input.resume();
+        Assert.Equal(0, endings);
+        JsEventLoop.Run();
+        Assert.Equal(0, input.readableLength);
+        Assert.Equal(1, endings);
+
+        var destroyed = Readable.from(System.Array.Empty<Buffer>());
+        destroyed.on("end", (Action)(() => endings++));
+        Assert.Null(destroyed.read());
+        destroyed.destroy();
+        JsEventLoop.Run();
+        Assert.Equal(1, endings);
+        Assert.Null(destroyed.read());
     }
 
     [Fact]

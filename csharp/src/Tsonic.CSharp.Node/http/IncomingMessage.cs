@@ -32,6 +32,9 @@ public partial class IncomingMessage : Readable
         _isServerSide = true;
         _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(request.HttpContext.RequestAborted);
         headers = new IncomingHttpHeaders(request.Headers);
+        method = request.Method;
+        url = request.Path + request.QueryString;
+        httpVersion = request.Protocol.Replace("HTTP/", "", StringComparison.Ordinal);
         _socket = Socket.FromHttpConnection(
             request.HttpContext.Connection,
             request.HttpContext.Abort,
@@ -48,6 +51,9 @@ public partial class IncomingMessage : Readable
         _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         ProcessKeepAlive.Acquire();
         _isServerSide = false;
+        httpVersion = response.Version.ToString();
+        statusCode = (int)response.StatusCode;
+        statusMessage = response.ReasonPhrase;
         headers = new IncomingHttpHeaders(
             response.Headers.Select(header =>
                 new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value))
@@ -57,25 +63,21 @@ public partial class IncomingMessage : Readable
     }
 
     /// <summary>Request method, or native absence for a client response.</summary>
-    public string? method => _isServerSide ? _serverRequest?.Method : null;
+    public string? method { get; }
 
     /// <summary>Request URL, or native absence for a client response.</summary>
-    public string? url => _isServerSide
-        ? _serverRequest?.Path + _serverRequest?.QueryString
-        : null;
+    public string? url { get; }
 
     /// <summary>HTTP protocol version.</summary>
-    public string httpVersion => _isServerSide
-        ? _serverRequest?.Protocol.Replace("HTTP/", "", StringComparison.Ordinal) ?? "1.1"
-        : _clientResponse?.Version.ToString() ?? "1.1";
+    public string httpVersion { get; }
 
     /// <summary>Response status code, or native absence for a server request.</summary>
-    public int? statusCode => _isServerSide ? null : (int?)_clientResponse?.StatusCode;
+    public int? statusCode { get; }
 
     /// <summary>Response reason phrase, or native absence for a server request.</summary>
-    public string? statusMessage => _isServerSide ? null : _clientResponse?.ReasonPhrase;
+    public string? statusMessage { get; }
 
-    /// <summary>Case-insensitive live/snapshotted header access.</summary>
+    /// <summary>Case-insensitive request-owned header access.</summary>
     public IncomingHttpHeaders headers { get; }
 
     /// <summary>Exact repeated header values through the canonical header carrier.</summary>

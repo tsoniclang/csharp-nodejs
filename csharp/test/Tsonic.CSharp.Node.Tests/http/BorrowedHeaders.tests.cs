@@ -31,7 +31,11 @@ public class BorrowedHttpHeadersTests
     [Fact]
     public void IndexerDoesNotAllocateOrBoxValuesAndRetainsNullValidation()
     {
-        var dictionary = new HeaderDictionary { ["x-item"] = new StringValues(new[] { "one", "two" }) };
+        var dictionary = new HeaderDictionary
+        {
+            ["x-item"] = new StringValues(new[] { "one", "two" }),
+            ["invalid"] = new StringValues(new string?[] { "one", null }),
+        };
         var headers = new IncomingHttpHeaders(dictionary);
         var total = 0;
         for (var index = 0; index < 1000; index++) total += (headers["x-item"] ?? throw new InvalidOperationException("Missing header.")).Count;
@@ -39,7 +43,6 @@ public class BorrowedHttpHeadersTests
         for (var index = 0; index < 10000; index++) total += (headers["x-item"] ?? throw new InvalidOperationException("Missing header.")).Count;
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.Equal(22000, total);
-        dictionary["invalid"] = new StringValues(new string?[] { "one", null });
         var invalid = headers["invalid"] ?? throw new InvalidOperationException("Missing header.");
         Assert.Equal("one", HeaderValues.read(invalid, 0));
         Assert.Throws<InvalidOperationException>(() => HeaderValues.read(invalid, 1));
@@ -61,5 +64,34 @@ public class BorrowedHttpHeadersTests
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var index = 0; index < 10000; index++) GC.KeepAlive(HeaderValues.read(view, 0));
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [Fact]
+    public void AdmissionRetainsMetadataWhenTheNativeRequestFeaturesAreReused()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Method = "POST";
+        context.Request.Path = "/first";
+        context.Request.QueryString = new QueryString("?one=1");
+        context.Request.Protocol = "HTTP/1.1";
+        context.Request.Headers["x-request"] = "first";
+        var first = new IncomingMessage(context.Request);
+        context.Request.Headers.Clear();
+        context.Request.Headers["x-request"] = "second";
+        context.Request.Method = "GET";
+        context.Request.Path = "/second";
+        context.Request.QueryString = QueryString.Empty;
+        context.Request.Protocol = "HTTP/2";
+        var second = new IncomingMessage(context.Request);
+        Assert.Equal("first", first.headers.get("x-request"));
+        Assert.Equal("POST", first.method);
+        Assert.Equal("/first?one=1", first.url);
+        Assert.Equal("1.1", first.httpVersion);
+        Assert.Equal("second", second.headers.get("x-request"));
+        Assert.Equal("GET", second.method);
+        Assert.Equal("/second", second.url);
+        Assert.Equal("2", second.httpVersion);
+        first.destroy();
+        second.destroy();
     }
 }
