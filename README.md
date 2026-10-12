@@ -32,6 +32,19 @@ readonly `message`. Values retain the actual native error; there is no source
 `Error` reconstruction. Compression callbacks expose optional error and output
 independently: a failure has no output, while successful empty output is present.
 
+## Native process scheduling
+
+The native C# `process.nextTick(Action)` helper queues work on the selected
+`JsEventLoop`, not a thread-pool task. An embedding runs that loop to deliver
+callbacks; callback order and the original thrown exception are preserved.
+The broader variadic TypeScript `process.nextTick` surface remains unsupported.
+
+There is no native SDK `process.umask`, `process.ref(object)` or
+`process.unref(object)` facade. .NET provides no managed process-wide umask API,
+and arbitrary-object ref/unref requires dynamic member discovery. These methods
+must not return fabricated values or silently do nothing. Supported handles
+expose their own statically selected reference/liveness operations.
+
 ## Develop this capability
 
 ```sh

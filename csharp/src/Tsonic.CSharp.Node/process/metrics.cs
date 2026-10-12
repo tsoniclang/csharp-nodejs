@@ -331,27 +331,11 @@ public static partial class process
         }
     }
 
-    public static int umask(int? mask = null)
-    {
-        _ = mask;
-        return 0;
-    }
-
     public static void nextTick(Action callback)
     {
         if (callback == null)
             throw new ArgumentNullException(nameof(callback));
 
-        Task.Run(callback);
-    }
-
-    public static void @ref(object? handle)
-    {
-        _ = handle;
-    }
-
-    public static void unref(object? handle)
-    {
-        _ = handle;
+        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
     }
 }

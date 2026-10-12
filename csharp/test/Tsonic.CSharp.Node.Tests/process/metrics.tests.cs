@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
 
+[Collection(JsEventLoopCollection.Name)]
 public class ProcessMetricsTests : FsTestBase
 {
     [Fact]
@@ -80,10 +81,32 @@ public class ProcessMetricsTests : FsTestBase
     public async Task ProcessNextTick_RunsCallback()
     {
         var tcs = new TaskCompletionSource();
-
-        process.nextTick(() => tcs.SetResult());
-
+        int owner = Environment.CurrentManagedThreadId;
+        int observed = 0;
+        process.nextTick(() =>
+        {
+            observed = Environment.CurrentManagedThreadId;
+            tcs.SetResult();
+        });
+        Assert.False(tcs.Task.IsCompleted);
+        Tsonic.CSharp.Js.JsEventLoop.Run();
         await tcs.Task.WaitAsync(System.TimeSpan.FromSeconds(2));
+        Assert.Equal(owner, observed);
+    }
+
+    [Fact]
+    public void ProcessNextTick_PreservesCallbackOrderAndFailureIdentity()
+    {
+        var observed = new System.Collections.Generic.List<int>();
+        var failure = new InvalidOperationException("owned next tick");
+        process.nextTick(() => observed.Add(1));
+        process.nextTick(() => throw failure);
+        process.nextTick(() => observed.Add(3));
+        Assert.Same(failure, Assert.Throws<InvalidOperationException>(Tsonic.CSharp.Js.JsEventLoop.Run));
+        Assert.True(Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences);
+        Tsonic.CSharp.Js.JsEventLoop.Run();
+        Assert.Equal([1, 3], observed);
+        Assert.False(Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences);
     }
 
     [Fact]
