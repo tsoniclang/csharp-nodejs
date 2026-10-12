@@ -14,6 +14,62 @@ namespace Tsonic.CSharp.Node.Tests;
 public class HttpServerTests
 {
     [Fact]
+    public async Task Server_RetainedRequestMetadataSurvivesTheNextKeepAliveRequest()
+    {
+        IncomingMessage? first = null;
+        var connections = 0;
+        var server = http.createServer((request, response) =>
+        {
+            first ??= request;
+            response.end("ok");
+        });
+        server.listen(0, "127.0.0.1", (Action?)null);
+        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
+        try
+        {
+            using var handler = new SocketsHttpHandler
+            {
+                MaxConnectionsPerServer = 1,
+                ConnectCallback = async (context, cancellationToken) =>
+                {
+                    Interlocked.Increment(ref connections);
+                    var socket = new System.Net.Sockets.Socket(SocketType.Stream, ProtocolType.Tcp);
+                    try
+                    {
+                        await socket.ConnectAsync(context.DnsEndPoint, cancellationToken);
+                        return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        throw;
+                    }
+                },
+            };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+            var address = $"http://127.0.0.1:{server.address()!.address!.port}";
+            using var initial = new HttpRequestMessage(HttpMethod.Post, $"{address}/first?one=1");
+            initial.Headers.Add("x-request", "first");
+            using var initialReply = await client.SendAsync(initial);
+            Assert.Equal("ok", await initialReply.Content.ReadAsStringAsync());
+            using var next = new HttpRequestMessage(HttpMethod.Get, $"{address}/second");
+            next.Headers.Add("x-request", "second");
+            using var nextReply = await client.SendAsync(next);
+            Assert.Equal("ok", await nextReply.Content.ReadAsStringAsync());
+            Assert.Equal(1, connections);
+            Assert.NotNull(first);
+            Assert.Equal("POST", first.method);
+            Assert.Equal("/first?one=1", first.url);
+            Assert.Equal("first", first.headers.get("x-request"));
+            Assert.Equal("1.1", first.httpVersion);
+        }
+        finally
+        {
+            server.close();
+        }
+    }
+
+    [Fact]
     public async Task Server_HeadersDistinctPreservesRepeatedValuesAndSnapshotIsolation()
     {
         string[]? first = null;

@@ -47,7 +47,7 @@ public class NativeStreamInheritanceTests : FsTestBase
             Assert.True(writable.writableNeedDrain);
             Assert.Same(file, file.end());
             Assert.True(writable.writableEnded);
-            JsEventLoop.Run(finished.Task);
+            JsEventLoop.Run(() => finished.Task);
         }
         finally
         {

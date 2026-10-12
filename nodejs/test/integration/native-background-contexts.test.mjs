@@ -32,7 +32,7 @@ test("generated native Node driver consumes the demanded compression context", {
 
 test("generated asynchronous Node driver consumes the same component context", { timeout: 300_000 }, () => {
   const output = execute(compile(nativeBackgroundAsyncSource), "native-background-async-context", `
-Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main());
+Tsonic.CSharp.Js.JsEventLoop.Run(() => Tsonic.Generated.Index.main());
 `);
   assert.match(output, /native async completion/u);
 });
