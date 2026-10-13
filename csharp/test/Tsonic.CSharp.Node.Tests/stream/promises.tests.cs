@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -16,16 +17,19 @@ public class streamPromisesTests
     }
 
     [Fact]
-    public async Task pipeline_ShouldResolveForSimpleStreams()
+    public void pipeline_ShouldResolveForSimpleStreams()
     {
-        var source = new Readable();
-        var destination = new Writable();
+        JsEventLoop.Run(async () =>
+        {
+            var source = new Readable();
+            var destination = new Writable();
 
-        var pipelineTask = stream.promises.pipeline(source, destination);
-        source.push("data");
-        source.push(null);
+            var pipelineTask = stream.promises.pipeline(source, destination);
+            source.push("data");
+            source.push(null);
 
-        await pipelineTask;
-        Assert.True(destination.writableEnded);
+            await pipelineTask;
+            Assert.True(destination.writableEnded);
+        });
     }
 }
