@@ -34,11 +34,12 @@ public class WorkerThreadsTests
     {
         var channel = new MessageChannel();
         var messages = new List<string>();
-        channel.port2.on<TsValue>("message", value =>
-            messages.Add(TsValue.CastDynamic<string>(value)));
-
-        channel.port1.postMessage(TsValue.from("hello"));
-        JsEventLoop.Run();
+        JsEventLoop.Run(() =>
+        {
+            channel.port2.on<TsValue>("message", value =>
+                messages.Add(TsValue.CastDynamic<string>(value)));
+            channel.port1.postMessage(TsValue.from("hello"));
+        });
 
         Assert.Equal(["hello"], messages);
 
@@ -56,12 +57,14 @@ public class WorkerThreadsTests
         var first = channel.port2;
         var second = channel.port2;
         var order = new List<int>();
-        first.on<TsValue>("message", _ => order.Add(1));
-        second.on<TsValue>("message", _ => order.Add(2));
-        first.on<TsValue>("message", _ => order.Add(3));
-        channel.port1.postMessage(TsValue.from(1));
-        channel.port1.postMessage(TsValue.from(2));
-        JsEventLoop.Run();
+        JsEventLoop.Run(() =>
+        {
+            first.on<TsValue>("message", _ => order.Add(1));
+            second.on<TsValue>("message", _ => order.Add(2));
+            first.on<TsValue>("message", _ => order.Add(3));
+            channel.port1.postMessage(TsValue.from(1));
+            channel.port1.postMessage(TsValue.from(2));
+        });
         Assert.Equal([1, 2, 3, 1, 2, 3], order);
         Assert.True(channel.port2.receiveMessageOnPort().isUndefined());
         channel.port1.close();
@@ -77,43 +80,76 @@ public class WorkerThreadsTests
         var second = channel.port2;
         var order = new List<int>();
         Action<TsValue> canceled = _ => order.Add(2);
-        first.on<TsValue>("message", _ =>
+        JsEventLoop.Run(() =>
         {
-            order.Add(1);
-            first.off("message", canceled);
+            first.on<TsValue>("message", _ =>
+            {
+                order.Add(1);
+                first.off("message", canceled);
+                Assert.Equal(1, first.listenerCount("message"));
+            });
+            second.on("message", canceled);
+            channel.port1.postMessage(TsValue.from(1));
+            channel.port1.postMessage(TsValue.from(2));
         });
-        second.on("message", canceled);
-        channel.port1.postMessage(TsValue.from(1));
-        channel.port1.postMessage(TsValue.from(2));
-        JsEventLoop.Run();
         Assert.Equal([1, 2, 1], order);
-        Assert.Equal(1, first.listenerCount("message"));
+        Assert.Equal(0, first.listenerCount("message"));
         channel.port1.close();
         channel.port2.close();
         JsEventLoop.Run();
     }
 
     [Fact]
-    public void SharedMessagePort_OriginalFailureKeepsUninvokedOnceListenerAndNextMessage()
+    public void SharedMessagePort_OriginalFailureRetiresCallbacksAndKeepsNextNativeMessage()
     {
         var channel = new MessageChannel();
         var first = channel.port2;
         var second = channel.port2;
         var original = new InvalidOperationException("original shared port failure");
         var calls = 0;
-        first.once<TsValue>("message", _ => throw original);
-        second.once<TsValue>("message", _ => calls++);
-        channel.port1.postMessage(TsValue.from(1));
-        channel.port1.postMessage(TsValue.from(2));
-        Assert.Same(original, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run()));
+        WeakReference? capture = null;
+        Assert.Same(original, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
+        {
+            first.once<TsValue>("message", _ =>
+            {
+                Assert.Equal(1, first.listenerCount("message"));
+                throw original;
+            });
+            capture = RegisterCapturedListener(second, () => calls++);
+            channel.port1.postMessage(TsValue.from(1));
+            channel.port1.postMessage(TsValue.from(2));
+        })));
         Assert.Equal(0, calls);
-        Assert.Equal(1, first.listenerCount("message"));
+        Assert.Equal(0, first.listenerCount("message"));
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        Assert.NotNull(capture);
+        Assert.False(capture.IsAlive);
         JsEventLoop.Run();
+        Assert.Equal(0, calls);
+        JsEventLoop.Run(() => second.once<TsValue>("message", value =>
+        {
+            Assert.Equal(2, Assert.IsType<int>(value.unwrap()));
+            calls++;
+        }));
         Assert.Equal(1, calls);
         Assert.Equal(0, second.listenerCount("message"));
         channel.port1.close();
         channel.port2.close();
         JsEventLoop.Run();
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference RegisterCapturedListener(MessagePort port, Action callback)
+    {
+        var captured = new object();
+        port.once<TsValue>("message", _ =>
+        {
+            GC.KeepAlive(captured);
+            callback();
+        });
+        return new WeakReference(captured);
     }
 
     [Fact]

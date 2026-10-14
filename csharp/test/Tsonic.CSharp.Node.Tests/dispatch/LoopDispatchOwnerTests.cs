@@ -108,9 +108,11 @@ public sealed class LoopDispatchOwnerTests
         MessageChannel? channel = null;
         Timeout? timer = null;
         var invoked = false;
+        var portCalls = 0;
         JsEventLoop.Run(() =>
         {
             channel = new MessageChannel();
+            channel.port2.on<Tsonic.CSharp.Runtime.TsValue>("message", _ => portCalls++);
             timer = timers.setTimeout(() => invoked = true, 60000).unref();
         });
         Assert.NotNull(channel);
@@ -119,10 +121,23 @@ public sealed class LoopDispatchOwnerTests
         {
             timer.refresh().@ref();
             Assert.False(ProcessKeepAlive.HasReferences);
-            Assert.Throws<InvalidOperationException>(() => channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.from(1)));
+            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.from(9_007_199_254_740_993L));
+            Assert.Equal(9_007_199_254_740_993L,
+                Assert.IsType<long>(channel.port2.receiveMessageOnPort().unwrap()));
             timers.setImmediate(static () => { });
         });
         Assert.False(invoked);
+        Assert.Equal(0, portCalls);
+        Assert.Equal(0, channel.port2.listenerCount("message"));
+        JsEventLoop.Run(() =>
+        {
+            channel.port2.on<Tsonic.CSharp.Runtime.TsValue>("message", value =>
+                portCalls += Assert.IsType<int>(value.unwrap()));
+            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.from(3));
+        });
+        Assert.Equal(3, portCalls);
+        channel.port1.close();
+        channel.port2.close();
     }
 
     [Fact]

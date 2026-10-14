@@ -85,6 +85,7 @@ public partial class EventEmitter
 
     private EventEmitter addEventListenerCore(object eventName, EventListener listener, bool prepend)
     {
+        OnListenerAdding(eventName);
         if (!IsEvent(eventName, "newListener"))
         {
             emit("newListener", EventValue(eventName), listener.Original);
@@ -121,9 +122,21 @@ public partial class EventEmitter
         return this;
     }
 
+    /// <summary>Validates a specialized emitter's owner before registration has side effects.</summary>
+    protected virtual void OnListenerAdding(object eventName)
+    {
+    }
+
     /// <summary>Allows a specialized emitter to apply its documented listener lifecycle.</summary>
     protected virtual void OnListenerAdded(object eventName)
     {
+    }
+
+    /// <summary>Releases native-owned listener captures without invoking user callbacks.</summary>
+    protected void ClearNativeListeners()
+    {
+        lock (_eventLock)
+            _events.Clear();
     }
 
     private static EventListener CreateEventListener(Delegate listener, bool once)

@@ -15,9 +15,19 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj" />
+    <ProjectReference Include="../WorkerBootstrapProbe/WorkerBootstrapProbe.csproj"
+                      ReferenceOutputAssembly="false" OutputItemType="WorkerBootstrapProbeOutput" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="RecordWorkerBootstrapProbeOutput" BeforeTargets="GetAssemblyAttributes"
+          DependsOnTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <AssemblyMetadata Include="WorkerBootstrapProbePath"
+                        Value="$([System.IO.Path]::GetRelativePath('$(TargetDir)', '%(WorkerBootstrapProbeOutput.FullPath)'))" />
+    </ItemGroup>
+  </Target>
 </Project>
