@@ -26,7 +26,7 @@ public partial class IncomingMessage : Readable
     private int _terminal;
     private Timer? _timeoutTimer;
 
-    internal IncomingMessage(HttpRequest request)
+    internal IncomingMessage(HttpRequest request, LoopDispatch dispatch) : base(64 * 1024, dispatch)
     {
         _serverRequest = request;
         _isServerSide = true;
@@ -38,18 +38,20 @@ public partial class IncomingMessage : Readable
         _socket = Socket.FromHttpConnection(
             request.HttpContext.Connection,
             request.HttpContext.Abort,
-            request.HttpContext.RequestAborted);
+            request.HttpContext.RequestAborted,
+            dispatch);
     }
 
     internal IncomingMessage(
         HttpResponseMessage response,
         CancellationToken cancellation,
-        Action releaseRequest)
+        Action releaseRequest,
+        LoopDispatch dispatch) : base(64 * 1024, dispatch)
     {
         _clientResponse = response;
         _releaseRequest = releaseRequest;
         _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-        ProcessKeepAlive.Acquire();
+        ReadDispatch.Acquire();
         _isServerSide = false;
         httpVersion = response.Version.ToString();
         statusCode = (int)response.StatusCode;
@@ -59,7 +61,7 @@ public partial class IncomingMessage : Readable
                 new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value))
             .Concat(response.Content.Headers.Select(header =>
                 new KeyValuePair<string, IEnumerable<string>>(header.Key, header.Value))));
-        _socket = Socket.FromHttpResponse(response);
+        _socket = Socket.FromHttpResponse(response, dispatch);
     }
 
     /// <summary>Request method, or native absence for a client response.</summary>
@@ -133,7 +135,7 @@ public partial class IncomingMessage : Readable
             _timeoutTimer = new Timer(_ =>
             {
                 if (Volatile.Read(ref _terminal) == 0)
-                    JsEventLoop.EnqueueReferenced(() =>
+                    BackgroundDispatch.Enqueue(ReadDispatch, () =>
                     {
                         if (Volatile.Read(ref _terminal) == 0)
                             emit("timeout");
@@ -265,7 +267,7 @@ public partial class IncomingMessage : Readable
     private Task<bool> PublishChunkAsync(Buffer chunk)
     {
         var published = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             try
             {
@@ -282,7 +284,7 @@ public partial class IncomingMessage : Readable
     private Task PublishEndAsync()
     {
         var published = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             try
             {
@@ -303,7 +305,7 @@ public partial class IncomingMessage : Readable
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
             return;
         ReleaseNative();
-        JsEventLoop.EnqueueReferenced(() => emit("close"));
+        BackgroundDispatch.Enqueue(ReadDispatch, () => emit("close"));
     }
 
     internal void CloseAfterResponse()
@@ -312,7 +314,7 @@ public partial class IncomingMessage : Readable
             return;
         _bodyCancellation.Cancel();
         ReleaseNative();
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             if (!destroyed)
                 base.destroy();
@@ -325,7 +327,7 @@ public partial class IncomingMessage : Readable
             return;
         aborted = !complete;
         ReleaseNative();
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             if (aborted)
                 emit("aborted");
@@ -339,7 +341,7 @@ public partial class IncomingMessage : Readable
             return;
         aborted = !complete;
         ReleaseNative();
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             if (aborted)
                 emit("aborted");
@@ -356,6 +358,6 @@ public partial class IncomingMessage : Readable
         _clientResponse?.Dispose();
         _releaseRequest?.Invoke();
         if (!_isServerSide)
-            ProcessKeepAlive.Release();
+            ReadDispatch.Release();
     }
 }

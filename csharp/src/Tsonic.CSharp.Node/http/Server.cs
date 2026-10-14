@@ -25,6 +25,10 @@ namespace Tsonic.CSharp.Node.Http;
 #pragma warning disable ASPDEPR008 // IWebHost deprecation
 public partial class Server : EventEmitter
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch HttpDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Http);
+
     private IWebHost? _host;
     private AddressInfo? _boundAddress;
     private string? _boundPath;
@@ -220,7 +224,7 @@ public partial class Server : EventEmitter
             if (callback is not null)
             {
                 var error = new InvalidOperationException("Server is not listening");
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error));
+                BackgroundDispatch.Enqueue(HttpDispatch, () => callback(error));
             }
             return this;
         }
@@ -242,7 +246,7 @@ public partial class Server : EventEmitter
     public Server unref()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+            HttpDispatch.Release();
         return this;
     }
 
@@ -253,7 +257,7 @@ public partial class Server : EventEmitter
     public Server @ref()
     {
         if (_listening && Interlocked.Exchange(ref _referenced, 1) == 0)
-            ProcessKeepAlive.Acquire();
+            HttpDispatch.Acquire();
         return this;
     }
 
@@ -311,9 +315,9 @@ public partial class Server : EventEmitter
 
     private async Task HandleRequestAsync(HttpContext context)
     {
-        var request = new IncomingMessage(context.Request);
-        var response = new ServerResponse(context.Response);
-        JsEventLoop.EnqueueHandleOwned(() => emit("request", request, response));
+        var request = new IncomingMessage(context.Request, HttpDispatch);
+        var response = new ServerResponse(context.Response, HttpDispatch);
+        BackgroundDispatch.Enqueue(HttpDispatch, () => emit("request", request, response));
 
         try
         {
@@ -328,11 +332,23 @@ public partial class Server : EventEmitter
         }
     }
 
+    private void StopForLoop()
+    {
+        var host = _host;
+        _host = null;
+        _listening = false;
+        _boundAddress = null;
+        _boundPath = null;
+        host?.Dispose();
+        _loopRegistration.Dispose();
+    }
+
     private Server StartHost(IWebHost host, string? boundPath, Action? callback)
     {
         _host = host;
         try
         {
+            _loopRegistration = HttpDispatch.Register(static state => ((Server)state!).StopForLoop(), this);
             host.Start();
             _listening = true;
             _boundPath = boundPath;
@@ -341,8 +357,8 @@ public partial class Server : EventEmitter
                     ?? throw new InvalidOperationException("Kestrel did not publish its bound address.")
                 : null;
             if (Interlocked.Exchange(ref _referenced, 1) == 0)
-                ProcessKeepAlive.Acquire();
-            JsEventLoop.EnqueueReferenced(() =>
+                HttpDispatch.Acquire();
+            BackgroundDispatch.Enqueue(HttpDispatch, () =>
             {
                 emit("listening");
                 callback?.Invoke();
@@ -355,9 +371,10 @@ public partial class Server : EventEmitter
             _boundAddress = null;
             _boundPath = null;
             _listening = false;
+            _loopRegistration.Dispose();
             if (Interlocked.Exchange(ref _referenced, 0) != 0)
-                ProcessKeepAlive.Release();
-            JsEventLoop.EnqueueReferenced(() => emit("error", error));
+                HttpDispatch.Release();
+            BackgroundDispatch.Enqueue(HttpDispatch, () => emit("error", error));
         }
         return this;
     }
@@ -422,7 +439,7 @@ public partial class Server : EventEmitter
             host.Dispose();
         }
 
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(HttpDispatch, () =>
         {
             if (failure is not null && callback is null)
                 emit("error", failure);
@@ -430,7 +447,8 @@ public partial class Server : EventEmitter
             callback?.Invoke(failure);
         });
         if (releaseServerReference)
-            ProcessKeepAlive.Release();
+            HttpDispatch.Release();
+        _loopRegistration.Dispose();
     }
 }
 

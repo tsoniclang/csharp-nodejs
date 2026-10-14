@@ -17,7 +17,7 @@ internal sealed class JsEventLoopTestHost : IDisposable
     {
         _cleanup = cleanup;
         using var started = new ManualResetEventSlim();
-        JsEventLoop.EnqueueHandleOwned(started.Set);
+        JsEventLoop.Enqueue(started.Set);
         _eventLoop = Task.Factory.StartNew(
             () => JsEventLoop.Run(() => _lifetime.Task),
             CancellationToken.None,

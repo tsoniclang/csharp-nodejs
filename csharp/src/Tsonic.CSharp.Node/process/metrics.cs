@@ -336,6 +336,6 @@ public static partial class process
         if (callback == null)
             throw new ArgumentNullException(nameof(callback));
 
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+        Tsonic.CSharp.Js.JsEventLoop.Enqueue(callback);
     }
 }

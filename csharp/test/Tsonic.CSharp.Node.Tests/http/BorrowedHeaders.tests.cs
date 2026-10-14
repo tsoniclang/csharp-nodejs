@@ -75,14 +75,14 @@ public class BorrowedHttpHeadersTests
         context.Request.QueryString = new QueryString("?one=1");
         context.Request.Protocol = "HTTP/1.1";
         context.Request.Headers["x-request"] = "first";
-        var first = new IncomingMessage(context.Request);
+        var first = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         context.Request.Headers.Clear();
         context.Request.Headers["x-request"] = "second";
         context.Request.Method = "GET";
         context.Request.Path = "/second";
         context.Request.QueryString = QueryString.Empty;
         context.Request.Protocol = "HTTP/2";
-        var second = new IncomingMessage(context.Request);
+        var second = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         Assert.Equal("first", first.headers.get("x-request"));
         Assert.Equal("POST", first.method);
         Assert.Equal("/first?one=1", first.url);

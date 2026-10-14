@@ -15,6 +15,10 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Server : EventEmitter
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private protected Tsonic.CSharp.Js.LoopDispatch ServerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Net);
+
     private TcpListener? _listener;
     private bool _listening = false;
     private bool _allowHalfOpen = false;
@@ -119,6 +123,7 @@ public class Server : EventEmitter
 
         var host = hostname ?? "0.0.0.0";
         var ipAddress = IPAddress.Parse(host == "localhost" ? "127.0.0.1" : host);
+        _loopRegistration = ServerDispatch.Register(static state => ((Server)state!).close(), this);
 
         _listener = new TcpListener(ipAddress, port);
 
@@ -127,12 +132,12 @@ public class Server : EventEmitter
             _listener.Start(backlog);
             _listening = true;
             if (Interlocked.Exchange(ref _referenced, 1) == 0)
-                Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("listening"));
+                ServerDispatch.Acquire();
+            BackgroundDispatch.Enqueue(ServerDispatch, () => emit("listening"));
         }
         catch (Exception ex)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+            BackgroundDispatch.Enqueue(ServerDispatch, () => emit("error", ex));
             return this;
         }
 
@@ -152,18 +157,18 @@ public class Server : EventEmitter
                     var client = await _listener!.AcceptTcpClientAsync().ConfigureAwait(false);
                     _connections++;
 
-                    var socket = new Socket(client);
+                    var socket = new Socket(client, ServerDispatch);
 
                     if (_maxConnections > 0 && _connections > _maxConnections)
                     {
                         socket.destroy();
                         _connections--;
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drop", TsValue.CreateDynamicObject()));
+                        BackgroundDispatch.Enqueue(ServerDispatch, () => emit("drop", TsValue.CreateDynamicObject()));
                     }
                     else
                     {
                         socket.once("close", () => Interlocked.Decrement(ref _connections));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+                        BackgroundDispatch.Enqueue(ServerDispatch, () =>
                         {
                             emit("connection", socket);
                             socket.StartReading();
@@ -182,7 +187,7 @@ public class Server : EventEmitter
         }
         catch (Exception ex)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
+            BackgroundDispatch.Enqueue(ServerDispatch, () => emit("error", ex));
         }
     }
 
@@ -220,7 +225,7 @@ public class Server : EventEmitter
         {
             var error = new InvalidOperationException("Server is not listening");
             if (callback != null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error));
+                BackgroundDispatch.Enqueue(ServerDispatch, () => callback(error));
             return this;
         }
 
@@ -233,9 +238,10 @@ public class Server : EventEmitter
             once("close", () => callback(null));
         }
 
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("close"));
+        BackgroundDispatch.Enqueue(ServerDispatch, () => emit("close"));
         if (releaseServerReference)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
+            ServerDispatch.Release();
+        _loopRegistration.Dispose();
 
         return this;
     }
@@ -264,7 +270,7 @@ public class Server : EventEmitter
     /// <param name="callback">Callback with connection count</param>
     public void getConnections(Action<Exception?, int> callback)
     {
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, _connections));
+        BackgroundDispatch.Enqueue(ServerDispatch, () => callback(null, _connections));
     }
 
     /// <summary>
@@ -274,7 +280,7 @@ public class Server : EventEmitter
     public Server unref()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
+            ServerDispatch.Release();
         return this;
     }
 
@@ -285,7 +291,7 @@ public class Server : EventEmitter
     public Server @ref()
     {
         if (_listening && Interlocked.Exchange(ref _referenced, 1) == 0)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
+            ServerDispatch.Acquire();
         return this;
     }
 }

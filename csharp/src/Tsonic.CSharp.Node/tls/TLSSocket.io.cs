@@ -35,7 +35,7 @@ public partial class TLSSocket : Socket
         if (destroyed)
         {
             if (callback != null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(new InvalidOperationException("TLS socket is destroyed.")));
+                BackgroundDispatch.Enqueue(TlsDispatch, () => callback(new InvalidOperationException("TLS socket is destroyed.")));
             return false;
         }
 
@@ -120,7 +120,7 @@ public partial class TLSSocket : Socket
                     {
                         await _sslStream.FlushAsync();
                         _sslStream.Close();
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+                        BackgroundDispatch.Enqueue(TlsDispatch, () =>
                         {
                             emit("finish");
                             request.EndCallback?.Invoke();
@@ -135,25 +135,25 @@ public partial class TLSSocket : Socket
                         await _sslStream.WriteAsync(request.Data.Value);
                         await _sslStream.FlushAsync();
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(null));
+                            BackgroundDispatch.Enqueue(TlsDispatch, () => request.Callback(null));
                     }
                     catch (Exception error)
                     {
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(error));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
+                            BackgroundDispatch.Enqueue(TlsDispatch, () => request.Callback(error));
+                        BackgroundDispatch.Enqueue(TlsDispatch, () => emit("error", error));
                     }
                     finally
                     {
                         var remaining = Interlocked.Add(ref _tlsQueuedWriteBytes, -request.Data.Value.Length);
                         if (remaining < TlsWriteHighWaterMark && Interlocked.Exchange(ref _tlsNeedsDrain, 0) == 1)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drain"));
+                            BackgroundDispatch.Enqueue(TlsDispatch, () => emit("drain"));
                     }
                 }
             }
             catch (Exception error)
             {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
+                BackgroundDispatch.Enqueue(TlsDispatch, () => emit("error", error));
             }
         });
     }
@@ -176,7 +176,7 @@ public partial class TLSSocket : Socket
                     var bytesRead = await _sslStream.ReadAsync(buffer, 0, buffer.Length);
                     if (bytesRead == 0)
                     {
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("end"));
+                        BackgroundDispatch.Enqueue(TlsDispatch, () => emit("end"));
                         destroy();
                         break;
                     }
@@ -184,7 +184,7 @@ public partial class TLSSocket : Socket
                     var data = new byte[bytesRead];
                     Array.Copy(buffer, data, bytesRead);
                     var chunk = Buffer.from(data);
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("data", chunk));
+                    BackgroundDispatch.Enqueue(TlsDispatch, () => emit("data", chunk));
                 }
             }
             catch (Exception ex)

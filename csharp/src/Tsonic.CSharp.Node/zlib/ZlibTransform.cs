@@ -10,7 +10,11 @@ namespace Tsonic.CSharp.Node;
 /// <summary>Transforms stream chunks using the selected Node-compatible compression codec.</summary>
 public class ZlibTransform : Transform
 {
-    private readonly CodecInputStream _input = new();
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch CodecDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Background);
+
+    private readonly CodecInputStream _input;
     private readonly ZlibMode _mode;
     private readonly ZlibOptions? _zlibOptions;
     private readonly BrotliOptions? _brotliOptions;
@@ -32,6 +36,8 @@ public class ZlibTransform : Transform
         _mode = mode;
         _zlibOptions = zlibOptions;
         _brotliOptions = brotliOptions;
+        _input = new CodecInputStream(CodecDispatch);
+        _loopRegistration = CodecDispatch.Register(static state => ((ZlibTransform)state!).StopForLoop(), this);
         _ = BackgroundDispatch.RunReferencedAsync(Process);
     }
 
@@ -50,7 +56,16 @@ public class ZlibTransform : Transform
         var failure = error ?? Volatile.Read(ref _processorError);
         _stopping.Cancel();
         _input.Fail(failure ?? new OperationCanceledException(_stopping.Token));
+        _loopRegistration.Dispose();
         base.destroy(failure);
+    }
+
+    private void StopForLoop()
+    {
+        if (Interlocked.Exchange(ref _destroyStarted, 1) != 0) return;
+        _stopping.Cancel();
+        _input.Fail(new OperationCanceledException(_stopping.Token));
+        _loopRegistration.Dispose();
     }
 
     /// <inheritdoc />
@@ -91,7 +106,7 @@ public class ZlibTransform : Transform
         }
         _input.Complete();
         if (completed)
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(Volatile.Read(ref _processorError)));
+            BackgroundDispatch.Enqueue(CodecDispatch, () => callback(Volatile.Read(ref _processorError)));
     }
 
     private async Task Process()
@@ -107,7 +122,8 @@ public class ZlibTransform : Transform
                     destroy(error);
                 },
                 WaitForReadCapacityAsync,
-                _stopping.Token);
+                _stopping.Token,
+                CodecDispatch);
             using var output = new CodecOutputStream(
                 publication.Publish,
                 _zlibOptions?.maxOutputLength ?? _brotliOptions?.maxOutputLength);
@@ -120,7 +136,7 @@ public class ZlibTransform : Transform
 
             var failure = Interlocked.CompareExchange(ref _processorError, error, null) ?? error;
             _input.Fail(failure);
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(failure));
+            BackgroundDispatch.Enqueue(CodecDispatch, () => destroy(failure));
         }
         finally
         {
@@ -132,7 +148,7 @@ public class ZlibTransform : Transform
                 _flushCallback = null;
             }
             if (callback is not null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(Volatile.Read(ref _processorError)));
+                BackgroundDispatch.Enqueue(CodecDispatch, () => callback(Volatile.Read(ref _processorError)));
         }
     }
 
@@ -244,7 +260,7 @@ public class ZlibTransform : Transform
         _ = mode;
     }
 
-    private sealed class CodecInputStream : System.IO.Stream
+    private sealed class CodecInputStream(Tsonic.CSharp.Js.LoopDispatch dispatch) : System.IO.Stream
     {
         private sealed record Chunk(ReadOnlyMemory<byte> Data, Action<Exception?> Consumed);
 
@@ -274,7 +290,7 @@ public class ZlibTransform : Transform
                     }
                 }
             }
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => consumed(failure));
+            BackgroundDispatch.Enqueue(dispatch, () => consumed(failure));
         }
 
         public void Complete()
@@ -306,7 +322,7 @@ public class ZlibTransform : Transform
                 SignalReadiness();
             }
             foreach (var chunk in pending)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => chunk.Consumed(error));
+                BackgroundDispatch.Enqueue(dispatch, () => chunk.Consumed(error));
         }
 
         public override int Read(byte[] buffer, int offset, int count) =>
@@ -356,7 +372,7 @@ public class ZlibTransform : Transform
                     continue;
                 }
                 if (consumed is not null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => consumed(null));
+                    BackgroundDispatch.Enqueue(dispatch, () => consumed(null));
                 return copied;
             }
         }

@@ -12,6 +12,10 @@ namespace Tsonic.CSharp.Node;
 /// <summary>Runs a compiled module entry in an isolated worker process.</summary>
 public sealed class Worker : EventEmitter, IDisposable
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch WorkerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Workers);
+
     private static int _nextThreadId;
     private readonly object _stateLock = new();
     private readonly Process _process;
@@ -19,12 +23,14 @@ public sealed class Worker : EventEmitter, IDisposable
     private bool _closed;
     private bool _refed = true;
     private int? _exitCode;
+    private int _disposed;
 
     /// <summary>Starts the selected compiled worker entry with the supplied options.</summary>
     public Worker(string moduleEntryIdentity, WorkerOptions? options = null)
     {
         if (string.IsNullOrEmpty(moduleEntryIdentity))
             throw new ArgumentException("Worker module entry identity cannot be empty.", nameof(moduleEntryIdentity));
+        _ = WorkerDispatch;
         options ??= new WorkerOptions();
         threadId = Interlocked.Increment(ref _nextThreadId);
 
@@ -38,6 +44,7 @@ public sealed class Worker : EventEmitter, IDisposable
             endpoint.Port,
             token,
             threadId);
+        _loopRegistration = WorkerDispatch.Register(static state => ((Worker)state!).Dispose(), this);
         try
         {
             if (!process.Start())
@@ -62,12 +69,13 @@ public sealed class Worker : EventEmitter, IDisposable
                 worker_threads.EncodeEnvironmentDataSnapshot());
             _process = process;
             _transport = transport;
-            ProcessKeepAlive.Acquire();
+            WorkerDispatch.Acquire();
             _ = Task.Run(ReadWorkerFrames);
             _ = Task.Run(WaitForExit);
         }
         catch
         {
+            _loopRegistration.Dispose();
             try
             {
                 if (!process.HasExited)
@@ -116,7 +124,7 @@ public sealed class Worker : EventEmitter, IDisposable
             if (!_closed && !_refed)
             {
                 _refed = true;
-                ProcessKeepAlive.Acquire();
+                WorkerDispatch.Acquire();
             }
         }
         return this;
@@ -130,7 +138,7 @@ public sealed class Worker : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
-                ProcessKeepAlive.Release();
+                WorkerDispatch.Release();
             }
         }
         return this;
@@ -139,12 +147,14 @@ public sealed class Worker : EventEmitter, IDisposable
     /// <summary>Terminates the worker and releases its process and transport resources.</summary>
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         if (!_process.HasExited)
             _process.Kill(entireProcessTree: true);
         _process.WaitForExit();
         Complete(_process.ExitCode);
         _transport.Dispose();
         _process.Dispose();
+        _loopRegistration.Dispose();
     }
 
     private static Process CreateWorkerProcess(
@@ -225,14 +235,14 @@ public sealed class Worker : EventEmitter, IDisposable
                     case WorkerFrameKind.Message:
                     {
                         var value = StructuredClone.Decode(frame.Payload);
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("message", value));
+                        BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("message", value));
                         break;
                     }
                     case WorkerFrameKind.Error:
                     {
                         var error = new InvalidOperationException(
                             Encoding.UTF8.GetString(frame.Payload));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
+                        BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
                         break;
                     }
                     case WorkerFrameKind.Close:
@@ -247,14 +257,18 @@ public sealed class Worker : EventEmitter, IDisposable
             error is IOException or ObjectDisposedException or SocketException or InvalidDataException)
         {
             if (!IsComplete())
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", error));
+                BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
         }
     }
 
     private async Task WaitForExit()
     {
-        await _process.WaitForExitAsync().ConfigureAwait(false);
-        Complete(_process.ExitCode);
+        try
+        {
+            await _process.WaitForExitAsync().ConfigureAwait(false);
+            Complete(_process.ExitCode);
+        }
+        catch (InvalidOperationException) when (Volatile.Read(ref _disposed) != 0) { }
     }
 
     private bool IsComplete()
@@ -277,20 +291,13 @@ public sealed class Worker : EventEmitter, IDisposable
                 retainedExit = true;
             }
         }
-        if (retainedExit)
+        try
         {
-            try
-            {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("exit", exitCode));
-            }
-            finally
-            {
-                ProcessKeepAlive.Release();
-            }
+            BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("exit", exitCode));
         }
-        else
+        finally
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("exit", exitCode));
+            if (retainedExit) WorkerDispatch.Release();
         }
     }
 }

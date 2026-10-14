@@ -10,6 +10,10 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Immediate : IDisposable
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch TimerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Timers);
+
     private const int StateScheduled = 0;
     private const int StateRunning = 1;
     private const int StateCompleted = 2;
@@ -17,6 +21,7 @@ public class Immediate : IDisposable
 
     private static int _nextHandleId = 0;
     private static readonly ConcurrentDictionary<int, Immediate> ActiveHandles = new();
+    private static readonly SendOrPostCallback DispatchCallback = static state => ((Immediate)state!).TryExecute();
     private readonly int _handleId;
     private readonly Action _callback;
     private int _state = StateScheduled;
@@ -27,9 +32,10 @@ public class Immediate : IDisposable
     {
         _handleId = Interlocked.Increment(ref _nextHandleId);
         _callback = callback;
-        ProcessKeepAlive.Acquire();
+        _loopRegistration = TimerDispatch.Register(static state => ((Immediate)state!).Dispose(), this);
+        TimerDispatch.Acquire();
         ActiveHandles[_handleId] = this;
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(TryExecute);
+        BackgroundDispatch.Enqueue(TimerDispatch, DispatchCallback, this);
     }
 
     private void TryExecute()
@@ -65,7 +71,7 @@ public class Immediate : IDisposable
     {
         if (Volatile.Read(ref _cleanupState) == 0 && !_isRef)
         {
-            ProcessKeepAlive.Acquire();
+            TimerDispatch.Acquire();
         }
         _isRef = true;
         return this;
@@ -78,7 +84,7 @@ public class Immediate : IDisposable
     {
         if (Volatile.Read(ref _cleanupState) == 0 && _isRef)
         {
-            ProcessKeepAlive.Release();
+            TimerDispatch.Release();
         }
         _isRef = false;
         return this;
@@ -117,8 +123,9 @@ public class Immediate : IDisposable
         ActiveHandles.TryRemove(_handleId, out _);
         if (_isRef)
         {
-            ProcessKeepAlive.Release();
+            TimerDispatch.Release();
         }
+        _loopRegistration.Dispose();
         GC.SuppressFinalize(this);
     }
 }

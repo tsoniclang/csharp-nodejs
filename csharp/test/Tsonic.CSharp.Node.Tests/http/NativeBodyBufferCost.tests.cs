@@ -43,7 +43,7 @@ public class NativeBodyBufferCostTests
 
     private static (Buffer Body, long Allocated) Materialize(IReadOnlyList<Buffer> chunks)
     {
-        var message = new IncomingMessage(new DefaultHttpContext().Request);
+        var message = new IncomingMessage(new DefaultHttpContext().Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         var result = message.readAllBuffer();
         Assert.Throws<InvalidOperationException>(() => { _ = message.readAllBuffer(); });
         foreach (var chunk in chunks)

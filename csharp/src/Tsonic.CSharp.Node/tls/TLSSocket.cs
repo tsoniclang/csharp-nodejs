@@ -21,6 +21,10 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class TLSSocket : Socket
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _tlsRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch TlsDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Tls);
+
     private SslStream? _sslStream;
     private bool _authorized = false;
     private Exception? _authorizationError;
@@ -65,8 +69,9 @@ public partial class TLSSocket : Socket
     /// <summary>
     /// Creates a new TLS socket from an existing TCP socket.
     /// </summary>
-    public TLSSocket(Socket socket, TLSSocketOptions? options = null) : base()
+    public TLSSocket(Socket socket, TLSSocketOptions? options = null) : base(socket.NativeDispatch)
     {
+        _tlsRegistration = TlsDispatch.Register(static state => ((TLSSocket)state!).destroy(), this);
         _baseSocket = socket;
         _options = options;
         socket.ReserveTransportRead();
@@ -128,14 +133,14 @@ public partial class TLSSocket : Socket
                         // Start reading data from the stream
                         StartReading();
 
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("secureConnect"));
+                        BackgroundDispatch.Enqueue(TlsDispatch, () => emit("secureConnect"));
                     }
                     catch (Exception ex)
                     {
                         _authorizationError = ex;
                         _tlsHandshakeError = ex;
                         _tlsReady.Set();
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
+                        BackgroundDispatch.Enqueue(TlsDispatch, () => emit("error", ex));
                     }
                 });
             }

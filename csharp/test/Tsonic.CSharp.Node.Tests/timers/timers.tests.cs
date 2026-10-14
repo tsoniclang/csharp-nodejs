@@ -9,7 +9,7 @@ public class TimersTests
 {
     private static void DrainEventLoop()
     {
-        JsEventLoop.EnqueueReferenced(static () => { });
+        JsEventLoop.Enqueue(static () => { });
         JsEventLoop.Run();
     }
 

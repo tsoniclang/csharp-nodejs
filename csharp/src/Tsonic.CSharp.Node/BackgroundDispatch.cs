@@ -10,39 +10,38 @@ internal static class BackgroundDispatch
 {
     private const int WorkerCount = 4;
     private const int MaximumPendingWork = 16 * 1024;
-    private static readonly SemaphoreSlim WorkReservations = new(MaximumPendingWork, MaximumPendingWork);
-    private static readonly System.Threading.Channels.Channel<WorkItem> Work =
-        System.Threading.Channels.Channel.CreateBounded<WorkItem>(
-        new BoundedChannelOptions(MaximumPendingWork)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = false,
-            SingleWriter = false
-        });
-    private static readonly Task[] Workers = CreateWorkers();
+
+    internal static LoopDispatch Capture(PhaseRegistration phase) => JsEventLoop.RegisterPhase(phase.Phase, NodePhases.Order);
+    internal static LoopDispatch Bind(ref LoopDispatch dispatch, PhaseRegistration phase) => dispatch.IsBound ? dispatch : dispatch = Capture(phase);
+
+    internal static void Enqueue(LoopDispatch dispatch, Action callback)
+    {
+        if (!dispatch.TryEnqueue(callback) && dispatch.IsActive)
+            dispatch.ReportFailure(new InvalidOperationException("Pending Node callback count exceeds the finite event-loop limit."));
+    }
+
+    internal static void Enqueue(LoopDispatch dispatch, SendOrPostCallback callback, object? state)
+    {
+        if (!dispatch.TryEnqueue(callback, state) && dispatch.IsActive)
+            dispatch.ReportFailure(new InvalidOperationException("Pending Node callback count exceeds the finite event-loop limit."));
+    }
 
     public static Task RunReferenced(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        ProcessKeepAlive.Acquire();
+        var dispatch = Capture(NodePhases.Background);
+        dispatch.Acquire();
         try
         {
             return Enqueue(() =>
             {
-                try
-                {
-                    action();
-                    return Task.CompletedTask;
-                }
-                finally
-                {
-                    ProcessKeepAlive.Release();
-                }
-            });
+                action();
+                return Task.CompletedTask;
+            }, dispatch);
         }
         catch
         {
-            ProcessKeepAlive.Release();
+            dispatch.Release();
             throw;
         }
     }
@@ -80,24 +79,15 @@ internal static class BackgroundDispatch
     public static Task RunReferencedAsync(Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        ProcessKeepAlive.Acquire();
+        var dispatch = Capture(NodePhases.Background);
+        dispatch.Acquire();
         try
         {
-            return Enqueue(async () =>
-            {
-                try
-                {
-                    await action().ConfigureAwait(false);
-                }
-                finally
-                {
-                    ProcessKeepAlive.Release();
-                }
-            });
+            return Enqueue(action, dispatch);
         }
         catch
         {
-            ProcessKeepAlive.Release();
+            dispatch.Release();
             throw;
         }
     }
@@ -118,16 +108,16 @@ internal static class BackgroundDispatch
         return Enqueue(action);
     }
 
-    private static Task Enqueue(Func<Task> action)
+    private static Task Enqueue(Func<Task> action, LoopDispatch reference = default)
     {
-        _ = Workers;
-        if (!WorkReservations.Wait(0))
+        _ = WorkPool.Workers;
+        if (!WorkPool.Reservations.Wait(0))
             throw new InvalidOperationException("Node background work count exceeds its finite limit.");
 
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!Work.Writer.TryWrite(new WorkItem(action, completion)))
+        if (!WorkPool.Work.Writer.TryWrite(new WorkItem(action, completion, reference)))
         {
-            WorkReservations.Release();
+            WorkPool.Reservations.Release();
             throw new InvalidOperationException("Node background work queue exceeds its finite limit.");
         }
         return completion.Task;
@@ -143,7 +133,7 @@ internal static class BackgroundDispatch
 
     private static async Task WorkerLoop()
     {
-        await foreach (var item in Work.Reader.ReadAllAsync().ConfigureAwait(false))
+        await foreach (var item in WorkPool.Work.Reader.ReadAllAsync().ConfigureAwait(false))
             _ = Execute(item);
     }
 
@@ -164,9 +154,40 @@ internal static class BackgroundDispatch
         }
         finally
         {
-            WorkReservations.Release();
+            if (item.Reference.IsBound) item.Reference.Release();
+            WorkPool.Reservations.Release();
         }
     }
 
-    private sealed record WorkItem(Func<Task> Action, TaskCompletionSource Completion);
+    private sealed record WorkItem(Func<Task> Action, TaskCompletionSource Completion, LoopDispatch Reference);
+
+    private static class WorkPool
+    {
+        internal static readonly SemaphoreSlim Reservations = new(MaximumPendingWork, MaximumPendingWork);
+        internal static readonly System.Threading.Channels.Channel<WorkItem> Work = System.Threading.Channels.Channel.CreateBounded<WorkItem>(new BoundedChannelOptions(MaximumPendingWork)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = false,
+            SingleWriter = false,
+        });
+        internal static readonly Task[] Workers = CreateWorkers();
+    }
+}
+
+internal static class NodePhases
+{
+    internal static readonly PhaseRegistration Background = new();
+    internal static readonly PhaseRegistration RuntimeTasks = new();
+    internal static readonly PhaseRegistration Signals = new();
+    internal static readonly PhaseRegistration Timers = new();
+    internal static readonly PhaseRegistration Http = new();
+    internal static readonly PhaseRegistration Net = new();
+    internal static readonly PhaseRegistration Tls = new();
+    internal static readonly PhaseRegistration Watchers = new();
+    internal static readonly PhaseRegistration Workers = new();
+    internal static readonly PhaseRegistration Ports = new();
+    internal static readonly DispatchPhase[] Order = [
+        JsEventLoop.TimerPhase, Background.Phase, RuntimeTasks.Phase, Signals.Phase,
+        Timers.Phase, Http.Phase, Net.Phase, Tls.Phase, Watchers.Phase, Workers.Phase, Ports.Phase,
+    ];
 }

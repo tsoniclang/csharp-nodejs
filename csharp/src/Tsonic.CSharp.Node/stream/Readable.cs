@@ -11,6 +11,9 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Readable : Stream
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private protected Tsonic.CSharp.Js.LoopDispatch ReadDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.RuntimeTasks);
+
     private readonly ReadableChunkQueue _buffer = new();
     private readonly object _readLock = new();
     private readonly int _highWaterMark;
@@ -40,6 +43,11 @@ public partial class Readable : Stream
         if (highWaterMark <= 0)
             throw new ArgumentOutOfRangeException(nameof(highWaterMark));
         _highWaterMark = highWaterMark;
+    }
+
+    private protected Readable(int highWaterMark, Tsonic.CSharp.Js.LoopDispatch dispatch) : this(highWaterMark)
+    {
+        _ownerDispatch = dispatch;
     }
 
     /// <summary>Creates a finite in-memory binary readable without copying its chunks.</summary>
@@ -411,7 +419,7 @@ public partial class Readable : Stream
         }
         try
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(dispatch);
+            BackgroundDispatch.Enqueue(ReadDispatch, dispatch);
         }
         catch
         {
@@ -451,7 +459,7 @@ public partial class Readable : Stream
         }
         try
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(DeliverEnd);
+            BackgroundDispatch.Enqueue(ReadDispatch, DeliverEnd);
         }
         catch
         {

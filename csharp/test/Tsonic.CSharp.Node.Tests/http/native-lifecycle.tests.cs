@@ -10,7 +10,7 @@ public class NativeHttpLifecycleTests
     [Fact]
     public void AbortFailure_LeavesPhysicalCleanupAndNativeTerminalErrorIntact()
     {
-        var message = new IncomingMessage(new DefaultHttpContext().Request);
+        var message = new IncomingMessage(new DefaultHttpContext().Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         message.push(Buffer.from("pending body"));
         var original = new InvalidOperationException("original abort callback");
         var supplied = new Exception("native abort");
