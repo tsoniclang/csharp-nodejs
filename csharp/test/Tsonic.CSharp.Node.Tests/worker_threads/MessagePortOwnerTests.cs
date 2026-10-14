@@ -220,6 +220,28 @@ public sealed class MessagePortOwnerTests
     }
 
     [Fact]
+    public void SynchronouslyConsumedMessagesCannotStealAnotherPortsCallbackOrder()
+    {
+        var first = new MessageChannel();
+        var second = new MessageChannel();
+        using var firstSender = first.port1;
+        using var firstReceiver = first.port2;
+        using var secondSender = second.port1;
+        using var secondReceiver = second.port2;
+        var seen = new List<int>();
+        JsEventLoop.Run(() =>
+        {
+            firstReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
+            secondReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
+            firstSender.postMessage(TsValue.from(1));
+            Assert.Equal(1, Assert.IsType<int>(firstReceiver.receiveMessageOnPort().unwrap()));
+            secondSender.postMessage(TsValue.from(2));
+            firstSender.postMessage(TsValue.from(3));
+        });
+        Assert.Equal(new[] { 2, 3 }, seen);
+    }
+
+    [Fact]
     public void NativeSignalAdmissionPreservesFifoAcrossPhysicalPorts()
     {
         var first = new MessageChannel();
@@ -284,6 +306,32 @@ public sealed class MessagePortOwnerTests
             Assert.Equal(ulong.MaxValue, Assert.IsType<ulong>(receiver.receiveMessageOnPort().unwrap()));
             Assert.False(ProcessKeepAlive.HasReferences);
         });
+    }
+
+    [Fact]
+    public void NativeBufferedErrorsMessagesAndCloseRetainTheirPhysicalOrder()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        using var peerClient = new TcpClient(AddressFamily.InterNetwork);
+        peerClient.ReceiveTimeout = 5000;
+        peerClient.Connect((IPEndPoint)listener.LocalEndpoint);
+        using var transport = new WorkerTransport(listener.AcceptTcpClient());
+        using var peer = new WorkerTransport(peerClient);
+        using var port = new MessagePort(transport);
+        port.StartTransportReader();
+        peer.Send(WorkerFrameKind.Error, System.Text.Encoding.UTF8.GetBytes("first"));
+        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(42)));
+        peer.Send(WorkerFrameKind.Close, []);
+        Assert.True(SpinWait.SpinUntil(() => !port.hasRef(), TimeSpan.FromSeconds(5)), "native close deadline");
+        var seen = new List<string>();
+        JsEventLoop.Run(() =>
+        {
+            port.on<Exception>("error", error => seen.Add("error:" + error.Message));
+            port.on<TsValue>("message", value => seen.Add("message:" + Assert.IsType<int>(value.unwrap())));
+            port.on("close", () => seen.Add("close"));
+        });
+        Assert.Equal(new[] { "error:first", "message:42", "close" }, seen);
     }
 
     [Fact]

@@ -11,11 +11,7 @@ public sealed partial class MessagePort
     protected override void OnListenerAdding(object eventName) => BindCallbackOwner();
 
     /// <inheritdoc />
-    protected override void OnListenerAdded(object eventName)
-    {
-        StartTransportReader();
-        lock (_stateLock) ScheduleDelivery();
-    }
+    protected override void OnListenerAdded(object eventName) => StartTransportReader();
 
     private void BindCallbackOwner()
     {
@@ -42,6 +38,7 @@ public sealed partial class MessagePort
             }, owner);
             _callbackOwner = owner;
             AcquireReference();
+            ScheduleBufferedDelivery(owner);
         }
     }
 
@@ -52,6 +49,7 @@ public sealed partial class MessagePort
             if (!ReferenceEquals(_callbackOwner, owner)) return;
             _callbackOwner = null;
             owner.Registration.Dispose();
+            owner.Pending?.Clear();
             if (owner.Referenced)
             {
                 owner.Referenced = false;
@@ -77,83 +75,94 @@ public sealed partial class MessagePort
         owner.Dispatch.Release();
     }
 
-    private void ScheduleDelivery()
+    private void ScheduleDelivery(PortSignal signal, ulong ticket)
     {
-        if (_callbackOwner is not { } owner) return;
-        while (owner.PendingMessages < _queue.Count)
-        {
-            if (!AdmitDelivery(owner, static state =>
-                {
-                    var selected = (CallbackOwner)state!;
-                    selected.Port.Deliver(selected, PortSignal.Message);
-                })) return;
-            owner.PendingMessages++;
-        }
-        var errors = (_errors?.Count ?? 0) + (_terminalError is null ? 0 : 1);
-        while (owner.PendingErrors < errors)
-        {
-            if (!AdmitDelivery(owner, static state =>
-                {
-                    var selected = (CallbackOwner)state!;
-                    selected.Port.Deliver(selected, PortSignal.Error);
-                })) return;
-            owner.PendingErrors++;
-        }
-        if (_closePending && !owner.PendingClose)
-        {
-            if (!AdmitDelivery(owner, static state =>
-                {
-                    var selected = (CallbackOwner)state!;
-                    selected.Port.Deliver(selected, PortSignal.Close);
-                })) return;
-            owner.PendingClose = true;
-        }
+        if (_callbackOwner is { } owner)
+            AdmitDelivery(owner, new PortDelivery(signal, ticket));
     }
 
-    private static bool AdmitDelivery(CallbackOwner owner, SendOrPostCallback callback)
+    private void ScheduleBufferedDelivery(CallbackOwner owner)
     {
-        if (owner.Dispatch.TryEnqueue(callback, owner)) return true;
+        var messages = _queue.GetEnumerator();
+        var errors = _errors?.GetEnumerator() ?? default;
+        var hasMessage = messages.MoveNext();
+        var hasError = _errors is not null && errors.MoveNext();
+        while (hasMessage || hasError)
+        {
+            if (hasError && (!hasMessage || errors.Current.Ticket < messages.Current.Ticket))
+            {
+                AdmitDelivery(owner, new PortDelivery(PortSignal.Error, errors.Current.Ticket));
+                hasError = errors.MoveNext();
+            }
+            else
+            {
+                AdmitDelivery(owner, new PortDelivery(PortSignal.Message, messages.Current.Ticket));
+                hasMessage = messages.MoveNext();
+            }
+        }
+        if (_terminalError is { } terminal)
+            AdmitDelivery(owner, new PortDelivery(PortSignal.Error, terminal.Ticket));
+        if (_closeTicket is { } closed)
+            AdmitDelivery(owner, new PortDelivery(PortSignal.Close, closed));
+    }
+
+    private static void AdmitDelivery(CallbackOwner owner, PortDelivery delivery)
+    {
+        if (owner.Dispatch.TryEnqueue(static state =>
+            {
+                var selected = (CallbackOwner)state!;
+                selected.Port.Deliver(selected);
+            }, owner))
+        {
+            (owner.Pending ??= new()).Enqueue(delivery);
+            return;
+        }
         if (owner.Dispatch.IsActive)
             owner.Dispatch.ReportFailure(new InvalidOperationException(
                 "Pending Node callback count exceeds the finite event-loop limit."));
-        return false;
     }
 
-    private void Deliver(CallbackOwner owner, PortSignal signal)
+    private void Deliver(CallbackOwner owner)
     {
         string eventName;
         object? value;
         lock (_stateLock)
         {
             if (!ReferenceEquals(_callbackOwner, owner) || !owner.Dispatch.IsActive) return;
-            switch (signal)
+            if (owner.Pending is not { } pending || !pending.TryDequeue(out var delivery))
+                throw new InvalidOperationException("MessagePort callback has no admitted delivery ticket.");
+            switch (delivery.Signal)
             {
                 case PortSignal.Message:
-                    owner.PendingMessages--;
-                    if (!_queue.TryDequeue(out var message)) return;
+                    if (!_queue.TryPeek(out var message) || message.Ticket != delivery.Ticket) return;
+                    _queue.Dequeue();
                     eventName = "message";
-                    value = message;
+                    value = message.Value;
                     break;
                 case PortSignal.Error:
-                    owner.PendingErrors--;
                     eventName = "error";
-                    if (_errors is { } errors && errors.TryDequeue(out var error)) value = error;
-                    else if (_terminalError is { } terminalError)
+                    if (_errors is { } errors && errors.TryPeek(out var error) && error.Ticket == delivery.Ticket)
                     {
-                        value = terminalError;
+                        _errors.Dequeue();
+                        value = error.Error;
+                    }
+                    else if (_terminalError is { } terminal && terminal.Ticket == delivery.Ticket)
+                    {
+                        value = terminal.Error;
                         _terminalError = null;
                     }
-                    else return;
+                    else
+                        throw new InvalidOperationException("MessagePort callback has no matching physical error.");
                     break;
                 case PortSignal.Close:
-                    owner.PendingClose = false;
-                    if (!_closePending) return;
-                    _closePending = false;
+                    if (_closeTicket != delivery.Ticket)
+                        throw new InvalidOperationException("MessagePort callback has no matching physical close.");
+                    _closeTicket = null;
                     eventName = "close";
                     value = null;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(signal));
+                    throw new ArgumentOutOfRangeException(nameof(delivery.Signal));
             }
         }
         try
@@ -164,11 +173,11 @@ public sealed partial class MessagePort
         finally
         {
             if (eventName == "close") RetireCallbacks(owner);
-            else lock (_stateLock) ScheduleDelivery();
         }
     }
 
     private enum PortSignal { Message, Error, Close }
+    private readonly record struct PortDelivery(PortSignal Signal, ulong Ticket);
 
     private sealed class CallbackOwner(MessagePort port, LoopDispatch dispatch, int threadId)
     {
@@ -177,8 +186,6 @@ public sealed partial class MessagePort
         internal readonly int ThreadId = threadId;
         internal LoopRegistration Registration;
         internal bool Referenced;
-        internal int PendingMessages;
-        internal int PendingErrors;
-        internal bool PendingClose;
+        internal Queue<PortDelivery>? Pending;
     }
 }

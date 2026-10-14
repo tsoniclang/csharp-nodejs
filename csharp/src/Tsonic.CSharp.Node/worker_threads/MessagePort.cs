@@ -6,15 +6,16 @@ namespace Tsonic.CSharp.Node;
 public sealed partial class MessagePort : EventEmitter, IDisposable
 {
     private const int MaximumQueuedMessages = 1 << 16;
-    private readonly Queue<TsValue> _queue = new();
+    private readonly Queue<PortMessage> _queue = new();
     private readonly object _stateLock = new();
-    private Queue<Exception>? _errors;
-    private Exception? _terminalError;
+    private Queue<PortError>? _errors;
+    private PortError? _terminalError;
+    private ulong _nextTicket;
     private MessagePort? _peer;
     private WorkerTransport? _transport;
     private bool _readerStarted;
     private bool _closed;
-    private bool _closePending;
+    private ulong? _closeTicket;
     private bool _refed = true;
 
     internal MessagePort()
@@ -41,25 +42,26 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
     /// <summary>Sends a structured-cloned value to the connected endpoint.</summary>
     public void postMessage(TsValue value)
     {
-        WorkerTransport? transport;
         MessagePort? peer;
         lock (_stateLock)
         {
             if (_closed)
                 throw new InvalidOperationException("MessagePort is closed.");
-            transport = _transport;
+            if (_transport is { } transport)
+            {
+                transport.Send(WorkerFrameKind.Message, StructuredClone.Encode(value));
+                return;
+            }
             peer = _peer;
         }
-        var payload = StructuredClone.Encode(value);
-        if (transport is not null) transport.Send(WorkerFrameKind.Message, payload);
-        else peer?.ReceiveLocal(payload);
+        peer?.ReceiveLocal(StructuredClone.Encode(value));
     }
 
     /// <summary>Synchronously receives the next queued message, or undefined when none is available.</summary>
     public TsValue receiveMessageOnPort()
     {
         lock (_stateLock)
-            return _queue.TryDequeue(out var value) ? value : TsValue.undefined();
+            return _queue.TryDequeue(out var message) ? message.Value : TsValue.undefined();
     }
 
     /// <summary>Starts delivery of messages from the underlying transport.</summary>
@@ -67,7 +69,6 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
     {
         BindCallbackOwner();
         StartTransportReader();
-        lock (_stateLock) ScheduleDelivery();
     }
 
     /// <summary>Closes this endpoint and releases its transport resources.</summary>
@@ -78,11 +79,11 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
         {
             if (_closed) return;
             _closed = true;
-            _closePending = true;
+            _closeTicket = NextTicket();
             transport = _transport;
             _transport = null;
             _refed = false;
-            ScheduleDelivery();
+            ScheduleDelivery(PortSignal.Close, _closeTicket.Value);
             ReleaseReference();
         }
         try { transport?.Send(WorkerFrameKind.Close, ReadOnlySpan<byte>.Empty); }
@@ -134,10 +135,10 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
         {
             if (_closed)
                 throw new InvalidOperationException("MessagePort is closed.");
-            if (_queue.Count + (_errors?.Count ?? 0) == MaximumQueuedMessages)
-                throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
-            _queue.Enqueue(StructuredClone.Decode(payload));
-            ScheduleDelivery();
+            RequireQueueCapacity();
+            var message = new PortMessage(NextTicket(), StructuredClone.Decode(payload));
+            _queue.Enqueue(message);
+            ScheduleDelivery(PortSignal.Message, message.Ticket);
         }
     }
 
@@ -146,11 +147,29 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
         lock (_stateLock)
         {
             if (_closed) return;
-            if (_queue.Count + (_errors?.Count ?? 0) == MaximumQueuedMessages)
-                throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
-            (_errors ??= new()).Enqueue(error);
-            ScheduleDelivery();
+            RequireQueueCapacity();
+            QueueError(error);
         }
+    }
+
+    private void RequireQueueCapacity()
+    {
+        if (_queue.Count + (_errors?.Count ?? 0) == MaximumQueuedMessages)
+            throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
+        if (_nextTicket >= ulong.MaxValue - 2)
+            throw new InvalidOperationException("MessagePort signal sequence is exhausted.");
+    }
+
+    private ulong NextTicket() => checked(++_nextTicket);
+
+    private void QueueError(Exception error)
+    {
+        var selected = new PortError(NextTicket(), error);
+        if (_queue.Count + (_errors?.Count ?? 0) < MaximumQueuedMessages)
+            (_errors ??= new()).Enqueue(selected);
+        else
+            _terminalError = selected;
+        ScheduleDelivery(PortSignal.Error, selected.Ticket);
     }
 
     private void ReadTransport()
@@ -188,15 +207,15 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
             {
                 if (!_closed)
                 {
-                    if (_queue.Count + (_errors?.Count ?? 0) < MaximumQueuedMessages)
-                        (_errors ??= new()).Enqueue(error);
-                    else
-                        _terminalError = error;
+                    QueueError(error);
                 }
             }
             close();
         }
     }
+
+    private readonly record struct PortMessage(ulong Ticket, TsValue Value);
+    private readonly record struct PortError(ulong Ticket, Exception Error);
 
 }
 
