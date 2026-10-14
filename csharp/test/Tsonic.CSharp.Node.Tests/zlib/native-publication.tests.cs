@@ -24,7 +24,7 @@ public class NativeCodecPublicationTests
             },
             error => throw error,
             _ => throw new InvalidOperationException("Accepted output must not wait for capacity."),
-            cancellation.Token);
+            cancellation.Token, JsEventLoop.Capture());
         ProcessKeepAlive.Acquire();
         using var loop = JsEventLoopTestHost.Start(ProcessKeepAlive.Release);
         for (var index = 0; index < 128; index++)
@@ -40,7 +40,7 @@ public class NativeCodecPublicationTests
             _ => throw new InvalidOperationException("Cancelled output was published."),
             error => throw error,
             _ => throw new InvalidOperationException("Cancelled output requested capacity."),
-            cancellation.Token);
+            cancellation.Token, JsEventLoop.Capture());
         var pending = publication.Publish(new byte[1]);
         Assert.False(pending.IsCompleted);
         cancellation.Cancel();
@@ -59,7 +59,7 @@ public class NativeCodecPublicationTests
             _ => { calls++; return true; },
             error => throw error,
             _ => Task.CompletedTask,
-            CancellationToken.None);
+            CancellationToken.None, JsEventLoop.Capture());
         var pending = publication.Publish(new byte[1]);
         var overlap = publication.Publish(new byte[1]);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await overlap);
@@ -84,7 +84,7 @@ public class NativeCodecPublicationTests
                 waiting.SetResult();
                 return capacity.Task.WaitAsync(token);
             },
-            cancellation.Token);
+            cancellation.Token, JsEventLoop.Capture());
         var pending = publication.Publish(new byte[1]);
         JsEventLoop.Run();
         await waiting.Task.WaitAsync(TimeSpan.FromSeconds(5));

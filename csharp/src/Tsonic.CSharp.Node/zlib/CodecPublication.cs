@@ -8,6 +8,7 @@ namespace Tsonic.CSharp.Node;
 
 internal sealed class CodecPublication : IValueTaskSource<bool>, IDisposable
 {
+    private readonly LoopDispatch CodecDispatch;
     private readonly object _sync = new();
     private readonly Func<byte[], bool> _publish;
     private readonly Action<Exception> _failure;
@@ -22,8 +23,10 @@ internal sealed class CodecPublication : IValueTaskSource<bool>, IDisposable
         Func<byte[], bool> publish,
         Action<Exception> failure,
         Func<CancellationToken, Task> capacity,
-        CancellationToken stopping)
+        CancellationToken stopping,
+        LoopDispatch dispatch)
     {
+        CodecDispatch = dispatch;
         _publish = publish;
         _failure = failure;
         _capacity = capacity;
@@ -47,7 +50,7 @@ internal sealed class CodecPublication : IValueTaskSource<bool>, IDisposable
         }
         try
         {
-            JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(CodecDispatch, () =>
             {
                 if (_stopping.IsCancellationRequested)
                     return;

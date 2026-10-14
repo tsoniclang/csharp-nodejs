@@ -14,6 +14,7 @@ namespace Tsonic.CSharp.Node.Http;
 /// <summary>An ordered, pressure-aware HTTP response over Kestrel.</summary>
 public partial class ServerResponse : Writable
 {
+    private readonly LoopDispatch ResponseDispatch;
     private readonly HttpResponse _response;
     private readonly TaskCompletionSource _completion =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -24,8 +25,9 @@ public partial class ServerResponse : Writable
     private int _terminal;
     private Timer? _timeoutTimer;
 
-    internal ServerResponse(HttpResponse response)
+    internal ServerResponse(HttpResponse response, LoopDispatch dispatch)
     {
+        ResponseDispatch = dispatch;
         _response = response;
         _abortRegistration = response.HttpContext.RequestAborted.Register(AbortFromTransport);
     }
@@ -241,7 +243,7 @@ public partial class ServerResponse : Writable
             _timeoutTimer = new Timer(_ =>
             {
                 if (Volatile.Read(ref _terminal) == 0)
-                    JsEventLoop.EnqueueReferenced(() =>
+                    BackgroundDispatch.Enqueue(ResponseDispatch, () =>
                     {
                         if (Volatile.Read(ref _terminal) == 0)
                             emit("timeout");
@@ -323,7 +325,7 @@ public partial class ServerResponse : Writable
             await _response.Body.WriteAsync(
                 bytes,
                 _response.HttpContext.RequestAborted).ConfigureAwait(false);
-            JsEventLoop.EnqueueReferenced(callback);
+            BackgroundDispatch.Enqueue(ResponseDispatch, callback);
         }
         catch (Exception error)
         {
@@ -337,7 +339,7 @@ public partial class ServerResponse : Writable
         {
             await EnsureHeadersStartedAsync().ConfigureAwait(false);
             await _response.CompleteAsync().ConfigureAwait(false);
-            JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(ResponseDispatch, () =>
             {
                 if (Interlocked.Exchange(ref _terminal, 1) != 0)
                     return;
@@ -368,7 +370,7 @@ public partial class ServerResponse : Writable
 
     private void EnqueueFailure(Exception error, Action? stateCallback = null)
     {
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ResponseDispatch, () =>
         {
             if (Interlocked.Exchange(ref _terminal, 1) != 0)
                 return;
@@ -382,7 +384,7 @@ public partial class ServerResponse : Writable
 
     private void AbortFromTransport()
     {
-        JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(ResponseDispatch, () =>
         {
             if (Interlocked.Exchange(ref _terminal, 1) != 0)
                 return;

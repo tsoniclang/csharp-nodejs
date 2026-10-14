@@ -7,6 +7,10 @@ namespace Tsonic.CSharp.Node;
 
 public sealed class FsWatcher : EventEmitter
 {
+    private LoopDispatch _ownerDispatch;
+    private LoopRegistration _loopRegistration;
+    private LoopDispatch WatchDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Watchers);
+
     private readonly FileSystemWatcher? _watcher;
     private int _closed;
     private int _referenced = 1;
@@ -14,7 +18,17 @@ public sealed class FsWatcher : EventEmitter
     internal FsWatcher(FileSystemWatcher? watcher)
     {
         _watcher = watcher;
-        ProcessKeepAlive.Acquire();
+        try
+        {
+            _loopRegistration = WatchDispatch.Register(static state => ((FsWatcher)state!).close(), this);
+            WatchDispatch.Acquire();
+        }
+        catch
+        {
+            _loopRegistration.Dispose();
+            watcher?.Dispose();
+            throw;
+        }
     }
 
     public bool closed => Volatile.Read(ref _closed) != 0;
@@ -25,8 +39,9 @@ public sealed class FsWatcher : EventEmitter
             return;
         _watcher?.Dispose();
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
-        emit("close");
+            WatchDispatch.Release();
+        _loopRegistration.Dispose();
+        if (WatchDispatch.IsActive) emit("close");
     }
 
     internal void publish(string eventType, string? filename)
@@ -38,14 +53,14 @@ public sealed class FsWatcher : EventEmitter
     public FsWatcher @ref()
     {
         if (!closed && Interlocked.Exchange(ref _referenced, 1) == 0)
-            ProcessKeepAlive.Acquire();
+            WatchDispatch.Acquire();
         return this;
     }
 
     public FsWatcher unref()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+            WatchDispatch.Release();
         return this;
     }
 
@@ -54,6 +69,10 @@ public sealed class FsWatcher : EventEmitter
 
 public sealed class StatWatcher : EventEmitter
 {
+    private LoopDispatch _ownerDispatch;
+    private LoopRegistration _loopRegistration;
+    private LoopDispatch WatchDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Watchers);
+
     private readonly Timer _timer;
     private readonly Action _onClose;
     private Stats _previous;
@@ -71,12 +90,24 @@ public sealed class StatWatcher : EventEmitter
         this.listener = listener;
         _onClose = onClose;
         _previous = CurrentStats(path);
+        _ = WatchDispatch;
         _timer = new Timer(
             static state => ((StatWatcher)state!).SchedulePoll(),
             this,
-            interval,
-            interval);
-        ProcessKeepAlive.Acquire();
+            System.Threading.Timeout.InfiniteTimeSpan,
+            System.Threading.Timeout.InfiniteTimeSpan);
+        try
+        {
+            _loopRegistration = WatchDispatch.Register(static state => ((StatWatcher)state!).close(), this);
+            WatchDispatch.Acquire();
+            _timer.Change(interval, interval);
+        }
+        catch
+        {
+            _loopRegistration.Dispose();
+            _timer.Dispose();
+            throw;
+        }
     }
 
     internal string path { get; }
@@ -90,8 +121,9 @@ public sealed class StatWatcher : EventEmitter
         _timer.Dispose();
         _onClose();
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
-        emit("close");
+            WatchDispatch.Release();
+        _loopRegistration.Dispose();
+        if (WatchDispatch.IsActive) emit("close");
     }
 
     internal void publish(Stats current, Stats previous)
@@ -107,7 +139,7 @@ public sealed class StatWatcher : EventEmitter
     {
         if (closed || Interlocked.Exchange(ref _callbackPending, 1) != 0)
             return;
-        JsEventLoop.EnqueueHandleOwned(() =>
+        BackgroundDispatch.Enqueue(WatchDispatch, () =>
         {
             try
             {
@@ -166,14 +198,14 @@ public sealed class StatWatcher : EventEmitter
     public StatWatcher @ref()
     {
         if (!closed && Interlocked.Exchange(ref _referenced, 1) == 0)
-            ProcessKeepAlive.Acquire();
+            WatchDispatch.Acquire();
         return this;
     }
 
     public StatWatcher unref()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            ProcessKeepAlive.Release();
+            WatchDispatch.Release();
         return this;
     }
 }

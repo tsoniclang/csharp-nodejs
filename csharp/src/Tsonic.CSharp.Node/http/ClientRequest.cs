@@ -15,6 +15,10 @@ namespace Tsonic.CSharp.Node.Http;
 /// </summary>
 public partial class ClientRequest : EventEmitter
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch HttpDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Http);
+
     private readonly HttpClient _httpClient;
     private readonly RequestOptions _options;
     private readonly HttpRequestMessage _request;
@@ -160,7 +164,7 @@ public partial class ClientRequest : EventEmitter
         var bytes = Buffer.from(chunk, encoding ?? "utf8").InternalMemory;
         _requestBody.Write(bytes.Span);
         if (callback != null)
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+            BackgroundDispatch.Enqueue(HttpDispatch, callback);
         return true;
     }
 
@@ -173,7 +177,7 @@ public partial class ClientRequest : EventEmitter
         var bytes = chunk.InternalMemory;
         _requestBody.Write(bytes.Span);
         if (callback != null)
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+            BackgroundDispatch.Enqueue(HttpDispatch, callback);
         return true;
     }
 
@@ -188,6 +192,7 @@ public partial class ClientRequest : EventEmitter
     {
         if (_ended)
             return;
+        _loopRegistration = HttpDispatch.Register(static state => ((ClientRequest)state!).StopForLoop(), this);
 
         if (chunk != null)
         {
@@ -195,7 +200,7 @@ public partial class ClientRequest : EventEmitter
         }
 
         _ended = true;
-        ProcessKeepAlive.Acquire();
+        HttpDispatch.Acquire();
         var transferred = false;
         try
         {
@@ -212,23 +217,23 @@ public partial class ClientRequest : EventEmitter
                 _cancellation.CancelAfter(_options.timeout.Value);
             }
             var response = await _httpClient.SendAsync(_request, HttpCompletionOption.ResponseHeadersRead, _cancellation.Token);
-            _response = new IncomingMessage(response, _cancellation.Token, ReleaseRequest);
+            _response = new IncomingMessage(response, _cancellation.Token, ReleaseRequest, HttpDispatch);
             transferred = true;
             var incomingMessage = _response;
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(HttpDispatch, () =>
             {
                 try { emit("response", incomingMessage); }
                 catch { incomingMessage.destroy(); throw; }
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(incomingMessage.StartClientBody);
+                BackgroundDispatch.Enqueue(HttpDispatch, incomingMessage.StartClientBody);
             });
 
             if (callback != null)
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+                BackgroundDispatch.Enqueue(HttpDispatch, callback);
         }
         catch (TaskCanceledException)
         {
             _response?.destroy();
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(HttpDispatch, () =>
             {
                 emit("timeout");
                 emit("error", new TimeoutException("Request timeout"));
@@ -237,12 +242,12 @@ public partial class ClientRequest : EventEmitter
         catch (Exception ex)
         {
             _response?.destroy();
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+            BackgroundDispatch.Enqueue(HttpDispatch, () => emit("error", ex));
         }
         finally
         {
             if (!transferred) ReleaseRequest();
-            ProcessKeepAlive.Release();
+            HttpDispatch.Release();
         }
     }
 
@@ -267,6 +272,17 @@ public partial class ClientRequest : EventEmitter
             _cancellation.Dispose();
             if (_ownsHttpClient) _httpClient.Dispose();
         }
+        _loopRegistration.Dispose();
+    }
+
+    private void StopForLoop()
+    {
+        lock (_cancellation)
+        {
+            if (_released != 0) return;
+            _cancellation.Cancel();
+        }
+        ReleaseRequest();
     }
 
     /// <summary>

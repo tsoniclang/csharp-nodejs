@@ -7,40 +7,57 @@ namespace Tsonic.CSharp.Node;
 
 public sealed class ReadStream : Readable
 {
+    private LoopDispatch _ownerDispatch;
+    private LoopRegistration _loopRegistration;
+    private int _nativeClosed;
+    private LoopDispatch StreamDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Background);
+
     private readonly FileStream _stream;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly int _highWaterMark;
     private long? _remaining;
 
     public ReadStream(string path, ReadStreamOptions? options = null)
-        : base(ValidateHighWaterMark(options?.highWaterMark ?? 64 * 1024))
+        : base(ValidateHighWaterMark(options?.highWaterMark ?? 64 * 1024), BackgroundDispatch.Capture(NodePhases.RuntimeTasks))
     {
+        _ = StreamDispatch;
         this.path = path;
         pending = false;
         var open = FsStreamOpenOptions.ForRead(options?.flags ?? "r");
         _highWaterMark = options?.highWaterMark ?? 64 * 1024;
-        _stream = new FileStream(
-            path,
-            open.Mode,
-            open.Access,
-            FileShare.ReadWrite | FileShare.Delete,
-            _highWaterMark,
-            open.Options);
-        if (options?.start is long start)
+        _loopRegistration = StreamDispatch.Register(static state => ((ReadStream)state!).StopForLoop(), this);
+        try
         {
-            if (start < 0)
-                throw new ArgumentOutOfRangeException(nameof(options), "ReadStream start must be non-negative.");
-            _stream.Seek(start, SeekOrigin.Begin);
+            _stream = new FileStream(
+                path,
+                open.Mode,
+                open.Access,
+                FileShare.ReadWrite | FileShare.Delete,
+                _highWaterMark,
+                open.Options);
+            if (options?.start is long start)
+            {
+                if (start < 0)
+                    throw new ArgumentOutOfRangeException(nameof(options), "ReadStream start must be non-negative.");
+                _stream.Seek(start, SeekOrigin.Begin);
+            }
+            if (options?.end is long end)
+            {
+                var effectiveStart = options.start ?? 0;
+                if (end < effectiveStart)
+                    throw new ArgumentOutOfRangeException(nameof(options), "ReadStream end must not precede start.");
+                _remaining = checked(end - effectiveStart + 1);
+            }
+            if (options?.encoding is string encoding)
+                setEncoding(encoding);
         }
-        if (options?.end is long end)
+        catch
         {
-            var effectiveStart = options.start ?? 0;
-            if (end < effectiveStart)
-                throw new ArgumentOutOfRangeException(nameof(options), "ReadStream end must not precede start.");
-            _remaining = checked(end - effectiveStart + 1);
+            _loopRegistration.Dispose();
+            _stream?.Dispose();
+            _cancellation.Dispose();
+            throw;
         }
-        if (options?.encoding is string encoding)
-            setEncoding(encoding);
     }
 
     private static int ValidateHighWaterMark(int value) =>
@@ -57,13 +74,13 @@ public sealed class ReadStream : Readable
 
     private async Task ReadNextAsync(int size)
     {
-        ProcessKeepAlive.Acquire();
+        StreamDispatch.Acquire();
         try
         {
             if (_remaining == 0)
             {
                 await _stream.DisposeAsync().ConfigureAwait(false);
-                JsEventLoop.EnqueueReferenced(() => push(null));
+                BackgroundDispatch.Enqueue(StreamDispatch, () => push(null));
                 return;
             }
             var requested = System.Math.Max(1, System.Math.Min(size, _highWaterMark));
@@ -74,37 +91,44 @@ public sealed class ReadStream : Readable
             if (count == 0)
             {
                 await _stream.DisposeAsync().ConfigureAwait(false);
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(null));
+                BackgroundDispatch.Enqueue(StreamDispatch, () => push(null));
                 return;
             }
             bytesRead += count;
             if (_remaining is not null)
                 _remaining -= count;
             var chunk = Buffer.TakeOwnership(bytes.AsMemory(0, count));
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => push(chunk));
+            BackgroundDispatch.Enqueue(StreamDispatch, () => push(chunk));
         }
         catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
         {
         }
         catch (Exception error)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => destroy(error));
+            BackgroundDispatch.Enqueue(StreamDispatch, () => destroy(error));
         }
         finally
         {
-            ProcessKeepAlive.Release();
+            StreamDispatch.Release();
         }
     }
 
     public void close() => destroy();
 
+    private void StopForLoop()
+    {
+        if (Interlocked.Exchange(ref _nativeClosed, 1) != 0) return;
+        _cancellation.Cancel();
+        _stream.Dispose();
+        _cancellation.Dispose();
+        _loopRegistration.Dispose();
+    }
+
     public override void destroy(Exception? error = null)
     {
         if (!destroyed)
         {
-            _cancellation.Cancel();
-            _stream.Dispose();
-            _cancellation.Dispose();
+            StopForLoop();
         }
         base.destroy(error);
     }
@@ -112,6 +136,11 @@ public sealed class ReadStream : Readable
 
 public sealed class WriteStream : Writable
 {
+    private LoopDispatch _ownerDispatch;
+    private LoopRegistration _loopRegistration;
+    private int _nativeClosed;
+    private LoopDispatch StreamDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Background);
+
     private readonly FileStream _stream;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _defaultEncoding;
@@ -120,6 +149,7 @@ public sealed class WriteStream : Writable
     public WriteStream(string path, WriteStreamOptions? options = null)
         : base(ValidateHighWaterMark(options?.highWaterMark ?? 64 * 1024))
     {
+        _ = StreamDispatch;
         this.path = path;
         pending = false;
         _defaultEncoding = options?.encoding ?? "utf-8";
@@ -139,14 +169,25 @@ public sealed class WriteStream : Writable
         };
         if (mode.HasValue && !OperatingSystem.IsWindows())
             fileOptions.UnixCreateMode = (UnixFileMode)mode.Value;
-        _stream = new FileStream(path, fileOptions);
-        if (open.Append)
-            _stream.Seek(0, SeekOrigin.End);
-        else if (options?.start is long start)
+        _loopRegistration = StreamDispatch.Register(static state => ((WriteStream)state!).StopForLoop(), this);
+        try
         {
-            if (start < 0)
-                throw new ArgumentOutOfRangeException(nameof(options), "WriteStream start must be non-negative.");
-            _stream.Seek(start, SeekOrigin.Begin);
+            _stream = new FileStream(path, fileOptions);
+            if (open.Append)
+                _stream.Seek(0, SeekOrigin.End);
+            else if (options?.start is long start)
+            {
+                if (start < 0)
+                    throw new ArgumentOutOfRangeException(nameof(options), "WriteStream start must be non-negative.");
+                _stream.Seek(start, SeekOrigin.Begin);
+            }
+        }
+        catch
+        {
+            _loopRegistration.Dispose();
+            _stream?.Dispose();
+            _cancellation.Dispose();
+            throw;
         }
     }
 
@@ -180,32 +221,39 @@ public sealed class WriteStream : Writable
         _ = FinalizeAsync(callback);
     }
 
+    private void StopForLoop()
+    {
+        if (Interlocked.Exchange(ref _nativeClosed, 1) != 0) return;
+        _cancellation.Cancel();
+        _stream.Dispose();
+        _cancellation.Dispose();
+        _loopRegistration.Dispose();
+    }
+
     public override void destroy(Exception? error = null)
     {
         if (!destroyed)
         {
-            _cancellation.Cancel();
-            _stream.Dispose();
-            _cancellation.Dispose();
+            StopForLoop();
         }
         base.destroy(error);
     }
 
     private async Task WriteChunkAsync(ReadOnlyMemory<byte> bytes, Action callback)
     {
-        ProcessKeepAlive.Acquire();
+        StreamDispatch.Acquire();
         try
         {
             await _stream.WriteAsync(bytes, _cancellation.Token).ConfigureAwait(false);
             bytesWritten += bytes.Length;
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+            BackgroundDispatch.Enqueue(StreamDispatch, callback);
         }
         catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
         {
         }
         catch (Exception error)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(StreamDispatch, () =>
             {
                 destroy(error);
                 callback();
@@ -213,20 +261,20 @@ public sealed class WriteStream : Writable
         }
         finally
         {
-            ProcessKeepAlive.Release();
+            StreamDispatch.Release();
         }
     }
 
     private async Task FinalizeAsync(Action callback)
     {
-        ProcessKeepAlive.Acquire();
+        StreamDispatch.Acquire();
         try
         {
             await _stream.FlushAsync(_cancellation.Token).ConfigureAwait(false);
             if (_flushToDisk)
                 _stream.Flush(true);
             await _stream.DisposeAsync().ConfigureAwait(false);
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(StreamDispatch, () =>
             {
                 callback();
                 emit("close");
@@ -237,7 +285,7 @@ public sealed class WriteStream : Writable
         }
         catch (Exception error)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+            BackgroundDispatch.Enqueue(StreamDispatch, () =>
             {
                 destroy(error);
                 callback();
@@ -245,7 +293,7 @@ public sealed class WriteStream : Writable
         }
         finally
         {
-            ProcessKeepAlive.Release();
+            StreamDispatch.Release();
         }
     }
 }

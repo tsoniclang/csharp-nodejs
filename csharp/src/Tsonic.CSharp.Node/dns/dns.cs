@@ -126,17 +126,18 @@ public static partial class dns
     /// <param name="callback">Callback function (err, address, family) or (err, addresses) if all=true</param>
     public static void lookup(string hostname, LookupOptions? options, Action<Exception?, string, int> callback)
     {
+        var dispatch = BackgroundDispatch.Capture(NodePhases.Background);
         BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
                 var result = LookupCore(hostname, options);
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                BackgroundDispatch.Enqueue(dispatch, () =>
                     callback(null, result.address, result.family));
             }
             catch (Exception ex)
             {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, string.Empty, 0));
+                BackgroundDispatch.Enqueue(dispatch, () => callback(ex, string.Empty, 0));
             }
         });
     }
@@ -146,16 +147,17 @@ public static partial class dns
     /// </summary>
     public static void lookup(string hostname, LookupOptions? options, Action<Exception?, JSArray<LookupAddress>> callback)
     {
+        var dispatch = BackgroundDispatch.Capture(NodePhases.Background);
         BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
                 var resultArray = LookupAllCore(hostname, options);
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, resultArray));
+                BackgroundDispatch.Enqueue(dispatch, () => callback(null, resultArray));
             }
             catch (Exception ex)
             {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(ex, new JSArray<LookupAddress>()));
+                BackgroundDispatch.Enqueue(dispatch, () => callback(ex, new JSArray<LookupAddress>()));
             }
         });
     }

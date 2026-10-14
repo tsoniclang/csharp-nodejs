@@ -7,6 +7,10 @@ namespace Tsonic.CSharp.Node;
 /// <summary>Represents one endpoint of a structured-clone worker message channel.</summary>
 public sealed class MessagePort : EventEmitter, IDisposable
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch PortDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Ports);
+
     private const int MaximumQueuedMessages = 1 << 16;
     private readonly ConcurrentQueue<TsValue> _queue = new();
     private readonly object _stateLock = new();
@@ -19,12 +23,14 @@ public sealed class MessagePort : EventEmitter, IDisposable
 
     internal MessagePort()
     {
+        _loopRegistration = PortDispatch.Register(static state => ((MessagePort)state!).close(), this);
     }
 
     internal MessagePort(WorkerTransport transport)
     {
         _transport = transport;
-        ProcessKeepAlive.Acquire();
+        _loopRegistration = PortDispatch.Register(static state => ((MessagePort)state!).close(), this);
+        PortDispatch.Acquire();
     }
 
     internal void Connect(MessagePort peer) => _peer = peer;
@@ -81,14 +87,15 @@ public sealed class MessagePort : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
-                if (transport is not null) ProcessKeepAlive.Release();
+                if (transport is not null) PortDispatch.Release();
             }
         }
         try { transport?.Send(WorkerFrameKind.Close, ReadOnlySpan<byte>.Empty); }
         catch (IOException) { }
         catch (ObjectDisposedException) { }
         transport?.Dispose();
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("close"));
+        _loopRegistration.Dispose();
+        BackgroundDispatch.Enqueue(PortDispatch, () => emit("close"));
     }
 
     /// <summary>Keeps the process alive while this port remains open.</summary>
@@ -99,7 +106,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             if (!_closed && !_refed)
             {
                 _refed = true;
-                if (_transport is not null) ProcessKeepAlive.Acquire();
+                if (_transport is not null) PortDispatch.Acquire();
             }
         }
         return this;
@@ -113,7 +120,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
-                if (_transport is not null) ProcessKeepAlive.Release();
+                if (_transport is not null) PortDispatch.Release();
             }
         }
         return this;
@@ -146,7 +153,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             Interlocked.Decrement(ref _queuedMessages);
             throw;
         }
-        EnqueuePortCallback(() =>
+        BackgroundDispatch.Enqueue(PortDispatch, () =>
         {
             if (_queue.TryDequeue(out var selected))
             {
@@ -169,7 +176,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
                         ReceiveLocal(frame.Payload);
                         break;
                     case WorkerFrameKind.Error:
-                        EnqueuePortCallback(() => emit(
+                        BackgroundDispatch.Enqueue(PortDispatch, () => emit(
                             "error",
                             new InvalidOperationException(
                                 System.Text.Encoding.UTF8.GetString(frame.Payload))));
@@ -186,23 +193,11 @@ public sealed class MessagePort : EventEmitter, IDisposable
         catch (Exception error) when (
             error is IOException or ObjectDisposedException or InvalidDataException)
         {
-            EnqueuePortCallback(() => emit("error", error));
+            BackgroundDispatch.Enqueue(PortDispatch, () => emit("error", error));
             close();
         }
     }
 
-    private void EnqueuePortCallback(Action callback)
-    {
-        lock (_stateLock)
-        {
-            if (_transport is not null)
-            {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(callback);
-                return;
-            }
-        }
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
-    }
 }
 
 /// <summary>Creates two locally connected message-port endpoints.</summary>

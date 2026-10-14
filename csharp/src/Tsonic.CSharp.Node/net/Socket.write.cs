@@ -37,7 +37,7 @@ public partial class Socket : Stream
             if (_stream == null || _destroyed || _writeQueue.IsAddingCompleted)
             {
                 if (callback != null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(new InvalidOperationException("Socket not connected")));
+                    BackgroundDispatch.Enqueue(SocketDispatch, () => callback(new InvalidOperationException("Socket not connected")));
                 return false;
             }
 
@@ -87,19 +87,19 @@ public partial class Socket : Stream
                         await _stream.WriteAsync(request.Data);
                         bytesWritten += request.Data.Length;
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(null));
+                            BackgroundDispatch.Enqueue(SocketDispatch, () => request.Callback(null));
                     }
                     catch (Exception ex)
                     {
                         if (request.Callback != null)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => request.Callback(ex));
-                        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("error", ex));
+                            BackgroundDispatch.Enqueue(SocketDispatch, () => request.Callback(ex));
+                        BackgroundDispatch.Enqueue(SocketDispatch, () => emit("error", ex));
                     }
                     finally
                     {
                         var remaining = Interlocked.Add(ref _queuedWriteBytes, -request.Data.Length);
                         if (remaining < WriteHighWaterMark && Interlocked.Exchange(ref _needsDrain, 0) == 1)
-                            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() => emit("drain"));
+                            BackgroundDispatch.Enqueue(SocketDispatch, () => emit("drain"));
                     }
 
                     // Signal if queue is empty
@@ -159,7 +159,7 @@ public partial class Socket : Stream
                 {
                 }
                 if (callback != null)
-                    Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(callback);
+                    BackgroundDispatch.Enqueue(SocketDispatch, callback);
             });
         }
         return this;

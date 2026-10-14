@@ -20,6 +20,10 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public partial class Socket : Stream
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private protected Tsonic.CSharp.Js.LoopDispatch SocketDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Net);
+
     private TcpClient? _client;
     private NetworkStream? _stream;
     private bool _connecting = false;
@@ -129,12 +133,31 @@ public partial class Socket : Stream
         // Note: fd, readable, writable options not fully supported in .NET
     }
 
-    internal Socket(TcpClient client) : base()
+    private protected Socket(Tsonic.CSharp.Js.LoopDispatch dispatch) : base()
     {
+        _ownerDispatch = dispatch;
+    }
+
+    internal Tsonic.CSharp.Js.LoopDispatch NativeDispatch => SocketDispatch;
+
+    internal Socket(TcpClient client, Tsonic.CSharp.Js.LoopDispatch dispatch) : base()
+    {
+        _ownerDispatch = dispatch;
         _client = client;
-        _stream = client.GetStream();
-        AcquireKeepAlive();
-        UpdateAddressInfo();
+        try
+        {
+            _stream = client.GetStream();
+            _loopRegistration = SocketDispatch.Register(static state => ((Socket)state!).destroy(), this);
+            AcquireKeepAlive();
+            UpdateAddressInfo();
+        }
+        catch
+        {
+            _loopRegistration.Dispose();
+            ReleaseKeepAlive();
+            client.Dispose();
+            throw;
+        }
         // Don't start reading immediately - let the connection callback register handlers first
         // StartReading will be called after emitting the connection event
     }
@@ -145,8 +168,10 @@ public partial class Socket : Stream
         string? localAddress,
         int? localPort,
         Action? destroyTransport,
-        CancellationToken cancellationToken) : base()
+        CancellationToken cancellationToken,
+        Tsonic.CSharp.Js.LoopDispatch dispatch) : base()
     {
+        _ownerDispatch = dispatch;
         this.remoteAddress = remoteAddress;
         this.remotePort = remotePort;
         this.localAddress = localAddress;
@@ -155,6 +180,7 @@ public partial class Socket : Stream
         localFamily = AddressFamilyName(localAddress);
         _metadataDestroy = destroyTransport;
         _metadataConnected = true;
+        _loopRegistration = SocketDispatch.Register(static state => ((Socket)state!).destroy(), this);
         if (cancellationToken.CanBeCanceled)
             _metadataCancellation = cancellationToken.Register(() => destroy());
     }
@@ -162,16 +188,18 @@ public partial class Socket : Stream
     internal static Socket FromHttpConnection(
         ConnectionInfo connection,
         Action destroyTransport,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        Tsonic.CSharp.Js.LoopDispatch dispatch) =>
         new(
             connection.RemoteIpAddress?.ToString(),
             connection.RemotePort,
             connection.LocalIpAddress?.ToString(),
             connection.LocalPort,
             destroyTransport,
-            cancellationToken);
+            cancellationToken,
+            dispatch);
 
-    internal static Socket FromHttpResponse(HttpResponseMessage response)
+    internal static Socket FromHttpResponse(HttpResponseMessage response, Tsonic.CSharp.Js.LoopDispatch dispatch)
     {
         var uri = response.RequestMessage?.RequestUri;
         return new Socket(
@@ -180,7 +208,8 @@ public partial class Socket : Stream
             null,
             null,
             null,
-            CancellationToken.None);
+            CancellationToken.None,
+            dispatch);
     }
 
     private static string? AddressFamilyName(string? address) =>
@@ -204,18 +233,19 @@ public partial class Socket : Stream
 
         _connecting = true;
         var hostname = host ?? "localhost";
+        _loopRegistration = SocketDispatch.Register(static state => ((Socket)state!).destroy(), this);
+        _client = new TcpClient();
 
         BackgroundDispatch.RunReferencedAsync(async () =>
         {
             try
             {
-                _client = new TcpClient();
                 await _client.ConnectAsync(hostname, port);
                 _stream = _client.GetStream();
                 _connecting = false;
                 AcquireKeepAlive();
                 UpdateAddressInfo();
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+                BackgroundDispatch.Enqueue(SocketDispatch, () =>
                 {
                     emit("connect");
                     emit("ready");
@@ -226,7 +256,7 @@ public partial class Socket : Stream
             catch (Exception ex)
             {
                 _connecting = false;
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => emit("error", ex));
+                BackgroundDispatch.Enqueue(SocketDispatch, () => emit("error", ex));
             }
         });
 
@@ -259,13 +289,13 @@ public partial class Socket : Stream
     private void AcquireKeepAlive()
     {
         if (!_destroyed && Interlocked.Exchange(ref _referenced, 1) == 0)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Acquire();
+            SocketDispatch.Acquire();
     }
 
     private void ReleaseKeepAlive()
     {
         if (Interlocked.Exchange(ref _referenced, 0) != 0)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
+            SocketDispatch.Release();
     }
 
     internal void ReserveTransportRead()

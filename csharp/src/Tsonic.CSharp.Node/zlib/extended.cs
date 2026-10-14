@@ -124,16 +124,17 @@ public static partial class zlib
 
     private static void CompleteBuffer(Func<Buffer> operation, Action<Exception?, Buffer?> callback)
     {
+        var dispatch = BackgroundDispatch.Capture(NodePhases.Background);
         _ = BackgroundDispatch.RunReferenced(() =>
         {
             try
             {
                 var result = operation();
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(null, result));
+                BackgroundDispatch.Enqueue(dispatch, () => callback(null, result));
             }
             catch (Exception error)
             {
-                Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() => callback(error, null));
+                BackgroundDispatch.Enqueue(dispatch, () => callback(error, null));
             }
         });
     }

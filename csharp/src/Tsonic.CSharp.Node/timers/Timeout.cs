@@ -10,8 +10,13 @@ namespace Tsonic.CSharp.Node;
 /// </summary>
 public class Timeout : IDisposable
 {
+    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
+    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
+    private Tsonic.CSharp.Js.LoopDispatch TimerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Timers);
+
     private static int _nextHandleId = 0;
     private static readonly ConcurrentDictionary<int, Timeout> ActiveHandles = new();
+    private static readonly SendOrPostCallback DispatchCallback = static state => ((Timeout)state!).InvokeCallback();
 
     private readonly int _handleId;
     private readonly Timer _timer;
@@ -28,18 +33,22 @@ public class Timeout : IDisposable
         _callback = callback;
         _delay = delay;
         _period = period;
-        _timer = new Timer(static state => ((Timeout)state!).Execute(), this, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        var dispatch = TimerDispatch;
+        _loopRegistration = dispatch.Register(static state => ((Timeout)state!).Dispose(), this);
+        dispatch.Acquire();
+        Timer? timer = null;
         try
         {
-            ProcessKeepAlive.Acquire();
+            _timer = timer = new Timer(static state => ((Timeout)state!).Execute(), this, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
             ActiveHandles[_handleId] = this;
             _timer.Change(_delay, _period);
         }
         catch
         {
             ActiveHandles.TryRemove(_handleId, out _);
-            ProcessKeepAlive.Release();
-            _timer.Dispose();
+            dispatch.Release();
+            _loopRegistration.Dispose();
+            timer?.Dispose();
             throw;
         }
     }
@@ -59,7 +68,7 @@ public class Timeout : IDisposable
             }
         }
 
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(InvokeCallback);
+        BackgroundDispatch.Enqueue(TimerDispatch, DispatchCallback, this);
     }
 
     private void InvokeCallback()
@@ -87,7 +96,7 @@ public class Timeout : IDisposable
     {
         if (!_disposed && !_isRef)
         {
-            ProcessKeepAlive.Acquire();
+            TimerDispatch.Acquire();
         }
         _isRef = true;
         return this;
@@ -100,7 +109,7 @@ public class Timeout : IDisposable
     {
         if (!_disposed && _isRef)
         {
-            ProcessKeepAlive.Release();
+            TimerDispatch.Release();
         }
         _isRef = false;
         return this;
@@ -151,10 +160,11 @@ public class Timeout : IDisposable
                 _timer.Dispose();
                 if (_isRef)
                 {
-                    ProcessKeepAlive.Release();
+                    TimerDispatch.Release();
                 }
             }
         }
+        _loopRegistration.Dispose();
         GC.SuppressFinalize(this);
     }
 }

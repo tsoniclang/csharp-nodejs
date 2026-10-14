@@ -16,6 +16,7 @@ public static partial class fs
         Action<string, string?>? listener = null)
     {
         ArgumentNullException.ThrowIfNull(options);
+        var dispatch = BackgroundDispatch.Capture(NodePhases.Watchers);
         var directory = Directory.Exists(path) ? path : Path.GetDirectoryName(Path.GetFullPath(path)) ?? Environment.CurrentDirectory;
         var filter = Directory.Exists(path) ? "*" : Path.GetFileName(path);
         var watcher = new FileSystemWatcher(directory, filter)
@@ -25,7 +26,7 @@ public static partial class fs
         var result = new FsWatcher(watcher);
         void Publish(string eventType, string? filename)
         {
-            Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+            BackgroundDispatch.Enqueue(dispatch, () =>
             {
                 if (result.closed)
                     return;
@@ -37,7 +38,7 @@ public static partial class fs
         watcher.Created += (_, e) => Publish("rename", e.Name);
         watcher.Deleted += (_, e) => Publish("rename", e.Name);
         watcher.Renamed += (_, e) => Publish("rename", e.Name);
-        watcher.Error += (_, e) => Tsonic.CSharp.Js.JsEventLoop.EnqueueHandleOwned(() =>
+        watcher.Error += (_, e) => BackgroundDispatch.Enqueue(dispatch, () =>
         {
             if (!result.closed)
                 result.emit("error", e.GetException());

@@ -40,14 +40,15 @@ public partial class Socket : Stream
         _metadataDestroy = null;
         var releaseSocketReference = Interlocked.Exchange(ref _referenced, 0) != 0;
 
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(() =>
+        BackgroundDispatch.Enqueue(SocketDispatch, () =>
         {
             if (error != null)
                 emit("error", error);
             emit("close", error != null);
         });
         if (releaseSocketReference)
-            Tsonic.CSharp.Js.ProcessKeepAlive.Release();
+            SocketDispatch.Release();
+        _loopRegistration.Dispose();
 
         return this;
     }

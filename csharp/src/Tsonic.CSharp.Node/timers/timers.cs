@@ -78,6 +78,6 @@ public static class timers
     /// <param name="callback">The function to call.</param>
     public static void queueMicrotask(Action callback)
     {
-        Tsonic.CSharp.Js.JsEventLoop.EnqueueReferenced(callback);
+        Tsonic.CSharp.Js.JsEventLoop.Enqueue(callback);
     }
 }
