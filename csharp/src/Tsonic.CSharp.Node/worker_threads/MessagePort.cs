@@ -1,36 +1,29 @@
-using System.Collections.Concurrent;
-using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
 /// <summary>Represents one endpoint of a structured-clone worker message channel.</summary>
-public sealed class MessagePort : EventEmitter, IDisposable
+public sealed partial class MessagePort : EventEmitter, IDisposable
 {
-    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
-    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
-    private Tsonic.CSharp.Js.LoopDispatch PortDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Ports);
-
     private const int MaximumQueuedMessages = 1 << 16;
-    private readonly ConcurrentQueue<TsValue> _queue = new();
+    private readonly Queue<TsValue> _queue = new();
     private readonly object _stateLock = new();
+    private Queue<Exception>? _errors;
+    private Exception? _terminalError;
     private MessagePort? _peer;
     private WorkerTransport? _transport;
-    private int _queuedMessages;
     private bool _readerStarted;
     private bool _closed;
+    private bool _closePending;
     private bool _refed = true;
 
     internal MessagePort()
     {
-        _loopRegistration = PortDispatch.Register(static state => ((MessagePort)state!).close(), this);
     }
 
     internal MessagePort(WorkerTransport transport)
     {
         _transport = transport;
-        _loopRegistration = PortDispatch.Register(static state => ((MessagePort)state!).close(), this);
-        PortDispatch.Acquire();
     }
 
     internal void Connect(MessagePort peer) => _peer = peer;
@@ -48,31 +41,34 @@ public sealed class MessagePort : EventEmitter, IDisposable
     /// <summary>Sends a structured-cloned value to the connected endpoint.</summary>
     public void postMessage(TsValue value)
     {
+        WorkerTransport? transport;
+        MessagePort? peer;
         lock (_stateLock)
         {
             if (_closed)
                 throw new InvalidOperationException("MessagePort is closed.");
-            var payload = StructuredClone.Encode(value);
-            if (_transport is not null)
-            {
-                _transport.Send(WorkerFrameKind.Message, payload);
-                return;
-            }
-            _peer?.ReceiveLocal(payload);
+            transport = _transport;
+            peer = _peer;
         }
+        var payload = StructuredClone.Encode(value);
+        if (transport is not null) transport.Send(WorkerFrameKind.Message, payload);
+        else peer?.ReceiveLocal(payload);
     }
 
     /// <summary>Synchronously receives the next queued message, or undefined when none is available.</summary>
     public TsValue receiveMessageOnPort()
     {
-        if (!_queue.TryDequeue(out var value))
-            return TsValue.undefined();
-        Interlocked.Decrement(ref _queuedMessages);
-        return value;
+        lock (_stateLock)
+            return _queue.TryDequeue(out var value) ? value : TsValue.undefined();
     }
 
     /// <summary>Starts delivery of messages from the underlying transport.</summary>
-    public void start() => StartTransportReader();
+    public void start()
+    {
+        BindCallbackOwner();
+        StartTransportReader();
+        lock (_stateLock) ScheduleDelivery();
+    }
 
     /// <summary>Closes this endpoint and releases its transport resources.</summary>
     public void close()
@@ -82,20 +78,17 @@ public sealed class MessagePort : EventEmitter, IDisposable
         {
             if (_closed) return;
             _closed = true;
+            _closePending = true;
             transport = _transport;
             _transport = null;
-            if (_refed)
-            {
-                _refed = false;
-                if (transport is not null) PortDispatch.Release();
-            }
+            _refed = false;
+            ScheduleDelivery();
+            ReleaseReference();
         }
         try { transport?.Send(WorkerFrameKind.Close, ReadOnlySpan<byte>.Empty); }
         catch (IOException) { }
         catch (ObjectDisposedException) { }
         transport?.Dispose();
-        _loopRegistration.Dispose();
-        BackgroundDispatch.Enqueue(PortDispatch, () => emit("close"));
     }
 
     /// <summary>Keeps the process alive while this port remains open.</summary>
@@ -106,7 +99,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             if (!_closed && !_refed)
             {
                 _refed = true;
-                if (_transport is not null) PortDispatch.Acquire();
+                AcquireReference();
             }
         }
         return this;
@@ -120,7 +113,7 @@ public sealed class MessagePort : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
-                if (_transport is not null) PortDispatch.Release();
+                ReleaseReference();
             }
         }
         return this;
@@ -137,49 +130,47 @@ public sealed class MessagePort : EventEmitter, IDisposable
 
     private void ReceiveLocal(byte[] payload)
     {
-        if (Interlocked.Increment(ref _queuedMessages) > MaximumQueuedMessages)
+        lock (_stateLock)
         {
-            Interlocked.Decrement(ref _queuedMessages);
-            throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
+            if (_closed)
+                throw new InvalidOperationException("MessagePort is closed.");
+            if (_queue.Count + (_errors?.Count ?? 0) == MaximumQueuedMessages)
+                throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
+            _queue.Enqueue(StructuredClone.Decode(payload));
+            ScheduleDelivery();
         }
-        TsValue value;
-        try
+    }
+
+    private void ReceiveError(Exception error)
+    {
+        lock (_stateLock)
         {
-            value = StructuredClone.Decode(payload);
-            _queue.Enqueue(value);
+            if (_closed) return;
+            if (_queue.Count + (_errors?.Count ?? 0) == MaximumQueuedMessages)
+                throw new InvalidOperationException("MessagePort queue exceeds the finite message limit.");
+            (_errors ??= new()).Enqueue(error);
+            ScheduleDelivery();
         }
-        catch
-        {
-            Interlocked.Decrement(ref _queuedMessages);
-            throw;
-        }
-        BackgroundDispatch.Enqueue(PortDispatch, () =>
-        {
-            if (_queue.TryDequeue(out var selected))
-            {
-                Interlocked.Decrement(ref _queuedMessages);
-                emit("message", selected);
-            }
-        });
     }
 
     private void ReadTransport()
     {
+        WorkerTransport? transport;
+        lock (_stateLock) transport = _transport;
+        if (transport is null) return;
         try
         {
             while (true)
             {
-                var frame = _transport?.Receive() ?? default;
+                var frame = transport.Receive();
                 switch (frame.Kind)
                 {
                     case WorkerFrameKind.Message:
                         ReceiveLocal(frame.Payload);
                         break;
                     case WorkerFrameKind.Error:
-                        BackgroundDispatch.Enqueue(PortDispatch, () => emit(
-                            "error",
-                            new InvalidOperationException(
-                                System.Text.Encoding.UTF8.GetString(frame.Payload))));
+                        ReceiveError(new InvalidOperationException(
+                            System.Text.Encoding.UTF8.GetString(frame.Payload)));
                         break;
                     case WorkerFrameKind.Close:
                         close();
@@ -191,9 +182,18 @@ public sealed class MessagePort : EventEmitter, IDisposable
             }
         }
         catch (Exception error) when (
-            error is IOException or ObjectDisposedException or InvalidDataException)
+            error is IOException or ObjectDisposedException or InvalidDataException or InvalidOperationException)
         {
-            BackgroundDispatch.Enqueue(PortDispatch, () => emit("error", error));
+            lock (_stateLock)
+            {
+                if (!_closed)
+                {
+                    if (_queue.Count + (_errors?.Count ?? 0) < MaximumQueuedMessages)
+                        (_errors ??= new()).Enqueue(error);
+                    else
+                        _terminalError = error;
+                }
+            }
             close();
         }
     }
