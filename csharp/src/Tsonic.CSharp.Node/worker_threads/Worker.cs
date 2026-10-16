@@ -24,6 +24,7 @@ public sealed class Worker : EventEmitter, IDisposable
     private readonly Task<int> _completion;
     private bool _closed;
     private bool _refed = true;
+    private bool _terminationRequested;
     private int? _exitCode;
     private int _disposed;
 
@@ -109,12 +110,19 @@ public sealed class Worker : EventEmitter, IDisposable
     /// <summary>Terminates the worker and returns its exit code.</summary>
     public async Task<int> terminate()
     {
+        RequestTermination();
+        return await _completion.ConfigureAwait(false);
+    }
+
+    private void RequestTermination()
+    {
         lock (_stateLock)
         {
-            if (!_closed && !_process.HasExited)
-                _process.Kill(entireProcessTree: true);
+            if (_closed || _terminationRequested || _process.HasExited) return;
+            try { _process.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) when (_process.HasExited) { }
+            _terminationRequested = true;
         }
-        return await _completion.ConfigureAwait(false);
     }
 
     /// <summary>Keeps the process alive while this worker is running.</summary>
@@ -149,8 +157,7 @@ public sealed class Worker : EventEmitter, IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        if (!_process.HasExited)
-            _process.Kill(entireProcessTree: true);
+        RequestTermination();
         _completion.GetAwaiter().GetResult();
         _transport.Dispose();
         _process.Dispose();
@@ -234,7 +241,13 @@ public sealed class Worker : EventEmitter, IDisposable
                 {
                     case WorkerFrameKind.Message:
                     {
-                        var value = StructuredClone.Decode(frame.Payload);
+                        TsValue value;
+                        try { value = StructuredClone.Decode(frame.Payload); }
+                        catch (Exception error) when (error is IOException or InvalidOperationException)
+                        {
+                            BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
+                            break;
+                        }
                         BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("message", value));
                         break;
                     }
@@ -253,10 +266,9 @@ public sealed class Worker : EventEmitter, IDisposable
                 }
             }
         }
-        catch (Exception error) when (
-            error is IOException or ObjectDisposedException or SocketException or InvalidOperationException)
+        catch (Exception error)
         {
-            if (!IsComplete())
+            if (!IsComplete() && !IsExpectedTransportEnd(error))
                 BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
         }
     }
@@ -264,10 +276,17 @@ public sealed class Worker : EventEmitter, IDisposable
     private async Task<int> WaitForExit()
     {
         await _process.WaitForExitAsync().ConfigureAwait(false);
-        await _reader.ConfigureAwait(false);
         var exitCode = _process.ExitCode;
+        await _reader.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         Complete(exitCode);
         return exitCode;
+    }
+
+    private bool IsExpectedTransportEnd(Exception error)
+    {
+        if (error is InvalidDataException) return false;
+        if (error is not (IOException or ObjectDisposedException or SocketException)) return false;
+        lock (_stateLock) return _terminationRequested || _process.HasExited;
     }
 
     private bool IsComplete()

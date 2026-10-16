@@ -15,6 +15,20 @@ internal static class Program
     {
         if (arguments.Length != 0)
         {
+            if (arguments[0] == "--native-signal-baseline")
+            {
+                using var baseline = new TcpClient(AddressFamily.InterNetwork);
+                baseline.Connect(IPAddress.Loopback, int.Parse(arguments[1]));
+                baseline.GetStream().WriteByte(1);
+                _ = baseline.GetStream().ReadByte();
+                return;
+            }
+            if (arguments[1] is "native-worker-invalid-kind" or "native-worker-invalid-length" or "native-worker-invalid-clone"
+                or "native-worker-partial" or "native-worker-unread")
+            {
+                SendInvalidNativeWorkerFrame(arguments);
+                return;
+            }
             Require(worker_threads.InitializeWorkerProcess(arguments) == "native-worker-tail", "native tail worker entry");
             using var parent = worker_threads.parentPort ?? throw new InvalidOperationException("native tail worker parent port");
             Require(ExactInt64(ReceiveEventually(parent)) == 1, "native tail worker start signal");
@@ -89,6 +103,7 @@ internal static class Program
         peer.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
         Require(!port.hasRef(), "closed native reference released");
         VerifyNativeWorkerTail();
+        VerifyNativeTerminationAndUnreadPosts();
         Console.WriteLine("{\"public_native_bootstrap\":true,\"exact_int64\":true," +
             "\"preloop_transport\":true,\"retained_transport\":true,\"fresh_epoch\":true}");
     }
@@ -126,6 +141,126 @@ internal static class Program
             }
             finally { worker?.Dispose(); }
         }
+        foreach (var entry in new[] { "native-worker-invalid-kind", "native-worker-invalid-length", "native-worker-invalid-clone" })
+        {
+            var failures = new List<Exception>();
+            var exits = 0;
+            Worker? worker = null;
+            try
+            {
+                JsEventLoop.Run(() =>
+                {
+                    worker = new Worker(entry);
+                    worker.on<Exception>("error", failures.Add);
+                    worker.on<int>("exit", code =>
+                    {
+                        Require(code == 0, "native malformed-peer process status");
+                        Require(failures.Count == 1, "one native protocol failure precedes completion");
+                        exits++;
+                    });
+                });
+                Require(failures.Count == 1 && (entry == "native-worker-invalid-clone"
+                    ? failures[0] is EndOfStreamException : failures[0] is InvalidDataException),
+                    "native malformed full header retains its protocol exception");
+                Require(exits == 1, "native protocol error releases completion exactly once");
+                Require(worker!.terminate().GetAwaiter().GetResult() == 0,
+                    "malformed-peer completion remains nonthrowing for terminate");
+            }
+            finally { worker?.Dispose(); }
+        }
+    }
+
+    private static void SendInvalidNativeWorkerFrame(string[] arguments)
+    {
+        using var client = new TcpClient(AddressFamily.InterNetwork);
+        client.Connect(IPAddress.Loopback, int.Parse(arguments[2]));
+        using var stream = client.GetStream();
+        WriteFrame(stream, 1, Convert.FromBase64String(arguments[3]));
+        Require(ReadFrame(stream).Kind == 2 && ReadFrame(stream).Kind == 3,
+            "native malformed-peer handshake remains valid");
+        if (arguments[1] == "native-worker-invalid-kind") WriteFrame(stream, 99, []);
+        else if (arguments[1] == "native-worker-invalid-length")
+        {
+            Span<byte> header = stackalloc byte[5];
+            header[0] = 4;
+            BinaryPrimitives.WriteInt32BigEndian(header[1..], -1);
+            stream.Write(header);
+            stream.Flush();
+        }
+        else if (arguments[1] == "native-worker-invalid-clone") WriteFrame(stream, 4, [1]);
+        else
+        {
+            for (var index = 0; index < 10; index++) WriteFrame(stream, 4, EncodeInt64(index));
+            if (arguments[1] == "native-worker-partial") stream.Write(new byte[] { 4, 0, 0, 0, 8, 7 });
+            using var control = new TcpClient(AddressFamily.InterNetwork);
+            control.Connect(IPAddress.Loopback, int.Parse(arguments[7]));
+            control.GetStream().WriteByte(1);
+            _ = control.GetStream().ReadByte();
+        }
+    }
+
+    private static void VerifyNativeTerminationAndUnreadPosts()
+    {
+        var nativeExit = DirectNativeKillStatus();
+        if (!OperatingSystem.IsWindows()) Require(nativeExit == 137, "native SIGKILL status preserves 128 plus signal");
+        foreach (var entry in new[] { "native-worker-partial", "native-worker-unread" })
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start(1);
+            var messages = new List<long>();
+            var failures = new List<Exception>();
+            var exits = 0;
+            Worker? worker = null;
+            try
+            {
+                JsEventLoop.Run(async () =>
+                {
+                    worker = new Worker(entry, new WorkerOptions {
+                        argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+                    });
+                    worker.on<TsValue>("message", value => messages.Add(ExactInt64(value)));
+                    worker.on<Exception>("error", failures.Add);
+                    worker.on<int>("exit", code =>
+                    {
+                        Require(code == (entry == "native-worker-partial" ? nativeExit : 0),
+                            "worker status matches its idiomatic native process status");
+                        Require(messages.SequenceEqual(Enumerable.Range(0, 10).Select(value => (long)value)),
+                            "all complete native frames precede the terminal event");
+                        exits++;
+                    });
+                    using var control = listener.AcceptTcpClient();
+                    control.ReceiveTimeout = 5000;
+                    Require(control.GetStream().ReadByte() == 1, "native child reached its transport control boundary");
+                    if (entry == "native-worker-partial")
+                        Require(await worker.terminate() == nativeExit, "terminate resolves with the native process signal status");
+                    else
+                    {
+                        for (var index = 0; index < 128; index++) worker.postMessage(TsValue.from(new string('x', 1024)));
+                        control.GetStream().WriteByte(1);
+                    }
+                });
+                Require(failures.Count == 0, "termination or observed exit does not invent a transport error");
+                Require(exits == 1, "native worker terminal event is delivered once");
+            }
+            finally { worker?.Dispose(); }
+        }
+    }
+
+    private static int DirectNativeKillStatus()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        var start = new System.Diagnostics.ProcessStartInfo("dotnet") { UseShellExecute = false };
+        start.ArgumentList.Add(typeof(Program).Assembly.Location);
+        start.ArgumentList.Add("--native-signal-baseline");
+        start.ArgumentList.Add(((IPEndPoint)listener.LocalEndpoint).Port.ToString());
+        using var process = System.Diagnostics.Process.Start(start) ?? throw new InvalidOperationException("native baseline started");
+        using var control = listener.AcceptTcpClient();
+        control.ReceiveTimeout = 5000;
+        Require(control.GetStream().ReadByte() == 1, "native baseline process is running before kill");
+        process.Kill(entireProcessTree: true);
+        process.WaitForExit();
+        return process.ExitCode;
     }
 
     private static void ServePeer(TcpListener listener, byte[] token, Task firstSubscription,

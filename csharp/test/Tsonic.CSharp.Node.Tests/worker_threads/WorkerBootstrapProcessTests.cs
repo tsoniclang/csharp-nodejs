@@ -30,7 +30,8 @@ public sealed class WorkerBootstrapProcessTests
             Assert.Equal(WorkerFrameKind.Message, frame.Kind);
             Assert.Equal(new byte[] { (byte)index }, frame.Payload);
         }
-        Assert.Null(transport.Receive());
+        object? end = transport.Receive();
+        Assert.True(end is null, "clean native EOF is an absent frame");
     }
 
     [Theory]
@@ -122,6 +123,54 @@ public sealed class WorkerBootstrapProcessTests
                 throw new InvalidOperationException("Native bootstrap fixture exceeded its finite output limit.");
             }
             collected.Append(buffer, 0, count);
+        }
+    }
+
+    [Theory]
+    [InlineData(5, 2)]
+    [InlineData(2, 4)]
+    public void FullNativeFrameUsesTheEquivalentExactReadCount(int chunk, int expected)
+    {
+        byte[] bytes = [(byte)WorkerFrameKind.Message, 0, 0, 0, 1, 17];
+        using var stream = new CountedStream(bytes, chunk);
+        var frame = Assert.IsType<WorkerFrame>(WorkerTransport.ReadFrame(stream));
+        Assert.Equal(WorkerFrameKind.Message, frame.Kind);
+        Assert.Equal(new byte[] { 17 }, frame.Payload);
+        Assert.Equal(expected, stream.Reads);
+        using var baseline = new CountedStream(bytes, chunk);
+        Span<byte> header = stackalloc byte[5];
+        Span<byte> payload = stackalloc byte[1];
+        baseline.ReadExactly(header);
+        baseline.ReadExactly(payload);
+        Assert.Equal(baseline.Reads, stream.Reads);
+    }
+
+    private sealed class CountedStream(byte[] bytes, int chunk) : MemoryStream(bytes)
+    {
+        internal int Reads { get; private set; }
+
+        public override int Read(Span<byte> buffer)
+        {
+            Reads++;
+            return base.Read(buffer[..Math.Min(buffer.Length, chunk)]);
+        }
+    }
+
+    [Fact]
+    public void NativeWorkerSocketDoesNotLeakIntoAnExecutedDescendant()
+    {
+        if (!OperatingSystem.IsLinux()) return;
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        using var sender = new TcpClient(AddressFamily.InterNetwork);
+        sender.Connect((IPEndPoint)listener.LocalEndpoint);
+        using var receiver = listener.AcceptTcpClient();
+        foreach (var socket in new[] { sender.Client, receiver.Client })
+        {
+            var flags = File.ReadLines($"/proc/self/fdinfo/{socket.Handle.ToInt64()}")
+                .Single(line => line.StartsWith("flags:", StringComparison.Ordinal));
+            var nativeFlags = Convert.ToInt64(flags["flags:".Length..].Trim(), 8);
+            Assert.True((nativeFlags & 0x80000) != 0, "native worker socket carries close-on-exec");
         }
     }
 }
