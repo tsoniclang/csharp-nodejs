@@ -10,22 +10,27 @@ using Tsonic.CSharp.Runtime;
 namespace Tsonic.CSharp.Node;
 
 /// <summary>Runs a compiled module entry in an isolated worker process.</summary>
-public sealed class Worker : EventEmitter, IDisposable
+public sealed partial class Worker : EventEmitter, IDisposable
 {
-    private Tsonic.CSharp.Js.LoopDispatch _ownerDispatch;
-    private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
-    private Tsonic.CSharp.Js.LoopDispatch WorkerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Workers);
-
+    private const int MaximumQueuedSignals = 1 << 16;
     private static int _nextThreadId;
     private readonly object _stateLock = new();
     private readonly Process _process;
     private readonly WorkerTransport _transport;
-    private readonly Task _reader;
-    private readonly Task<int> _completion;
+    private readonly Task<int> _reader;
+    private readonly Queue<WorkerSignal> _signals = new();
+    private WorkerSignal? _readerTerminal;
     private bool _closed;
     private bool _refed = true;
     private bool _terminationRequested;
+    private bool _processExitObserved;
+    private bool _terminalConsumed;
     private int? _exitCode;
+    private int _nativeObservers;
+    private ulong _nativeConsumption;
+    private Exception? _nativeFailure;
+    private Exception? _physicalFailure;
+    private ulong _nativeFailureCount;
     private int _disposed;
 
     /// <summary>Starts the selected compiled worker entry with the supplied options.</summary>
@@ -33,7 +38,6 @@ public sealed class Worker : EventEmitter, IDisposable
     {
         if (string.IsNullOrEmpty(moduleEntryIdentity))
             throw new ArgumentException("Worker module entry identity cannot be empty.", nameof(moduleEntryIdentity));
-        _ = WorkerDispatch;
         options ??= new WorkerOptions();
         threadId = Interlocked.Increment(ref _nextThreadId);
 
@@ -47,7 +51,7 @@ public sealed class Worker : EventEmitter, IDisposable
             endpoint.Port,
             token,
             threadId);
-        _loopRegistration = WorkerDispatch.Register(static state => ((Worker)state!).Dispose(), this);
+        WorkerTransport? transport = null;
         try
         {
             if (!process.Start())
@@ -56,13 +60,12 @@ public sealed class Worker : EventEmitter, IDisposable
                 .WaitAsync(TimeSpan.FromSeconds(30))
                 .GetAwaiter()
                 .GetResult();
-            var transport = new WorkerTransport(client);
+            transport = new WorkerTransport(client);
             var authentication = transport.Receive() ??
                 throw new EndOfStreamException("Worker transport ended before authentication.");
             if (authentication.Kind != WorkerFrameKind.Authenticate ||
                 !CryptographicOperations.FixedTimeEquals(authentication.Payload, token))
             {
-                transport.Dispose();
                 throw new InvalidDataException("Worker process authentication failed.");
             }
             transport.Send(
@@ -73,23 +76,31 @@ public sealed class Worker : EventEmitter, IDisposable
                 worker_threads.EncodeEnvironmentDataSnapshot());
             _process = process;
             _transport = transport;
-            WorkerDispatch.Acquire();
             _reader = Task.Run(ReadWorkerFrames);
-            _completion = WaitForExit();
         }
         catch
         {
-            _loopRegistration.Dispose();
+            transport?.Dispose();
             try
             {
                 if (!process.HasExited)
                     process.Kill(entireProcessTree: true);
+                process.WaitForExit();
             }
             catch (InvalidOperationException)
             {
             }
             process.Dispose();
             throw;
+        }
+        if (Tsonic.CSharp.Js.JsEventLoop.IsRunning)
+        {
+            try { BindCallbackOwner(); }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
     }
 
@@ -108,20 +119,37 @@ public sealed class Worker : EventEmitter, IDisposable
     }
 
     /// <summary>Terminates the worker and returns its exit code.</summary>
-    public async Task<int> terminate()
+    public Task<int> terminate()
     {
-        RequestTermination();
-        return await _completion.ConfigureAwait(false);
+        try
+        {
+            RequestTermination();
+            return ObserveCompletion();
+        }
+        catch (Exception error) { return Task.FromException<int>(error); }
     }
 
     private void RequestTermination()
     {
         lock (_stateLock)
         {
-            if (_closed || _terminationRequested || _process.HasExited) return;
-            try { _process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) when (_process.HasExited) { }
+            if (_closed || _terminationRequested) return;
+            if (_process.HasExited)
+            {
+                _processExitObserved = true;
+                return;
+            }
             _terminationRequested = true;
+            try { _process.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) when (_process.HasExited)
+            {
+                _processExitObserved = true;
+            }
+            catch
+            {
+                _terminationRequested = false;
+                throw;
+            }
         }
     }
 
@@ -133,7 +161,7 @@ public sealed class Worker : EventEmitter, IDisposable
             if (!_closed && !_refed)
             {
                 _refed = true;
-                WorkerDispatch.Acquire();
+                AcquireReference();
             }
         }
         return this;
@@ -147,7 +175,7 @@ public sealed class Worker : EventEmitter, IDisposable
             if (_refed)
             {
                 _refed = false;
-                WorkerDispatch.Release();
+                ReleaseReference();
             }
         }
         return this;
@@ -157,11 +185,16 @@ public sealed class Worker : EventEmitter, IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        RequestTermination();
-        _completion.GetAwaiter().GetResult();
-        _transport.Dispose();
-        _process.Dispose();
-        _loopRegistration.Dispose();
+        try
+        {
+            RequestTermination();
+            ObserveCompletion().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            lock (_stateLock)
+                if (_callbackOwner is { } owner) RetireCallbacks(owner);
+        }
     }
 
     private static Process CreateWorkerProcess(
@@ -201,7 +234,7 @@ public sealed class Worker : EventEmitter, IDisposable
                 startInfo.ArgumentList.Add(argument);
         }
         ApplyEnvironment(startInfo, options.env);
-        return new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+        return new Process { StartInfo = startInfo };
     }
 
     private static void ApplyEnvironment(ProcessStartInfo startInfo, TsValue environment)
@@ -230,13 +263,14 @@ public sealed class Worker : EventEmitter, IDisposable
         }
     }
 
-    private void ReadWorkerFrames()
+    private int ReadWorkerFrames()
     {
+        WorkerSignal? terminal = null;
         try
         {
             while (true)
             {
-                if (_transport.Receive() is not { } frame) return;
+                if (_transport.Receive() is not { } frame) break;
                 switch (frame.Kind)
                 {
                     case WorkerFrameKind.Message:
@@ -245,80 +279,180 @@ public sealed class Worker : EventEmitter, IDisposable
                         try { value = StructuredClone.Decode(frame.Payload); }
                         catch (Exception error) when (error is IOException or InvalidOperationException)
                         {
-                            BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
+                            PublishSignal(new(WorkerSignalKind.Error, default, error));
                             break;
                         }
-                        BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("message", value));
+                        PublishSignal(new(WorkerSignalKind.Message, value, null));
                         break;
                     }
                     case WorkerFrameKind.Error:
                     {
                         var error = new InvalidOperationException(
                             Encoding.UTF8.GetString(frame.Payload));
-                        BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
+                        PublishSignal(new(WorkerSignalKind.Error, default, error));
                         break;
                     }
                     case WorkerFrameKind.Close:
-                        return;
+                        goto ReaderFinished;
                     default:
                         throw new InvalidDataException(
                             $"Unexpected worker frame '{frame.Kind}'.");
                 }
             }
         }
+        catch (Exception error) when (error is InvalidDataException)
+        {
+            terminal = new(WorkerSignalKind.Error, default, error);
+        }
+        catch (Exception error) when (error is IOException or ObjectDisposedException or SocketException)
+        {
+            terminal = new(WorkerSignalKind.TransportError, default, error);
+        }
         catch (Exception error)
         {
-            if (!IsComplete())
-                BackgroundDispatch.Enqueue(WorkerDispatch, () =>
-                {
-                    if (!IsExpectedTransportEnd(error)) emit("error", error);
-                });
+            terminal = new(WorkerSignalKind.InternalError, default, error);
         }
-    }
-
-    private async Task<int> WaitForExit()
-    {
-        await _process.WaitForExitAsync().ConfigureAwait(false);
-        var exitCode = _process.ExitCode;
-        await _reader.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        Complete(exitCode);
-        return exitCode;
-    }
-
-    private bool IsExpectedTransportEnd(Exception error)
-    {
-        if (error is InvalidDataException) return false;
-        if (error is not (IOException or ObjectDisposedException or SocketException)) return false;
-        lock (_stateLock) return _terminationRequested || _exitCode.HasValue || _process.HasExited;
-    }
-
-    private bool IsComplete()
-    {
-        lock (_stateLock) return _closed;
-    }
-
-    private void Complete(int exitCode)
-    {
-        var retainedExit = false;
+    ReaderFinished:
         lock (_stateLock)
         {
-            if (_exitCode.HasValue) return;
-            _exitCode = exitCode;
-            _closed = true;
-            _transport.Dispose();
-            if (_refed)
-            {
-                _refed = false;
-                retainedExit = true;
-            }
+            _readerTerminal = terminal;
+            if (_callbackOwner is null && _nativeObservers != 0)
+                ConsumeUnownedSignals();
+            ScheduleDelivery();
         }
         try
         {
-            BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("exit", exitCode));
+            int exitCode;
+            try
+            {
+                if (terminal is { Kind: WorkerSignalKind.InternalError }) RequestTermination();
+                _process.WaitForExit();
+                exitCode = _process.ExitCode;
+            }
+            finally
+            {
+                lock (_stateLock) _closed = true;
+                try { _transport.Dispose(); }
+                finally { _process.Dispose(); }
+            }
+            lock (_stateLock)
+            {
+                _processExitObserved = true;
+                _exitCode = exitCode;
+                _closed = true;
+                if (_callbackOwner is null && _nativeObservers != 0)
+                    ConsumeUnownedSignals();
+                ScheduleDelivery();
+            }
+            return exitCode;
+        }
+        catch (Exception error)
+        {
+            lock (_stateLock)
+            {
+                _closed = true;
+                _physicalFailure = error;
+                ScheduleDelivery();
+            }
+            throw;
+        }
+    }
+
+    private void PublishSignal(WorkerSignal signal)
+    {
+        lock (_stateLock)
+        {
+            while (_signals.Count == MaximumQueuedSignals &&
+                !(_callbackOwner is null && _nativeObservers != 0))
+                Monitor.Wait(_stateLock);
+            if (_callbackOwner is null && _nativeObservers != 0)
+                ConsumeNativeSignal(signal);
+            else
+                _signals.Enqueue(signal);
+            ScheduleDelivery();
+        }
+    }
+
+    private void ConsumeNativeSignal(WorkerSignal signal)
+    {
+        _nativeConsumption = checked(_nativeConsumption + 1);
+        if (signal.Kind == WorkerSignalKind.Message) return;
+        if (signal.Kind == WorkerSignalKind.TransportError &&
+            (_terminationRequested || _processExitObserved)) return;
+        _nativeFailure ??= signal.Error!;
+        _nativeFailureCount = checked(_nativeFailureCount + 1);
+    }
+
+    private void ConsumeUnownedSignals()
+    {
+        while (_signals.TryDequeue(out var signal)) ConsumeNativeSignal(signal);
+        if (_readerTerminal is { } terminal)
+        {
+            _readerTerminal = null;
+            ConsumeNativeSignal(terminal);
+        }
+        if (_exitCode.HasValue) _terminalConsumed = true;
+        Monitor.PulseAll(_stateLock);
+    }
+
+    private Task<int> ObserveCompletion()
+    {
+        bool observedUnowned;
+        ulong before;
+        lock (_stateLock)
+        {
+            _nativeObservers = checked(_nativeObservers + 1);
+            before = _nativeConsumption;
+            observedUnowned = _callbackOwner is null;
+            if (observedUnowned) ConsumeUnownedSignals();
+        }
+        if (_reader.IsCompleted)
+        {
+            try
+            {
+                if (_reader.IsCompletedSuccessfully)
+                    CompleteNativeObservation(_reader.Result, before, observedUnowned);
+                return _reader;
+            }
+            catch (Exception error) { return Task.FromException<int>(error); }
+            finally { lock (_stateLock) _nativeObservers--; }
+        }
+        return AwaitPhysicalCompletion(before, observedUnowned);
+    }
+
+    private async Task<int> AwaitPhysicalCompletion(ulong before, bool observedUnowned)
+    {
+        try
+        {
+            var exitCode = await _reader.ConfigureAwait(false);
+            return CompleteNativeObservation(exitCode, before, observedUnowned);
         }
         finally
         {
-            if (retainedExit) WorkerDispatch.Release();
+            lock (_stateLock) _nativeObservers--;
         }
     }
+
+    private int CompleteNativeObservation(int exitCode, ulong before, bool observedUnowned)
+    {
+        lock (_stateLock)
+        {
+            if (_callbackOwner is null)
+            {
+                observedUnowned = true;
+                ConsumeUnownedSignals();
+            }
+            observedUnowned |= _nativeConsumption != before;
+            if (observedUnowned && _nativeFailure is { } error)
+            {
+                if (_nativeFailureCount > 1)
+                    error.Data["AdditionalUnobservedWorkerErrors"] = _nativeFailureCount - 1;
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+            }
+        }
+        return exitCode;
+    }
+
+    private enum WorkerSignalKind { Message, Error, TransportError, InternalError }
+    private readonly record struct WorkerSignal(WorkerSignalKind Kind, TsValue Value, Exception? Error);
 }

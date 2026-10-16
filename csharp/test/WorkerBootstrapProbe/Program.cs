@@ -24,7 +24,9 @@ internal static class Program
                 return;
             }
             if (arguments[1] is "native-worker-invalid-kind" or "native-worker-invalid-length" or "native-worker-invalid-clone"
-                or "native-worker-partial" or "native-worker-unread" or "native-worker-live-failure")
+                or "native-worker-partial" or "native-worker-unread" or "native-worker-live-failure"
+                or "native-worker-pending" or "native-worker-burst" or "native-worker-errors"
+                or "native-worker-empty" or "native-worker-burst-errors")
             {
                 SendInvalidNativeWorkerFrame(arguments);
                 return;
@@ -104,6 +106,7 @@ internal static class Program
         Require(!port.hasRef(), "closed native reference released");
         VerifyNativeWorkerTail();
         VerifyNativeTerminationAndUnreadPosts();
+        VerifyNativePhysicalObservation();
         Console.WriteLine("{\"public_native_bootstrap\":true,\"exact_int64\":true," +
             "\"preloop_transport\":true,\"retained_transport\":true,\"fresh_epoch\":true}");
     }
@@ -178,6 +181,40 @@ internal static class Program
         WriteFrame(stream, 1, Convert.FromBase64String(arguments[3]));
         Require(ReadFrame(stream).Kind == 2 && ReadFrame(stream).Kind == 3,
             "native malformed-peer handshake remains valid");
+        if (arguments[1] == "native-worker-empty")
+        {
+            WriteFrame(stream, 4, EncodeInt64(InitialValue));
+            return;
+        }
+        if (arguments[1] is "native-worker-pending" or "native-worker-burst" or "native-worker-errors"
+            or "native-worker-burst-errors")
+        {
+            using var nativeControl = new TcpClient(AddressFamily.InterNetwork);
+            nativeControl.Connect(IPAddress.Loopback, int.Parse(arguments[7]));
+            if (arguments[1] == "native-worker-errors")
+            {
+                WriteFrame(stream, 5, Encoding.UTF8.GetBytes("first native error"));
+                WriteFrame(stream, 5, Encoding.UTF8.GetBytes("second native error"));
+                WriteFrame(stream, 6, []);
+                nativeControl.GetStream().WriteByte(1);
+                return;
+            }
+            nativeControl.GetStream().WriteByte(1);
+            if (arguments[1] == "native-worker-pending")
+            {
+                _ = nativeControl.GetStream().ReadByte();
+                return;
+            }
+            for (var index = 0; index < (1 << 17) + 17; index++)
+            {
+                if (arguments[1] == "native-worker-burst-errors" &&
+                    (index == 0 || index == 1 << 16 || index == 1 << 17))
+                    WriteFrame(stream, 5, Encoding.UTF8.GetBytes($"native error at {index}"));
+                WriteFrame(stream, 4, EncodeInt64(index));
+            }
+            client.Client.Shutdown(SocketShutdown.Send);
+            return;
+        }
         if (arguments[1] == "native-worker-invalid-kind") WriteFrame(stream, 99, []);
         else if (arguments[1] == "native-worker-invalid-length")
         {
@@ -199,6 +236,197 @@ internal static class Program
             control.GetStream().WriteByte(1);
             _ = control.GetStream().ReadByte();
         }
+    }
+
+    private static Task<int> PhysicalJoin(Worker worker) => (Task<int>)(typeof(Worker)
+        .GetField("_reader", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+        ?.GetValue(worker) ?? throw new InvalidOperationException("one native physical reader Task"));
+
+    private static int RetainedFrameCount(Worker worker)
+    {
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        var sync = typeof(Worker).GetField("_stateLock", flags)!.GetValue(worker)!;
+        lock (sync)
+            return ((System.Collections.ICollection)typeof(Worker).GetField("_signals", flags)!.GetValue(worker)!).Count;
+    }
+
+    private static void VerifyNativePhysicalObservation()
+    {
+        RequireNoLoop();
+        using (var listener = new TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start(1);
+            using var worker = new Worker("native-worker-pending", new WorkerOptions {
+                argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+            });
+            using var control = listener.AcceptTcpClient();
+            Require(control.GetStream().ReadByte() == 1, "native child running before standalone observation");
+            RequireNoLoop();
+            var called = false;
+            try
+            {
+                worker.on<TsValue>("message", _ => called = true);
+                throw new InvalidOperationException("callback admitted without owner");
+            }
+            catch (InvalidOperationException error) when (error.Message == "No JavaScript event loop is running on this thread.") { }
+            Require(!called && worker.listenerCount("message") == 0, "failed admission leaves no callback");
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            try
+            {
+                PhysicalJoin(worker).WaitAsync(cancelled.Token).GetAwaiter().GetResult();
+                throw new InvalidOperationException("native observation cancellation was lost");
+            }
+            catch (OperationCanceledException) { }
+            var first = worker.terminate();
+            var second = worker.terminate();
+            Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+            Require(first.Result == second.Result, "native observers share physical status");
+            if (!OperatingSystem.IsWindows()) Require(first.Result == 137, "standalone native SIGKILL status");
+            Require(worker.terminate().GetAwaiter().GetResult() == first.Result, "repeat native observation");
+            for (var warmup = 0; warmup < 64; warmup++) _ = worker.terminate().GetAwaiter().GetResult();
+            var native = PhysicalJoin(worker);
+            var baselineBefore = GC.GetTotalAllocatedBytes(precise: true);
+            for (var index = 0; index < 1024; index++)
+                Require(native.GetAwaiter().GetResult() == first.Result, "handwritten ready native Task baseline");
+            var baselineBytes = GC.GetTotalAllocatedBytes(precise: true) - baselineBefore;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var allThreadsBefore = GC.GetTotalAllocatedBytes(precise: true);
+            for (var index = 0; index < 1024; index++)
+                Require(worker.terminate().GetAwaiter().GetResult() == first.Result, "ready native completion is inline");
+            Require(GC.GetAllocatedBytesForCurrentThread() - before == 0,
+                "ready native completion adds no Task wrapper or allocation");
+            Require(GC.GetTotalAllocatedBytes(precise: true) - allThreadsBefore == baselineBytes && baselineBytes == 0,
+                "all-thread ready completion allocation equals the zero-allocation native Task baseline");
+            RequireNoLoop();
+        }
+        using (var listener = new TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start(1);
+            using var worker = new Worker("native-worker-burst", new WorkerOptions {
+                argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+            });
+            using var control = listener.AcceptTcpClient();
+            Require(control.GetStream().ReadByte() == 1, "native burst begins without an owner");
+            Require(SpinWait.SpinUntil(() => RetainedFrameCount(worker) == 1 << 16, TimeSpan.FromSeconds(10)),
+                "without owner or native observer physical input retains the full bounded prefix");
+            Require(!PhysicalJoin(worker).IsCompleted, "full retained input applies honest native backpressure");
+            var count = 0;
+            var exits = 0;
+            var owner = Environment.CurrentManagedThreadId;
+            JsEventLoop.Run(() =>
+            {
+                worker.on<TsValue>("message", value =>
+                {
+                    Require(Environment.CurrentManagedThreadId == owner, "native burst callback owner thread");
+                    Require(ExactInt64(value) == count, "retained physical FIFO without loss or replay");
+                    count++;
+                });
+                worker.on<int>("exit", code =>
+                {
+                    Require(code == 0 && count == (1 << 17) + 17, "more than twice capacity precedes exit");
+                    exits++;
+                });
+            });
+            Require(count == (1 << 17) + 17 && exits == 1, "complete bounded physical burst");
+            RequireNoLoop();
+        }
+        foreach (var retireOwner in new[] { false, true })
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start(1);
+            var worker = new Worker("native-worker-errors", new WorkerOptions {
+                argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+            });
+            try
+            {
+                using var control = listener.AcceptTcpClient();
+                Require(control.GetStream().ReadByte() == 1, "native error prefix written");
+                var physical = PhysicalJoin(worker);
+                Require(physical.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult() == 0,
+                    "private physical join alone does not consume or fail on unobserved frames");
+                if (retireOwner)
+                {
+                    var retire = new InvalidOperationException("explicit callback-owner retirement control");
+                    var callbacks = 0;
+                    try
+                    {
+                        JsEventLoop.Run(() =>
+                        {
+                            worker.on<Exception>("error", _ => callbacks++);
+                            worker.unref();
+                            var observed = worker.terminate();
+                            Require(observed.IsCompletedSuccessfully && observed.Result == 0,
+                                "owner-bound observation returns physical status without consuming callback errors");
+                            throw retire;
+                        });
+                    }
+                    catch (InvalidOperationException error) when (ReferenceEquals(error, retire)) { }
+                    Require(callbacks == 0 && worker.listenerCount("error") == 0, "retired jobs did not pop frames");
+                }
+                try
+                {
+                    worker.terminate().GetAwaiter().GetResult();
+                    throw new InvalidOperationException("native unobserved errors were hidden");
+                }
+                catch (InvalidOperationException error) when (error.Message == "first native error")
+                {
+                    Require(error.Data["AdditionalUnobservedWorkerErrors"] is ulong count && count == 1,
+                        "first native error preserved and later error counted");
+                }
+                Require(physical.IsCompletedSuccessfully && physical.Result == 0, "physical Task never retroactively faults");
+                RequireNoLoop();
+            }
+            finally
+            {
+                try { worker.Dispose(); }
+                catch (InvalidOperationException error) when (error.Message == "first native error") { }
+            }
+        }
+        using (var listener = new TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start(1);
+            var worker = new Worker("native-worker-burst-errors", new WorkerOptions {
+                argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+            });
+            try
+            {
+                using var control = listener.AcceptTcpClient();
+                Require(control.GetStream().ReadByte() == 1, "native saturation producer started");
+                Require(SpinWait.SpinUntil(() => RetainedFrameCount(worker) == 1 << 16, TimeSpan.FromSeconds(10)),
+                    "native observation begins from actual bounded saturation");
+                var observe = typeof(Worker).GetMethod("ObserveCompletion",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?? throw new InvalidOperationException("canonical native observation owner");
+                var completion = (Task<int>)observe.Invoke(worker, null)!;
+                try
+                {
+                    completion.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+                    throw new InvalidOperationException("native saturation lost its errors");
+                }
+                catch (InvalidOperationException error) when (error.Message == "native error at 0")
+                {
+                    Require(error.Data["AdditionalUnobservedWorkerErrors"] is ulong count && count == 2,
+                        "native saturation retains errors before, at and beyond capacity");
+                }
+                Require(PhysicalJoin(worker).IsCompletedSuccessfully && PhysicalJoin(worker).Result == 0,
+                    "native saturation error reported after actual cleanup and join");
+                RequireNoLoop();
+            }
+            finally
+            {
+                try { worker.Dispose(); }
+                catch (InvalidOperationException error) when (error.Message == "native error at 0") { }
+            }
+        }
+        Worker? zeroListeners = null;
+        try
+        {
+            JsEventLoop.Run(() => zeroListeners = new Worker("native-worker-empty"));
+            Require(PhysicalJoin(zeroListeners!).WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult() == 0,
+                "default-ref with zero listeners keeps delivery alive through native physical completion");
+        }
+        finally { zeroListeners?.Dispose(); }
     }
 
     private static void VerifyNativeTerminationAndUnreadPosts()
