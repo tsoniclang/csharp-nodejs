@@ -289,7 +289,7 @@ public sealed class Worker : EventEmitter, IDisposable
     {
         if (error is InvalidDataException) return false;
         if (error is not (IOException or ObjectDisposedException or SocketException)) return false;
-        lock (_stateLock) return _terminationRequested || _process.HasExited;
+        lock (_stateLock) return _terminationRequested || _exitCode.HasValue || _process.HasExited;
     }
 
     private bool IsComplete()
