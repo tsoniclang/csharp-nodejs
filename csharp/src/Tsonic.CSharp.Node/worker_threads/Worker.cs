@@ -187,6 +187,8 @@ public sealed partial class Worker : EventEmitter, IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         try
         {
+            lock (_stateLock)
+                if (_callbackOwner is { } owner) RetireCallbacks(owner);
             RequestTermination();
             ObserveCompletion().GetAwaiter().GetResult();
         }
