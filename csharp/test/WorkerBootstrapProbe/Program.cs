@@ -13,6 +13,11 @@ internal static class Program
 
     private static void Main(string[] arguments)
     {
+        if (arguments is ["--native-physical-owner-check"])
+        {
+            VerifyNativePhysicalObservation();
+            return;
+        }
         if (arguments.Length != 0)
         {
             if (arguments[0] == "--native-signal-baseline")
