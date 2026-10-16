@@ -24,7 +24,7 @@ internal static class Program
                 return;
             }
             if (arguments[1] is "native-worker-invalid-kind" or "native-worker-invalid-length" or "native-worker-invalid-clone"
-                or "native-worker-partial" or "native-worker-unread")
+                or "native-worker-partial" or "native-worker-unread" or "native-worker-live-failure")
             {
                 SendInvalidNativeWorkerFrame(arguments);
                 return;
@@ -191,7 +191,9 @@ internal static class Program
         else
         {
             for (var index = 0; index < 10; index++) WriteFrame(stream, 4, EncodeInt64(index));
-            if (arguments[1] == "native-worker-partial") stream.Write(new byte[] { 4, 0, 0, 0, 8, 7 });
+            if (arguments[1] is "native-worker-partial" or "native-worker-live-failure")
+                stream.Write(new byte[] { 4, 0, 0, 0, 8, 7 });
+            if (arguments[1] == "native-worker-live-failure") client.Client.Shutdown(SocketShutdown.Send);
             using var control = new TcpClient(AddressFamily.InterNetwork);
             control.Connect(IPAddress.Loopback, int.Parse(arguments[7]));
             control.GetStream().WriteByte(1);
@@ -203,13 +205,14 @@ internal static class Program
     {
         var nativeExit = DirectNativeKillStatus();
         if (!OperatingSystem.IsWindows()) Require(nativeExit == 137, "native SIGKILL status preserves 128 plus signal");
-        foreach (var entry in new[] { "native-worker-partial", "native-worker-unread" })
+        foreach (var entry in new[] { "native-worker-partial", "native-worker-unread", "native-worker-live-failure" })
         {
             using var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start(1);
             var messages = new List<long>();
             var failures = new List<Exception>();
             var exits = 0;
+            var liveFailure = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             Worker? worker = null;
             try
             {
@@ -219,7 +222,11 @@ internal static class Program
                         argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
                     });
                     worker.on<TsValue>("message", value => messages.Add(ExactInt64(value)));
-                    worker.on<Exception>("error", failures.Add);
+                    worker.on<Exception>("error", error =>
+                    {
+                        failures.Add(error);
+                        if (entry == "native-worker-live-failure") liveFailure.SetResult();
+                    });
                     worker.on<int>("exit", code =>
                     {
                         Require(code == (entry == "native-worker-partial" ? nativeExit : 0),
@@ -233,13 +240,22 @@ internal static class Program
                     Require(control.GetStream().ReadByte() == 1, "native child reached its transport control boundary");
                     if (entry == "native-worker-partial")
                         Require(await worker.terminate() == nativeExit, "terminate resolves with the native process signal status");
+                    else if (entry == "native-worker-live-failure")
+                    {
+                        await liveFailure.Task;
+                        Require(exits == 0, "live native IO is delivered before the peer is released to exit");
+                        Require(failures.Count == 1 && failures[0] is EndOfStreamException,
+                            "a still-live truncated native transport keeps its precise IO error");
+                        control.GetStream().WriteByte(1);
+                    }
                     else
                     {
                         for (var index = 0; index < 128; index++) worker.postMessage(TsValue.from(new string('x', 1024)));
                         control.GetStream().WriteByte(1);
                     }
                 });
-                Require(failures.Count == 0, "termination or observed exit does not invent a transport error");
+                Require(failures.Count == (entry == "native-worker-live-failure" ? 1 : 0),
+                    "only a still-live native transport failure is delivered as an IO error");
                 Require(exits == 1, "native worker terminal event is delivered once");
             }
             finally { worker?.Dispose(); }
