@@ -174,7 +174,7 @@ public sealed class MessagePortOwnerTests
         peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(71L)));
         Assert.Equal(71L, Assert.IsType<long>(ReceiveEventually(port).unwrap()));
         port.postMessage(TsValue.from(72UL));
-        var frame = peer.Receive();
+        var frame = Assert.IsType<WorkerFrame>(peer.Receive());
         Assert.Equal(WorkerFrameKind.Message, frame.Kind);
         Assert.Equal(72UL, Assert.IsType<ulong>(StructuredClone.Decode(frame.Payload).unwrap()));
         var seen = 0;
@@ -196,7 +196,7 @@ public sealed class MessagePortOwnerTests
         peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(74)));
         Assert.Equal(74, Assert.IsType<int>(ReceiveEventually(port).unwrap()));
         port.postMessage(TsValue.from(75));
-        Assert.Equal(75, Assert.IsType<int>(StructuredClone.Decode(peer.Receive().Payload).unwrap()));
+        Assert.Equal(75, Assert.IsType<int>(StructuredClone.Decode(Assert.IsType<WorkerFrame>(peer.Receive()).Payload).unwrap()));
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public sealed class MessagePortOwnerTests
         Assert.Equal(1, closed);
         Assert.Equal(0, removed);
         Assert.Equal(0, port.listenerCount("error"));
-        Assert.Equal(WorkerFrameKind.Close, peer.Receive().Kind);
+        Assert.Equal(WorkerFrameKind.Close, Assert.IsType<WorkerFrame>(peer.Receive()).Kind);
     }
 
     [Fact]
@@ -398,7 +398,7 @@ public sealed class MessagePortOwnerTests
             Assert.Empty(seen);
         });
         Assert.Equal(new[] { "error", "message", "close" }, seen);
-        Assert.Equal(WorkerFrameKind.Close, peer.Receive().Kind);
+        Assert.Equal(WorkerFrameKind.Close, Assert.IsType<WorkerFrame>(peer.Receive()).Kind);
     }
 
     [Fact]
@@ -422,7 +422,7 @@ public sealed class MessagePortOwnerTests
                 peer.Send(WorkerFrameKind.Close, []);
             });
             Assert.Equal(iteration + 1, closed);
-            Assert.Equal(WorkerFrameKind.Close, peer.Receive().Kind);
+            Assert.Equal(WorkerFrameKind.Close, Assert.IsType<WorkerFrame>(peer.Receive()).Kind);
         }
     }
 

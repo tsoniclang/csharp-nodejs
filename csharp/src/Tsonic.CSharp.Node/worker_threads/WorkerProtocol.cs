@@ -46,15 +46,19 @@ internal sealed class WorkerTransport : IDisposable
         }
     }
 
-    public WorkerFrame Receive()
+    public WorkerFrame? Receive() => ReadFrame(_stream);
+
+    internal static WorkerFrame? ReadFrame(System.IO.Stream stream)
     {
-        var header = new byte[5];
-        _stream.ReadExactly(header);
-        var length = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(1));
+        Span<byte> header = stackalloc byte[5];
+        var received = stream.Read(header);
+        if (received == 0) return null;
+        stream.ReadExactly(header[received..]);
+        var length = BinaryPrimitives.ReadInt32BigEndian(header[1..]);
         if (length < 0 || length > MaximumFrameBytes)
             throw new InvalidDataException("Worker frame length is outside the finite transport contract.");
         var payload = new byte[length];
-        _stream.ReadExactly(payload);
+        stream.ReadExactly(payload);
         return new WorkerFrame((WorkerFrameKind)header[0], payload);
     }
 

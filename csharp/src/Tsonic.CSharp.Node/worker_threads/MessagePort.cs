@@ -181,7 +181,11 @@ public sealed partial class MessagePort : EventEmitter, IDisposable
         {
             while (true)
             {
-                var frame = transport.Receive();
+                if (transport.Receive() is not { } frame)
+                {
+                    close();
+                    return;
+                }
                 switch (frame.Kind)
                 {
                     case WorkerFrameKind.Message:
