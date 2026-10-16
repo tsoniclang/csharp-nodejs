@@ -250,8 +250,10 @@ internal static class Program
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start(1);
-        var start = new System.Diagnostics.ProcessStartInfo("dotnet") { UseShellExecute = false };
-        start.ArgumentList.Add(typeof(Program).Assembly.Location);
+        var executable = Environment.ProcessPath ?? throw new InvalidOperationException("native process path is available");
+        var start = new System.Diagnostics.ProcessStartInfo(executable) { UseShellExecute = false };
+        if (string.Equals(Path.GetFileNameWithoutExtension(executable), "dotnet", StringComparison.OrdinalIgnoreCase))
+            start.ArgumentList.Add(Path.GetFullPath(Environment.GetCommandLineArgs()[0]));
         start.ArgumentList.Add("--native-signal-baseline");
         start.ArgumentList.Add(((IPEndPoint)listener.LocalEndpoint).Port.ToString());
         using var process = System.Diagnostics.Process.Start(start) ?? throw new InvalidOperationException("native baseline started");
