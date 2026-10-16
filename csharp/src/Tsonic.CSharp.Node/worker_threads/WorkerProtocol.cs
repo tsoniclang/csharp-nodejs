@@ -48,7 +48,7 @@ internal sealed class WorkerTransport : IDisposable
 
     public WorkerFrame? Receive() => ReadFrame(_stream);
 
-    internal static WorkerFrame? ReadFrame(Stream stream)
+    internal static WorkerFrame? ReadFrame(System.IO.Stream stream)
     {
         Span<byte> header = stackalloc byte[5];
         var received = stream.Read(header);
