@@ -268,8 +268,11 @@ public sealed class Worker : EventEmitter, IDisposable
         }
         catch (Exception error)
         {
-            if (!IsComplete() && !IsExpectedTransportEnd(error))
-                BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
+            if (!IsComplete())
+                BackgroundDispatch.Enqueue(WorkerDispatch, () =>
+                {
+                    if (!IsExpectedTransportEnd(error)) emit("error", error);
+                });
         }
     }
 
