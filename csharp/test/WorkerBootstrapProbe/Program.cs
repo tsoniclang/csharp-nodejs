@@ -31,7 +31,7 @@ internal static class Program
             if (arguments[1] is "native-worker-invalid-kind" or "native-worker-invalid-length" or "native-worker-invalid-clone"
                 or "native-worker-partial" or "native-worker-unread" or "native-worker-live-failure"
                 or "native-worker-pending" or "native-worker-burst" or "native-worker-errors"
-                or "native-worker-empty" or "native-worker-burst-errors")
+                or "native-worker-empty" or "native-worker-burst-errors" or "native-worker-saturated")
             {
                 SendInvalidNativeWorkerFrame(arguments);
                 return;
@@ -192,7 +192,7 @@ internal static class Program
             return;
         }
         if (arguments[1] is "native-worker-pending" or "native-worker-burst" or "native-worker-errors"
-            or "native-worker-burst-errors")
+            or "native-worker-burst-errors" or "native-worker-saturated")
         {
             using var nativeControl = new TcpClient(AddressFamily.InterNetwork);
             nativeControl.Connect(IPAddress.Loopback, int.Parse(arguments[7]));
@@ -210,12 +210,20 @@ internal static class Program
                 _ = nativeControl.GetStream().ReadByte();
                 return;
             }
-            for (var index = 0; index < (1 << 17) + 17; index++)
+            if (arguments[1] == "native-worker-saturated")
+                WriteFrame(stream, 5, Encoding.UTF8.GetBytes("public saturated native error"));
+            var total = arguments[1] == "native-worker-saturated" ? 1 << 18 : (1 << 17) + 17;
+            for (var index = 0; index < total; index++)
             {
                 if (arguments[1] == "native-worker-burst-errors" &&
                     (index == 0 || index == 1 << 16 || index == 1 << 17))
                     WriteFrame(stream, 5, Encoding.UTF8.GetBytes($"native error at {index}"));
                 WriteFrame(stream, 4, EncodeInt64(index));
+            }
+            if (arguments[1] == "native-worker-saturated")
+            {
+                _ = nativeControl.GetStream().ReadByte();
+                return;
             }
             client.Client.Shutdown(SocketShutdown.Send);
             return;
@@ -432,6 +440,99 @@ internal static class Program
                 "default-ref with zero listeners keeps delivery alive through native physical completion");
         }
         finally { zeroListeners?.Dispose(); }
+        VerifyPublicSaturatedTerminationAndDisposal();
+        VerifyRetiredWorkerRebindsRemainingFifo();
+    }
+
+    private static void VerifyPublicSaturatedTerminationAndDisposal()
+    {
+        foreach (var dispose in new[] { false, true })
+        {
+            RequireNoLoop();
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start(1);
+            var worker = new Worker("native-worker-saturated", new WorkerOptions {
+                argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+            });
+            try
+            {
+                using var control = listener.AcceptTcpClient();
+                Require(control.GetStream().ReadByte() == 1, "public saturation producer began");
+                Require(SpinWait.SpinUntil(() => RetainedFrameCount(worker) == 1 << 16, TimeSpan.FromSeconds(10)),
+                    "public native operation begins with an actually full physical FIFO");
+                Require(!PhysicalJoin(worker).IsCompleted, "bounded backpressure prevents pretend physical completion");
+                try
+                {
+                    if (dispose) worker.Dispose();
+                    else worker.terminate().WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+                    throw new InvalidOperationException("public native observation lost its retained error");
+                }
+                catch (InvalidOperationException error) when (error.Message == "public saturated native error") { }
+                var joined = PhysicalJoin(worker);
+                Require(joined.IsCompletedSuccessfully, "public terminate or Dispose drains and joins the actual reader");
+                if (!OperatingSystem.IsWindows()) Require(joined.Result == 137, "public saturated native SIGKILL status");
+                Require(RetainedFrameCount(worker) == 0, "public native observation consumes the entire retained prefix");
+                Require(worker.listenerCount("message") == 0 && worker.listenerCount("error") == 0,
+                    "native progress never invents callback ownership");
+                RequireNoLoop();
+            }
+            finally
+            {
+                try { worker.Dispose(); }
+                catch (InvalidOperationException error) when (error.Message == "public saturated native error") { }
+            }
+        }
+    }
+
+    private static void VerifyRetiredWorkerRebindsRemainingFifo()
+    {
+        RequireNoLoop();
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        using var worker = new Worker("native-worker-burst", new WorkerOptions {
+            argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
+        });
+        using var control = listener.AcceptTcpClient();
+        Require(control.GetStream().ReadByte() == 1, "rebind native producer started");
+        Require(SpinWait.SpinUntil(() => RetainedFrameCount(worker) == 1 << 16, TimeSpan.FromSeconds(10)),
+            "old callback owner starts with actual bounded pressure");
+        var retire = new InvalidOperationException("midstream callback owner retirement");
+        var count = 0;
+        var oldExits = 0;
+        try
+        {
+            JsEventLoop.Run(() =>
+            {
+                worker.on<TsValue>("message", value =>
+                {
+                    Require(ExactInt64(value) == count, "old owner delivers only its exact prefix");
+                    count++;
+                    if (count == 257) throw retire;
+                });
+                worker.on<int>("exit", _ => oldExits++);
+            });
+            throw new InvalidOperationException("old owner was not retired at the specified prefix");
+        }
+        catch (InvalidOperationException error) when (ReferenceEquals(error, retire)) { }
+        Require(count == 257 && oldExits == 0, "retired owner never invokes its unconsumed tail or exit");
+        Require(worker.listenerCount("message") == 0 && worker.listenerCount("exit") == 0,
+            "retirement discards callbacks rather than physical frames");
+        var exits = 0;
+        JsEventLoop.Run(() =>
+        {
+            worker.on<TsValue>("message", value =>
+            {
+                Require(ExactInt64(value) == count, "new owner continues exact FIFO without loss or replay");
+                count++;
+            });
+            worker.on<int>("exit", code =>
+            {
+                Require(code == 0 && count == (1 << 17) + 17, "new owner receives exit after the whole retained prefix");
+                exits++;
+            });
+        });
+        Require(count == (1 << 17) + 17 && exits == 1 && oldExits == 0, "new callback owner receives one complete remaining FIFO and exit");
+        RequireNoLoop();
     }
 
     private static void VerifyNativeTerminationAndUnreadPosts()
