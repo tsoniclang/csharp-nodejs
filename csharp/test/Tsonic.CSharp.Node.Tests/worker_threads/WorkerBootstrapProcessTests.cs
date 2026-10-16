@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -8,6 +10,49 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public sealed class WorkerBootstrapProcessTests
 {
+    [Fact]
+    public void NativeFrameEndRetainsCompleteMessagesWithoutManufacturingAnError()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        using var sender = new TcpClient(AddressFamily.InterNetwork);
+        sender.Connect((IPEndPoint)listener.LocalEndpoint);
+        using var receiver = listener.AcceptTcpClient();
+        receiver.ReceiveTimeout = 5000;
+        using var transport = new WorkerTransport(receiver);
+        using var peer = new WorkerTransport(sender);
+        for (var index = 0; index < 64; index++)
+            peer.Send(WorkerFrameKind.Message, [(byte)index]);
+        sender.Client.Shutdown(SocketShutdown.Send);
+        for (var index = 0; index < 64; index++)
+        {
+            var frame = Assert.IsType<WorkerFrame>(transport.Receive());
+            Assert.Equal(WorkerFrameKind.Message, frame.Kind);
+            Assert.Equal(new byte[] { (byte)index }, frame.Payload);
+        }
+        Assert.Null(transport.Receive());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void NativeFrameTruncationRemainsAnIoFailure(int length)
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        using var sender = new TcpClient(AddressFamily.InterNetwork);
+        sender.Connect((IPEndPoint)listener.LocalEndpoint);
+        using var receiver = listener.AcceptTcpClient();
+        receiver.ReceiveTimeout = 5000;
+        using var transport = new WorkerTransport(receiver);
+        byte[] frame = [(byte)WorkerFrameKind.Message, 0, 0, 0, 2, 7];
+        sender.GetStream().Write(frame.AsSpan(0, length));
+        sender.Client.Shutdown(SocketShutdown.Send);
+        Assert.Throws<EndOfStreamException>(() => transport.Receive());
+    }
+
     [Fact]
     public async Task PublicNativeBootstrapWorksWithoutAnImplicitLoopAndRetiresOnlyCallbacks()
     {

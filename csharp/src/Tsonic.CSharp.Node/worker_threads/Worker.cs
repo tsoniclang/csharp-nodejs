@@ -20,6 +20,8 @@ public sealed class Worker : EventEmitter, IDisposable
     private readonly object _stateLock = new();
     private readonly Process _process;
     private readonly WorkerTransport _transport;
+    private readonly Task _reader;
+    private readonly Task<int> _completion;
     private bool _closed;
     private bool _refed = true;
     private int? _exitCode;
@@ -54,7 +56,8 @@ public sealed class Worker : EventEmitter, IDisposable
                 .GetAwaiter()
                 .GetResult();
             var transport = new WorkerTransport(client);
-            var authentication = transport.Receive();
+            var authentication = transport.Receive() ??
+                throw new EndOfStreamException("Worker transport ended before authentication.");
             if (authentication.Kind != WorkerFrameKind.Authenticate ||
                 !CryptographicOperations.FixedTimeEquals(authentication.Payload, token))
             {
@@ -70,8 +73,8 @@ public sealed class Worker : EventEmitter, IDisposable
             _process = process;
             _transport = transport;
             WorkerDispatch.Acquire();
-            _ = Task.Run(ReadWorkerFrames);
-            _ = Task.Run(WaitForExit);
+            _reader = Task.Run(ReadWorkerFrames);
+            _completion = WaitForExit();
         }
         catch
         {
@@ -111,9 +114,7 @@ public sealed class Worker : EventEmitter, IDisposable
             if (!_closed && !_process.HasExited)
                 _process.Kill(entireProcessTree: true);
         }
-        await _process.WaitForExitAsync().ConfigureAwait(false);
-        Complete(_process.ExitCode);
-        return _process.ExitCode;
+        return await _completion.ConfigureAwait(false);
     }
 
     /// <summary>Keeps the process alive while this worker is running.</summary>
@@ -150,8 +151,7 @@ public sealed class Worker : EventEmitter, IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         if (!_process.HasExited)
             _process.Kill(entireProcessTree: true);
-        _process.WaitForExit();
-        Complete(_process.ExitCode);
+        _completion.GetAwaiter().GetResult();
         _transport.Dispose();
         _process.Dispose();
         _loopRegistration.Dispose();
@@ -229,7 +229,7 @@ public sealed class Worker : EventEmitter, IDisposable
         {
             while (true)
             {
-                var frame = _transport.Receive();
+                if (_transport.Receive() is not { } frame) return;
                 switch (frame.Kind)
                 {
                     case WorkerFrameKind.Message:
@@ -254,21 +254,20 @@ public sealed class Worker : EventEmitter, IDisposable
             }
         }
         catch (Exception error) when (
-            error is IOException or ObjectDisposedException or SocketException or InvalidDataException)
+            error is IOException or ObjectDisposedException or SocketException or InvalidOperationException)
         {
             if (!IsComplete())
                 BackgroundDispatch.Enqueue(WorkerDispatch, () => emit("error", error));
         }
     }
 
-    private async Task WaitForExit()
+    private async Task<int> WaitForExit()
     {
-        try
-        {
-            await _process.WaitForExitAsync().ConfigureAwait(false);
-            Complete(_process.ExitCode);
-        }
-        catch (InvalidOperationException) when (Volatile.Read(ref _disposed) != 0) { }
+        await _process.WaitForExitAsync().ConfigureAwait(false);
+        await _reader.ConfigureAwait(false);
+        var exitCode = _process.ExitCode;
+        Complete(exitCode);
+        return exitCode;
     }
 
     private bool IsComplete()

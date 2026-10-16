@@ -11,8 +11,16 @@ internal static class Program
 {
     private const long InitialValue = 9_007_199_254_740_993L;
 
-    private static void Main()
+    private static void Main(string[] arguments)
     {
+        if (arguments.Length != 0)
+        {
+            Require(worker_threads.InitializeWorkerProcess(arguments) == "native-worker-tail", "native tail worker entry");
+            using var parent = worker_threads.parentPort ?? throw new InvalidOperationException("native tail worker parent port");
+            Require(ExactInt64(ReceiveEventually(parent)) == 1, "native tail worker start signal");
+            for (var index = 0; index < 256; index++) parent.postMessage(TsValue.from(index));
+            return;
+        }
         RequireNoLoop();
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start(1);
@@ -80,8 +88,44 @@ internal static class Program
         port.close();
         peer.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
         Require(!port.hasRef(), "closed native reference released");
+        VerifyNativeWorkerTail();
         Console.WriteLine("{\"public_native_bootstrap\":true,\"exact_int64\":true," +
             "\"preloop_transport\":true,\"retained_transport\":true,\"fresh_epoch\":true}");
+    }
+
+    private static void VerifyNativeWorkerTail()
+    {
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            var messages = new List<int>();
+            var failures = new List<Exception>();
+            var exits = 0;
+            Worker? worker = null;
+            try
+            {
+                JsEventLoop.Run(() =>
+                {
+                    worker = new Worker("native-worker-tail");
+                    worker.on<TsValue>("message", value =>
+                    {
+                        Require(value.unwrap() is int, "native tail message exact int32 carrier");
+                        messages.Add((int)value.unwrap()!);
+                    });
+                    worker.on<Exception>("error", failures.Add);
+                    worker.on<int>("exit", code =>
+                    {
+                        Require(code == 0, "native tail worker exit status");
+                        Require(messages.SequenceEqual(Enumerable.Range(0, 256)), "all native tail messages precede exit");
+                        exits++;
+                    });
+                    worker.postMessage(TsValue.from(1L));
+                });
+                Require(failures.Count == 0, "orderly native worker EOF creates no synthetic error");
+                Require(exits == 1, "native worker completes exactly once");
+                Require(messages.Count == 256, "native worker retains its complete terminal burst");
+            }
+            finally { worker?.Dispose(); }
+        }
     }
 
     private static void ServePeer(TcpListener listener, byte[] token, Task firstSubscription,
