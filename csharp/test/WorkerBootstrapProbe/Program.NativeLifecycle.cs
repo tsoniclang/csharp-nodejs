@@ -44,14 +44,17 @@ internal static partial class Program
             using var control = listener.AcceptTcpClient();
             Require(control.GetStream().ReadByte() == 1, "native child running before standalone observation");
             RequireNoLoop();
-            var called = false;
-            try
+            if (Selected("construction"))
             {
-                worker.on<TsValue>("message", _ => called = true);
-                throw new InvalidOperationException("callback admitted without owner");
+                var called = false;
+                try
+                {
+                    worker.on<TsValue>("message", _ => called = true);
+                    throw new InvalidOperationException("callback admitted without owner");
+                }
+                catch (InvalidOperationException error) when (error.Message == "No JavaScript event loop is running on this thread.") { }
+                Require(!called && worker.listenerCount("message") == 0, "failed admission leaves no callback");
             }
-            catch (InvalidOperationException error) when (error.Message == "No JavaScript event loop is running on this thread.") { }
-            Require(!called && worker.listenerCount("message") == 0, "failed admission leaves no callback");
             if (Selected("cancellation"))
             {
                 using var cancelled = new CancellationTokenSource();
