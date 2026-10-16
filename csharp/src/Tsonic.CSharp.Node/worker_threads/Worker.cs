@@ -377,11 +377,13 @@ public sealed partial class Worker : EventEmitter, IDisposable
     {
         _nativeConsumption = checked(_nativeConsumption + 1);
         if (signal.Kind == WorkerSignalKind.Message) return;
-        if (signal.Kind == WorkerSignalKind.TransportError &&
-            (_terminationRequested || _processExitObserved)) return;
+        if (SuppressesNativeIo(signal)) return;
         _nativeFailure ??= signal.Error!;
         _nativeFailureCount = checked(_nativeFailureCount + 1);
     }
+
+    private bool SuppressesNativeIo(WorkerSignal signal) =>
+        signal.Kind == WorkerSignalKind.TransportError && (_terminationRequested || _processExitObserved);
 
     private void ConsumeUnownedSignals()
     {

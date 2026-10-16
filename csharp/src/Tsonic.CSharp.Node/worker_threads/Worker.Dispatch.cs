@@ -119,8 +119,7 @@ public sealed partial class Worker
                 _terminalConsumed = true;
                 exitCode = _exitCode;
             }
-            if (signal is { Kind: WorkerSignalKind.TransportError } &&
-                (_terminationRequested || _processExitObserved)) signal = null;
+            if (signal is { } selected && SuppressesNativeIo(selected)) signal = null;
             Monitor.PulseAll(_stateLock);
         }
         try
