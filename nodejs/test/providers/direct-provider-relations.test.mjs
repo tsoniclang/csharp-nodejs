@@ -528,7 +528,45 @@ test("Node provider relations declare every source-number target adapter exactly
     }
   }
 
-  assert.equal(adapterCount, 296);
+  assert.equal(adapterCount, 298);
+
+  const bufferToString = nodejsProviderTargetRelations().filter(relation =>
+    relation.kind === "signature" &&
+    relation.source.signatureId === "node:buffer.Buffer.toString(System.String,System.Int32,System.Nullable`1)");
+  assert.deepEqual(bufferToString.map(relation => relation.source.moduleSpecifier).sort(), ["buffer", "node:buffer"]);
+  for (const relation of bufferToString) {
+    const label = `${relation.source.moduleSpecifier}:Buffer.toString:end`;
+    assert.equal(relation.targetMember.id, "Tsonic.CSharp.Node.Buffer.toString(System.String,System.Int32,System.Nullable`1)", label);
+    const targetEnd = relation.targetMember.parameters[2];
+    assert.equal(targetEnd.name, "end", label);
+    assert.equal(targetEnd.optional, true, label);
+    assert.equal(targetEnd.type.kind, "target-named", label);
+    assert.equal(targetEnd.type.id, "System.Nullable`1", label);
+    assert.equal(targetEnd.type.csharpSpecialType, "nullable", label);
+    assert.equal(targetEnd.type.csharpValueType, true, label);
+    assert.deepEqual(targetEnd.type.csharpAllowsRefLikeTypeArguments, [false], label);
+    assert.deepEqual(targetEnd.type.typeArguments, [{ kind: "source-primitive", name: "int32" }], label);
+    assert.deepEqual(getCsharpNullableElementTargetType(targetEnd.type), { kind: "source-primitive", name: "int32" }, label);
+    const parameter = relation.parameters.find(candidate => candidate.sourceParameterIndex === 2);
+    assert.equal(parameter !== undefined, true, label);
+    assert.equal(parameter.targetParameterIndex, 2, label);
+    assert.equal(parameter.sourceAcceptsOmission, true, label);
+    assert.equal(parameter.targetAcceptsOmission, true, label);
+    assert.deepEqual(parameter.argumentAdapter, {
+      kind: "static-method",
+      id: "System.Convert.ToInt32(System.Double)",
+      declaringType: {
+        kind: "target-named",
+        id: "System.Convert",
+        csharpAllowsRefLikeTypeArguments: [],
+        csharpRender: { kind: "named", namespace: ["System"], name: "Convert" },
+      },
+      targetName: "ToInt32",
+      inputType: { kind: "source-primitive", name: "float64" },
+      resultType: { kind: "source-primitive", name: "int32" },
+      nativeIntegerConversion: "checked",
+    }, label);
+  }
 });
 
 function findSourceSignature(relation) {
