@@ -106,4 +106,3 @@ Console.Write(JsonSerializer.Serialize(new { types, methodParameters }));
 function xml(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 }
-
