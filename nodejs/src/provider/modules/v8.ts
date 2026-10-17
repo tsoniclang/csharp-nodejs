@@ -7,9 +7,9 @@ import { numberProviderType, stringProviderType, voidProviderType } from "../mod
 
 export const nodeV8ModuleSpecifier = "node:v8";
 const v8Type = csharpTargetNamedType("Tsonic.CSharp.Node.v8", undefined,
-  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "v8"));
+  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "v8"), { allowsRefLikeTypeArguments: [] });
 const heapType = csharpTargetNamedType("Tsonic.CSharp.Node.HeapInfo", undefined,
-  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "HeapInfo"));
+  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "HeapInfo"), { allowsRefLikeTypeArguments: [] });
 const heapFields = [
   "total_heap_size", "total_heap_size_executable", "total_physical_size",
   "total_available_size", "used_heap_size", "heap_size_limit", "malloced_memory",

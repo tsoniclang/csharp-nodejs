@@ -100,25 +100,20 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
 ]);
 
 const bindingByProviderExport = new Map(
-  nodejsProviderTargetTypeRows.map((row) => {
-    const targetId = `${row.namespace}.${row.targetName}`;
-    const binding = Object.freeze({
-      id: targetId,
-      sourceName: row.targetName,
-      targetName: targetId,
-      target: "csharp" as const,
-      kind: row.kind,
-      ...(row.baseType === undefined ? {} : { csharpBaseType: row.baseType }),
-      ...(row.implementedContracts === undefined ? {} : { implementedContracts: row.implementedContracts }),
-      csharpType: csharpTargetNamedType(
-        targetId,
-        undefined,
-        csharpQualifiedTypeRenderShape(row.namespace, row.targetName),
-      ),
-    }) satisfies CsharpTargetBindingFact;
-    return [providerExportKey(row.moduleSpecifier, row.exportName), {
-      binding, targetType: row.targetType,
-    }] as const;
+  nodejsProviderTargetTypeRows.map(row => {
+    const key = providerExportKey(row.moduleSpecifier, row.exportName);
+    if (row.targetType !== undefined) {
+      return [key, Object.freeze([
+        nativeTargetBinding(row, row.targetType(false)),
+        nativeTargetBinding(row, row.targetType(true)),
+      ])] as const;
+    }
+    const type = csharpTargetNamedType(
+      `${row.namespace}.${row.targetName}`, undefined,
+      csharpQualifiedTypeRenderShape(row.namespace, row.targetName), { allowsRefLikeTypeArguments: [] },
+    );
+    const binding = nativeTargetBinding(row, type);
+    return [key, Object.freeze([binding, binding])] as const;
   }),
 );
 
@@ -127,14 +122,25 @@ export function nodejsProviderTargetBinding(
   exportName: string,
   includeJsSurfaceMembers = true,
 ): CsharpTargetBindingFact | undefined {
-  const entry = bindingByProviderExport.get(
-    providerExportKey(moduleSpecifier, exportName),
-  );
-  if (entry === undefined) return undefined;
-  const targetType = entry.targetType?.(includeJsSurfaceMembers);
-  return targetType === undefined ? entry.binding : {
-    ...entry.binding, id: targetType.id, csharpType: targetType,
-  };
+  const bindings = bindingByProviderExport.get(providerExportKey(moduleSpecifier, exportName));
+  return bindings?.[includeJsSurfaceMembers ? 1 : 0];
+}
+
+function nativeTargetBinding(
+  row: NodejsProviderTargetTypeRow,
+  csharpType: CsharpTargetNamedTypeRef,
+): CsharpTargetBindingFact {
+  const targetId = `${row.namespace}.${row.targetName}`;
+  return Object.freeze({
+    id: csharpType.id,
+    sourceName: row.targetName,
+    targetName: targetId,
+    target: "csharp" as const,
+    kind: row.kind,
+    ...(row.baseType === undefined ? {} : { csharpBaseType: row.baseType }),
+    ...(row.implementedContracts === undefined ? {} : { implementedContracts: row.implementedContracts }),
+    csharpType,
+  });
 }
 
 function providerExportKey(moduleSpecifier: string, exportName: string): string {

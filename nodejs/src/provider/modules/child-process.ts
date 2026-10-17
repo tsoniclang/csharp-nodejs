@@ -29,7 +29,7 @@ const resultType: ProviderTypeExpression = {
   exportName: nodeChildProcessSpawnSyncReturnsExportName, typeArguments: [bufferType],
 };
 const nativeType = (name: string) => csharpTargetNamedType(
-  `Tsonic.CSharp.Node.${name}`, undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", name),
+  `Tsonic.CSharp.Node.${name}`, undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", name), { allowsRefLikeTypeArguments: [] },
 );
 const stringTarget = csharpStringTargetType();
 const intTarget = csharpSourcePrimitiveTargetType("int32");
@@ -54,7 +54,7 @@ export function nodeChildProcessOptionsTarget(includeJsSurfaceMembers: boolean) 
   return {
     input, stdio,
     type: csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncOptions`2", [csharpNullableTargetType(input), stdio],
-      csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncOptions")),
+      csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncOptions"), { allowsRefLikeTypeArguments: [false, false] }),
   };
 }
 

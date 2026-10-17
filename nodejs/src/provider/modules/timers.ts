@@ -33,11 +33,13 @@ const timeoutTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Timeout",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Timeout"),
+  { allowsRefLikeTypeArguments: [] },
 );
 const timersTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.timers",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "timers"),
+  { allowsRefLikeTypeArguments: [] },
 );
 const callbackProviderType = {
   kind: "function",

@@ -2,7 +2,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 
 export interface NodeUrlCallTargetMember {
   readonly exportName: string;
@@ -11,7 +11,7 @@ export interface NodeUrlCallTargetMember {
   readonly targetName: string;
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType: ProviderTypeExpression;
-  readonly member: TargetMember;
+  readonly member: CsharpTargetMember;
 }
 
 export interface NodeUrlClassCallTargetMember {
@@ -25,7 +25,7 @@ export interface NodeUrlClassCallTargetMember {
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType?: ProviderTypeExpression;
   readonly static?: boolean;
-  readonly member: TargetMember;
+  readonly member: CsharpTargetMember;
 }
 
 export interface NodeUrlClassPropertyTargetMember {
@@ -36,7 +36,7 @@ export interface NodeUrlClassPropertyTargetMember {
   readonly targetName: string;
   readonly providerType: ProviderTypeExpression;
   readonly readonly?: true;
-  readonly member: TargetMember;
+  readonly member: CsharpTargetMember;
 }
 
 export interface NodeUrlUnsupportedTargetIdentity {

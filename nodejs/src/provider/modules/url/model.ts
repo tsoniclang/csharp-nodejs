@@ -45,15 +45,15 @@ export const stringTargetType = csharpStringTargetType();
 export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 export const numberTargetType = csharpSourcePrimitiveTargetType("int32");
 export const voidTargetType = csharpVoidTargetType();
-export const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" });
-export const urlTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URL", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URL"));
+export const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" }, { allowsRefLikeTypeArguments: [] });
+export const urlTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URL", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URL"), { allowsRefLikeTypeArguments: [] });
 export const nullableUrlTargetType = csharpNullableTargetType(urlTargetType);
 export const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 export const nullableBoolTargetType = csharpNullableTargetType(boolTargetType);
-export const urlSearchParamsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URLSearchParams", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URLSearchParams"));
-export const urlObjectTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.LegacyUrlObject", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "LegacyUrlObject"));
-export const bufferTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Buffer"));
-export const urlModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.url", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "url"));
+export const urlSearchParamsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URLSearchParams", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URLSearchParams"), { allowsRefLikeTypeArguments: [] });
+export const urlObjectTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.LegacyUrlObject", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "LegacyUrlObject"), { allowsRefLikeTypeArguments: [] });
+export const bufferTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Buffer"), { allowsRefLikeTypeArguments: [] });
+export const urlModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.url", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "url"), { allowsRefLikeTypeArguments: [] });
 
 export function nodeUrlStringParameter(name: string): ProviderParameterDeclaration {
   return {

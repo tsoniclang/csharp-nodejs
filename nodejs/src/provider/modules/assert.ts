@@ -31,11 +31,11 @@ const callbackProviderType = {
   parameters: [],
   returnType: unknownProviderType,
 } satisfies ProviderTypeExpression;
-const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" });
+const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" }, { allowsRefLikeTypeArguments: [] });
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const stringTargetType = csharpStringTargetType();
 const voidTargetType = csharpVoidTargetType();
-const assertTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.assert", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "assert"));
+const assertTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.assert", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "assert"), { allowsRefLikeTypeArguments: [] });
 
 export type NodeAssertCallTargetMember = NodejsModuleCallTargetMetadata;
 type NodeAssertCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;

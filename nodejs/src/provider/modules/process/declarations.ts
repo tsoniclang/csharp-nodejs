@@ -3,7 +3,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   csharpNullableTargetType,
   csharpNullableValueTargetType,
@@ -35,18 +35,18 @@ const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression
 const undefinedProviderType = {
   kind: "undefined",
 } satisfies ProviderTypeExpression;
-const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" });
+const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" }, { allowsRefLikeTypeArguments: [] });
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const longTargetType = csharpSourcePrimitiveTargetType("int64");
 const doubleTargetType = csharpSourcePrimitiveTargetType("float64");
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 const voidTargetType = csharpVoidTargetType();
-const processTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.process", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "process"));
-const processEnvTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ProcessEnv", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ProcessEnv"));
-const processMemoryUsageTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.MemoryUsage", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "MemoryUsage"));
-const processCpuUsageTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.CpuUsage", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "CpuUsage"));
-const processVersionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ProcessVersions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ProcessVersions"));
+const processTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.process", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "process"), { allowsRefLikeTypeArguments: [] });
+const processEnvTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ProcessEnv", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ProcessEnv"), { allowsRefLikeTypeArguments: [] });
+const processMemoryUsageTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.MemoryUsage", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "MemoryUsage"), { allowsRefLikeTypeArguments: [] });
+const processCpuUsageTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.CpuUsage", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "CpuUsage"), { allowsRefLikeTypeArguments: [] });
+const processVersionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ProcessVersions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ProcessVersions"), { allowsRefLikeTypeArguments: [] });
 const processEnvProviderType = { kind: "provider-ref", moduleSpecifier: "node:process", exportName: "ProcessEnv" } satisfies ProviderTypeExpression;
 const processMemoryUsageProviderType = { kind: "provider-ref", moduleSpecifier: "node:process", exportName: "MemoryUsage" } satisfies ProviderTypeExpression;
 const processCpuUsageProviderType = { kind: "provider-ref", moduleSpecifier: "node:process", exportName: "CpuUsage" } satisfies ProviderTypeExpression;
@@ -122,7 +122,7 @@ export function nodeProcessExports(): readonly ProviderExportDeclaration[] {
   ];
 }
 
-export function getNodeProcessCwdTargetMember(): TargetMember {
+export function getNodeProcessCwdTargetMember(): CsharpTargetMember {
   const member = getNodeProcessCallTargetMember(nodeProcessCwdExportName, nodeProcessCwdSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS process.cwd target member.");
@@ -130,7 +130,7 @@ export function getNodeProcessCwdTargetMember(): TargetMember {
   return member;
 }
 
-export function getNodeProcessPlatformTargetMember(): TargetMember {
+export function getNodeProcessPlatformTargetMember(): CsharpTargetMember {
   const member = getNodeProcessPropertyTargetMember(nodeProcessPlatformExportName);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS process.platform target member.");
@@ -141,7 +141,7 @@ export function getNodeProcessPlatformTargetMember(): TargetMember {
 export function getNodeProcessCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodeProcessCallTargetMemberByProviderDeclarationIdentity,
     nodeProcessModuleSpecifier,
@@ -150,7 +150,7 @@ export function getNodeProcessCallTargetMember(
   );
 }
 
-export function getNodeProcessPropertyTargetMember(exportName: string | undefined): TargetMember | undefined {
+export function getNodeProcessPropertyTargetMember(exportName: string | undefined): CsharpTargetMember | undefined {
   return getNodejsProviderExportDeclarationTargetMember(
     nodeProcessPropertyTargetMemberByProviderDeclarationIdentity,
     nodeProcessModuleSpecifier,

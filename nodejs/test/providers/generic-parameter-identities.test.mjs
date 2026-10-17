@@ -12,7 +12,7 @@ test("Readable pipe preserves its destination binding through parameters, result
   for (const relation of relations) {
     assert.deepEqual(relation.targetMember.parameters.map(parameter => parameter.type), [carrier]);
     assert.deepEqual(relation.targetMember.returnType, carrier);
-    assert.deepEqual(relation.targetMember.typeParameters, [{ identity, name: "TDestination", constraints: [
+    assert.deepEqual(relation.targetMember.typeParameters, [{ identity, name: "TDestination", csharpAllowsRefLike: false, constraints: [
       { kind: "implements", contract: "Tsonic.CSharp.Node.Stream" },
       { kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" },
     ] }]);

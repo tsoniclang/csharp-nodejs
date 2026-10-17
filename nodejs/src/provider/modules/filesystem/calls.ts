@@ -3,7 +3,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   csharpNullableValueTargetType,
   targetParameter,
@@ -50,7 +50,7 @@ import type {
 
 type NodeFsCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
 
-export function getNodeFsExistsSyncTargetMember(): TargetMember {
+export function getNodeFsExistsSyncTargetMember(): CsharpTargetMember {
   const member = getNodeFsCallTargetMember(nodeFsExistsSyncExportName, nodeFsExistsSyncSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS fs.existsSync target member.");
@@ -61,7 +61,7 @@ export function getNodeFsExistsSyncTargetMember(): TargetMember {
 export function getNodeFsCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodeFsCallTargetMemberByProviderDeclarationIdentity,
     nodeFsModuleSpecifier,

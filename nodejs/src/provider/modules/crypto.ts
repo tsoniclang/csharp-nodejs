@@ -5,7 +5,7 @@ import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
 import type {
-  TargetMember,
+  CsharpTargetMember,
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import {
@@ -43,9 +43,9 @@ const bufferProviderType = {
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const cryptoTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.crypto", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "crypto"));
-const hashTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hash", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hash"));
-const hmacTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hmac", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hmac"));
+const cryptoTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.crypto", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "crypto"), { allowsRefLikeTypeArguments: [] });
+const hashTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hash", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hash"), { allowsRefLikeTypeArguments: [] });
+const hmacTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hmac", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hmac"), { allowsRefLikeTypeArguments: [] });
 
 const nodeCryptoHashExportName = "Hash";
 const nodeCryptoHmacExportName = "Hmac";
@@ -87,7 +87,7 @@ export function nodeCryptoExports(): readonly ProviderExportDeclaration[] {
   ];
 }
 
-export function getNodeCryptoRandomUuidTargetMember(): TargetMember {
+export function getNodeCryptoRandomUuidTargetMember(): CsharpTargetMember {
   const member = getNodeCryptoCallTargetMember(nodeCryptoRandomUuidExportName, nodeCryptoRandomUuidSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS crypto.randomUUID target member.");
@@ -98,7 +98,7 @@ export function getNodeCryptoRandomUuidTargetMember(): TargetMember {
 export function getNodeCryptoCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodeCryptoCallTargetMemberByProviderDeclarationIdentity,
     nodeCryptoModuleSpecifier,

@@ -43,14 +43,14 @@ export const doubleTargetType = csharpSourcePrimitiveTargetType("float64");
 export const voidTargetType = csharpVoidTargetType();
 export const dateTargetType = csharpJsDateTargetType();
 export const bufferTargetType = nodeBufferTargetType;
-export const fsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.fs", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "fs"));
-export const fsPromisesTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.fs_promises", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "fs_promises"));
+export const fsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.fs", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "fs"), { allowsRefLikeTypeArguments: [] });
+export const fsPromisesTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.fs_promises", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "fs_promises"), { allowsRefLikeTypeArguments: [] });
 export const statsProviderType = { kind: "provider-ref", moduleSpecifier: "node:fs", exportName: "Stats" } satisfies ProviderTypeExpression;
-export const statsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Stats", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Stats"));
+export const statsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Stats", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Stats"), { allowsRefLikeTypeArguments: [] });
 export const makeDirectoryOptionsProviderType = { kind: "provider-ref", moduleSpecifier: "node:fs", exportName: "MakeDirectoryOptions" } satisfies ProviderTypeExpression;
 export const rmOptionsProviderType = { kind: "provider-ref", moduleSpecifier: "node:fs", exportName: "RmOptions" } satisfies ProviderTypeExpression;
-export const makeDirectoryOptionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.MakeDirectoryOptions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "MakeDirectoryOptions"));
-export const rmOptionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.RmOptions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "RmOptions"));
+export const makeDirectoryOptionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.MakeDirectoryOptions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "MakeDirectoryOptions"), { allowsRefLikeTypeArguments: [] });
+export const rmOptionsTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.RmOptions", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "RmOptions"), { allowsRefLikeTypeArguments: [] });
 
 export function promiseProviderType(resultType: ProviderTypeExpression): ProviderTypeExpression {
   return {

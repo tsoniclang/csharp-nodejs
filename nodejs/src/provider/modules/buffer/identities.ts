@@ -89,8 +89,8 @@ export const nodeBufferIsUtf8SignatureId = "node:buffer.isUtf8(Tsonic.CSharp.Nod
 export const nodeBufferTranscodeExportName = "transcode";
 export const nodeBufferTranscodeSignatureId = "node:buffer.transcode(Tsonic.CSharp.Node.Buffer,System.String,System.String)";
 
-export const nodeBufferTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Buffer"));
-export const nodeBufferModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "buffer"));
+export const nodeBufferTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Buffer"), { allowsRefLikeTypeArguments: [] });
+export const nodeBufferModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.buffer", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "buffer"), { allowsRefLikeTypeArguments: [] });
 
 export const nodeBufferFromStringTargetMemberId = "Tsonic.CSharp.Node.Buffer.from(System.String,System.String)";
 export const nodeBufferFromNumberArrayTargetMemberId = "Tsonic.CSharp.Node.Buffer.from(System.Int32[])";

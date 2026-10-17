@@ -31,7 +31,7 @@ const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const utilTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.util", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "util"));
+const utilTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.util", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "util"), { allowsRefLikeTypeArguments: [] });
 
 type NodeUtilCallTargetMember = NodejsModuleCallTargetMetadata;
 type NodeUtilCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
