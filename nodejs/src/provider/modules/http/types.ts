@@ -10,7 +10,7 @@ import {
   csharpVoidTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import type { TargetTypeRef, CsharpTargetMember, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
+import type { TargetTypeRef, CsharpTargetMember, CsharpTargetNamedTypeRef, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
 import { nodeErrorProviderType, nodeErrorTargetType } from "../util/node-error.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
@@ -80,7 +80,7 @@ export const headerValuesReadMember = {
   parameters: [targetParameter("values", headerValuesStorageType), targetParameter("index", intTargetType)],
   returnType: stringTargetType,
 } satisfies CsharpTargetMember;
-export const borrowedHeaderValuesTargetType = {
+export const borrowedHeaderValuesTargetType: CsharpTargetNamedTypeRef = {
   ...headerValuesStorageType,
   csharpIndexableReadMember: headerValuesReadMember,
 };
