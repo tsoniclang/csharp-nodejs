@@ -45,7 +45,7 @@ export const integerInputAdapter: CsharpProviderArgumentAdapter = Object.freeze(
   kind: "static-method",
   id: "Tsonic.CSharp.Node.JsNumeric.RequireInteger(System.Double)",
   declaringType: csharpTargetNamedType("Tsonic.CSharp.Node.JsNumeric", undefined,
-    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "JsNumeric")),
+    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "JsNumeric"), { allowsRefLikeTypeArguments: [] }),
   targetName: "RequireInteger",
   inputType: csharpSourcePrimitiveTargetType("float64"),
   resultType: intTargetType,
@@ -61,6 +61,7 @@ export const borrowedHeaderValuesProviderType = {
 export const headerValuesStorageType = csharpTargetNamedType(
   "Microsoft.Extensions.Primitives.StringValues", undefined,
   csharpQualifiedTypeRenderShape("Microsoft.Extensions.Primitives", "StringValues"), {
+    allowsRefLikeTypeArguments: [],
     valueType: true,
     enumerableElementType: stringTargetType,
     readOnlyIndexableElementType: stringTargetType,
@@ -75,73 +76,79 @@ export const headerValuesReadMember = {
   static: true,
   readonly: true,
   declaringType: csharpTargetNamedType("Tsonic.CSharp.Node.Http.HeaderValues", undefined,
-    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "HeaderValues")),
+    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "HeaderValues"), { allowsRefLikeTypeArguments: [] }),
   parameters: [targetParameter("values", headerValuesStorageType), targetParameter("index", intTargetType)],
   returnType: stringTargetType,
 } satisfies CsharpTargetMember;
-export const borrowedHeaderValuesTargetType = csharpTargetNamedType(
-  headerValuesStorageType.id, undefined, headerValuesStorageType.csharpRender, {
-    valueType: true,
-    enumerableElementType: stringTargetType,
-    readOnlyIndexableElementType: stringTargetType,
-    indexableLengthMemberName: "Count",
-    indexableReadMember: headerValuesReadMember,
-  },
-);
+export const borrowedHeaderValuesTargetType = {
+  ...headerValuesStorageType,
+  csharpIndexableReadMember: headerValuesReadMember,
+};
 export const incomingMessageTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.IncomingMessage",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "IncomingMessage"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const serverResponseTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.ServerResponse",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "ServerResponse"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const serverTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.Server",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "Server"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const httpTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.http",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "http"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const clientRequestTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.ClientRequest",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "ClientRequest"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const requestOptionsTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.RequestOptions",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "RequestOptions"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const incomingHeadersTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.IncomingHttpHeaders",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "IncomingHttpHeaders"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const outgoingHeadersTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.OutgoingHttpHeaders",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "OutgoingHttpHeaders"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const addressInfoTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.AddressInfo",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "AddressInfo"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const serverAddressTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Http.ServerAddress",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node.Http", "ServerAddress"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const socketTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.Socket",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Socket"),
+  { allowsRefLikeTypeArguments: [] },
 );
 export const exceptionTargetType = nodeErrorTargetType;
 export const incomingMessageProviderType = providerRef(nodeHttpIncomingMessageExportName);

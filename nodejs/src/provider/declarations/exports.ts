@@ -113,6 +113,7 @@ export function nodejsTargetNamedType(
     id,
     undefined,
     csharpQualifiedTypeRenderShape(namespace, name),
+    { allowsRefLikeTypeArguments: [] },
   );
 }
 

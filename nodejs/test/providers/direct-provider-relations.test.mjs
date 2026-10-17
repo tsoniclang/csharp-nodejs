@@ -511,6 +511,7 @@ test("Node provider relations declare every source-number target adapter exactly
         declaringType: {
           kind: "target-named",
           id: "System.Convert",
+          csharpAllowsRefLikeTypeArguments: [],
           csharpRender: {
             kind: "named",
             namespace: ["System"],

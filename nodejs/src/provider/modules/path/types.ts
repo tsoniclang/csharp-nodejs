@@ -14,11 +14,11 @@ export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpres
 export const stringTargetType = csharpStringTargetType();
 export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 export const nodePathModuleSpecifier = "node:path";
-export const nodePathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.path", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "path"));
+export const nodePathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.path", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "path"), { allowsRefLikeTypeArguments: [] });
 export const parsedPathProviderType = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "ParsedPath" } satisfies ProviderTypeExpression;
-export const parsedPathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ParsedPath", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ParsedPath"));
+export const parsedPathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ParsedPath", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ParsedPath"), { allowsRefLikeTypeArguments: [] });
 export const pathModuleProviderType = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "PathModule" } satisfies ProviderTypeExpression;
-export const pathModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.PathModule", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "PathModule"));
+export const pathModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.PathModule", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "PathModule"), { allowsRefLikeTypeArguments: [] });
 
 export interface NodePathProviderParameter {
   readonly name: string;

@@ -2,7 +2,7 @@ import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
@@ -46,7 +46,7 @@ type NodeFsPromisesCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRo
 export function getNodeFsPromisesCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodeFsPromisesCallTargetMemberByProviderDeclarationIdentity,
     nodeFsPromisesModuleSpecifier,

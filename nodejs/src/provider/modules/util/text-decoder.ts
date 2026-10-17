@@ -32,6 +32,7 @@ const textDecoderTargetType = csharpTargetNamedType(
   "Tsonic.CSharp.Node.TextDecoder",
   undefined,
   csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "TextDecoder"),
+  { allowsRefLikeTypeArguments: [] },
 );
 
 export function nodeUtilTextDecoderExportDeclaration(): ProviderExportDeclaration {

@@ -482,6 +482,7 @@ function nodejsProviderArgumentAdapter(
       "System.Convert",
       undefined,
       csharpQualifiedTypeRenderShape("System", "Convert"),
+      { allowsRefLikeTypeArguments: [] },
     ),
     targetName,
     inputType,

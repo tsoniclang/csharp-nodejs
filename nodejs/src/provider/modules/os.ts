@@ -3,7 +3,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   csharpSourcePrimitiveTargetType,
   csharpStringTargetType,
@@ -31,7 +31,7 @@ const stringTargetType = csharpStringTargetType();
 const intTargetType = csharpSourcePrimitiveTargetType("int32");
 const longTargetType = csharpSourcePrimitiveTargetType("int64");
 const doubleTargetType = csharpSourcePrimitiveTargetType("float64");
-const osTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.os", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "os"));
+const osTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.os", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "os"), { allowsRefLikeTypeArguments: [] });
 
 type NodeOsCallTargetMember = NodejsModuleCallTargetMetadata;
 
@@ -71,7 +71,7 @@ export function nodeOsExports(): readonly ProviderExportDeclaration[] {
   ];
 }
 
-export function getNodeOsHomedirTargetMember(): TargetMember {
+export function getNodeOsHomedirTargetMember(): CsharpTargetMember {
   const member = getNodeOsCallTargetMember(nodeOsHomedirExportName, nodeOsHomedirSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS os.homedir target member.");
@@ -79,7 +79,7 @@ export function getNodeOsHomedirTargetMember(): TargetMember {
   return member;
 }
 
-export function getNodeOsPlatformTargetMember(): TargetMember {
+export function getNodeOsPlatformTargetMember(): CsharpTargetMember {
   const member = getNodeOsCallTargetMember(nodeOsPlatformExportName, nodeOsPlatformSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS os.platform target member.");
@@ -90,7 +90,7 @@ export function getNodeOsPlatformTargetMember(): TargetMember {
 export function getNodeOsCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodeOsCallTargetMemberByProviderDeclarationIdentity,
     nodeOsModuleSpecifier,
@@ -99,7 +99,7 @@ export function getNodeOsCallTargetMember(
   );
 }
 
-export function getNodeOsPropertyTargetMember(exportName: string | undefined): TargetMember | undefined {
+export function getNodeOsPropertyTargetMember(exportName: string | undefined): CsharpTargetMember | undefined {
   return getNodejsProviderExportDeclarationTargetMember(
     nodeOsPropertyTargetMemberByProviderDeclarationIdentity,
     nodeOsModuleSpecifier,
@@ -111,7 +111,7 @@ export function nodeOsCallTargetMembers(): readonly {
   readonly exportName: string;
   readonly signatureId: string;
   readonly providerReturnType: ProviderTypeExpression;
-  readonly member: TargetMember;
+  readonly member: CsharpTargetMember;
 }[] {
   return [
     osCall({ exportName: "arch", signatureId: "node:os.arch()", targetMemberId: "Tsonic.CSharp.Node.os.arch()", sourceName: "arch", targetName: "arch", providerReturnType: stringProviderType, targetReturnType: stringTargetType }),
@@ -135,7 +135,7 @@ export function nodeOsCallTargetMembers(): readonly {
 export function nodeOsPropertyTargetMembers(): readonly {
   readonly exportName: string;
   readonly providerType: ProviderTypeExpression;
-  readonly member: TargetMember;
+  readonly member: CsharpTargetMember;
 }[] {
   return [
     osProperty({ exportName: "EOL", targetMemberId: "Tsonic.CSharp.Node.os.EOL", sourceName: "EOL", targetName: "EOL", providerType: stringProviderType, targetReturnType: stringTargetType }),

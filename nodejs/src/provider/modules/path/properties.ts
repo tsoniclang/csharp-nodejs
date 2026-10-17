@@ -1,5 +1,5 @@
 import type {
-  TargetMember,
+  CsharpTargetMember,
 } from "@tsonic/target-csharp/provider";
 import {
   getNodejsProviderExportDeclarationTargetMember,
@@ -23,7 +23,7 @@ import type {
 
 type NodePathPropertyTargetMetadataRow = Omit<NodejsModulePropertyTargetMetadataRow, "declaringType">;
 
-export function getNodePathPropertyTargetMember(exportName: string | undefined): TargetMember | undefined {
+export function getNodePathPropertyTargetMember(exportName: string | undefined): CsharpTargetMember | undefined {
   return getNodejsProviderExportDeclarationTargetMember(
     nodePathPropertyTargetMemberByProviderDeclarationIdentity,
     nodePathModuleSpecifier,

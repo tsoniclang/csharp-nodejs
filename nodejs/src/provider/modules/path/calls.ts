@@ -1,7 +1,7 @@
 import type {
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { TargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
@@ -31,7 +31,7 @@ import type {
 
 type NodePathCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
 
-export function getNodePathJoinTargetMember(): TargetMember {
+export function getNodePathJoinTargetMember(): CsharpTargetMember {
   const member = getNodePathCallTargetMember(nodePathJoinExportName, nodePathJoinSignatureId);
   if (member === undefined) {
     throw new Error("Missing C# NodeJS path.join target member.");
@@ -42,7 +42,7 @@ export function getNodePathJoinTargetMember(): TargetMember {
 export function getNodePathCallTargetMember(
   exportName: string | undefined,
   signatureId: string | undefined,
-): TargetMember | undefined {
+): CsharpTargetMember | undefined {
   return getNodejsProviderExportSignatureDeclarationTargetMember(
     nodePathCallTargetMemberByProviderDeclarationIdentity,
     nodePathModuleSpecifier,
