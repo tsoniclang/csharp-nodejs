@@ -342,7 +342,8 @@ public sealed partial class Worker : EventEmitter, IDisposable
             _peerStopped = peerStopped;
             _readerSocketError = nativeSocketError;
             _readerFramePhase = _transport.ReadPhase;
-            if (nativeFailure && (_terminationRequested || _peerStopped || _processExitObserved)) terminal = null;
+            if (nativeFailure && IsSuppressedNativeReaderFailure(
+                _transport.ReadPhase, _terminationRequested, _peerStopped, _processExitObserved)) terminal = null;
             _readerTerminal = terminal;
             if (_callbackOwner is null && _nativeObservers != 0)
                 ConsumeUnownedSignals();
@@ -412,6 +413,10 @@ public sealed partial class Worker : EventEmitter, IDisposable
 
     private bool SuppressesNativeIo(WorkerSignal signal) =>
         signal.Kind == WorkerSignalKind.TransportError && (_terminationRequested || _peerStopped || _processExitObserved);
+
+    internal static bool IsSuppressedNativeReaderFailure(
+        WorkerFramePhase phase, bool terminationRequested, bool peerStopped, bool processExitObserved) =>
+        terminationRequested || phase == WorkerFramePhase.Boundary && (peerStopped || processExitObserved);
 
     private void ConsumeUnownedSignals()
     {

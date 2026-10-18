@@ -10,6 +10,20 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public sealed class WorkerBootstrapProcessTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void PublishedProcessExitDoesNotSuppressAPartialNativeFrame(int partialPhase)
+    {
+        var phase = (WorkerFramePhase)partialPhase;
+        Assert.False(Worker.IsSuppressedNativeReaderFailure(phase, false, false, true),
+            "an already-observed process exit never erases a partial-frame protocol failure");
+        Assert.True(Worker.IsSuppressedNativeReaderFailure(phase, true, false, false),
+            "explicit native termination still cancels its interrupted read");
+        Assert.True(Worker.IsSuppressedNativeReaderFailure(WorkerFramePhase.Boundary, false, false, true),
+            "an observed exit at a complete frame boundary remains a normal peer stop");
+    }
+
     [Fact]
     public void NativeBrokenPipeRetainsItsSocketErrorWithoutAcknowledgmentIo()
     {
