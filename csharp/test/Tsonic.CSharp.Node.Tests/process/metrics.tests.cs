@@ -101,13 +101,17 @@ public class ProcessMetricsTests : FsTestBase
     {
         var observed = new System.Collections.Generic.List<int>();
         var failure = new InvalidOperationException("owned next tick");
-        process.nextTick(() => observed.Add(1));
-        process.nextTick(() => throw failure);
-        process.nextTick(() => observed.Add(3));
-        Assert.Same(failure, Assert.Throws<InvalidOperationException>(Tsonic.CSharp.Js.JsEventLoop.Run));
-        Assert.True(Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences);
-        Tsonic.CSharp.Js.JsEventLoop.Run();
-        Assert.Equal([1, 3], observed);
+        Assert.Same(failure, Assert.Throws<InvalidOperationException>(() =>
+            Tsonic.CSharp.Js.JsEventLoop.Run(() =>
+            {
+                process.nextTick(() => observed.Add(1));
+                process.nextTick(() => throw failure);
+                process.nextTick(() => observed.Add(3));
+            })));
+        Assert.Equal([1], observed);
+        Assert.False(Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences);
+        Tsonic.CSharp.Js.JsEventLoop.Run(() => process.nextTick(() => observed.Add(4)));
+        Assert.Equal([1, 4], observed);
         Assert.False(Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences);
     }
 
