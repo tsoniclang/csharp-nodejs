@@ -24,21 +24,19 @@ public class ZlibExtendedTests
         Buffer? output = null;
         Exception? failure = null;
 
-        zlib.gzip(Buffer.from("async gzip"), (error, result) =>
+        JsEventLoop.Run(() => zlib.gzip(Buffer.from("async gzip"), (error, result) =>
         {
             failure = error;
             compressed = result;
-        });
-        JsEventLoop.Run();
+        }));
         Assert.Null(failure);
         Assert.NotNull(compressed);
 
-        zlib.gunzip(compressed!, (error, result) =>
+        JsEventLoop.Run(() => zlib.gunzip(compressed!, (error, result) =>
         {
             failure = error;
             output = result;
-        });
-        JsEventLoop.Run();
+        }));
 
         Assert.Null(failure);
         Assert.Equal("async gzip", output!.toString());
@@ -67,15 +65,17 @@ public class ZlibExtendedTests
             successes++;
         };
 
-        zlib.gunzip(invalid, failure);
-        zlib.inflate(invalid, failure);
-        zlib.gunzip(invalid, new ZlibOptions(), failure);
-        zlib.inflate(invalid, new ZlibOptions(), failure);
-        zlib.gunzip(gzip, success);
-        zlib.inflate(deflate, success);
-        zlib.gunzip(gzip, new ZlibOptions(), success);
-        zlib.inflate(deflate, new ZlibOptions(), success);
-        JsEventLoop.Run();
+        JsEventLoop.Run(() =>
+        {
+            zlib.gunzip(invalid, failure);
+            zlib.inflate(invalid, failure);
+            zlib.gunzip(invalid, new ZlibOptions(), failure);
+            zlib.inflate(invalid, new ZlibOptions(), failure);
+            zlib.gunzip(gzip, success);
+            zlib.inflate(deflate, success);
+            zlib.gunzip(gzip, new ZlibOptions(), success);
+            zlib.inflate(deflate, new ZlibOptions(), success);
+        });
 
         Assert.Equal(4, failures);
         Assert.Equal(4, successes);
@@ -84,14 +84,15 @@ public class ZlibExtendedTests
     [Fact]
     public void CreateGzipTransform_RoundTrips()
     {
-        var gzip = zlib.createGzip();
-        var gunzip = zlib.createGunzip();
         var chunks = new List<Buffer>();
-        gunzip.on<Buffer>("data", chunks.Add);
-        gzip.pipe(gunzip);
-
-        gzip.end(Buffer.from("transform gzip"));
-        JsEventLoop.Run();
+        JsEventLoop.Run(() =>
+        {
+            var gzip = zlib.createGzip();
+            var gunzip = zlib.createGunzip();
+            gunzip.on<Buffer>("data", chunks.Add);
+            gzip.pipe(gunzip);
+            gzip.end(Buffer.from("transform gzip"));
+        });
 
         Assert.Equal("transform gzip", string.Concat(chunks.Select(chunk => chunk.toString())));
     }

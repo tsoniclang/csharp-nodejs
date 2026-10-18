@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? addresses = null;
 
-        dns.resolve("localhost", (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
-            resetEvent.Set();
+            dns.resolve("localhost", (err, addrs) =>
+            {
+                addresses = addrs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -29,10 +33,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         object? result = null;
 
-        dns.resolve("localhost", "A", (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            result = res;
-            resetEvent.Set();
+            dns.resolve("localhost", "A", (err, res) =>
+            {
+                result = res;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -46,10 +53,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         object? result = null;
 
-        dns.resolve("localhost", "AAAA", (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            result = res;
-            resetEvent.Set();
+            dns.resolve("localhost", "AAAA", (err, res) =>
+            {
+                result = res;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -63,10 +73,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         object? result = null;
 
-        dns.resolve("localhost", "MX", (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            result = res;
-            resetEvent.Set();
+            dns.resolve("localhost", "MX", (err, res) =>
+            {
+                result = res;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -80,10 +93,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         object? result = null;
 
-        dns.resolve("localhost", "TXT", (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            result = res;
-            resetEvent.Set();
+            dns.resolve("localhost", "TXT", (err, res) =>
+            {
+                result = res;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -97,10 +113,13 @@ public class resolveTests
         var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
-        dns.resolve("localhost", "INVALID", (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            resetEvent.Set();
+            dns.resolve("localhost", "INVALID", (err, res) =>
+            {
+                error = err;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

@@ -5,7 +5,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Node;
 
@@ -28,6 +30,7 @@ public partial class IncomingMessage : Readable
 
     internal IncomingMessage(HttpRequest request, LoopDispatch dispatch) : base(64 * 1024, dispatch)
     {
+        var lifetime = request.HttpContext.Features.GetRequiredFeature<IConnectionLifetimeFeature>();
         _serverRequest = request;
         _isServerSide = true;
         _bodyCancellation = CancellationTokenSource.CreateLinkedTokenSource(request.HttpContext.RequestAborted);
@@ -37,8 +40,8 @@ public partial class IncomingMessage : Readable
         httpVersion = request.Protocol.Replace("HTTP/", "", StringComparison.Ordinal);
         _socket = Socket.FromHttpConnection(
             request.HttpContext.Connection,
-            request.HttpContext.Abort,
-            request.HttpContext.RequestAborted,
+            lifetime.Abort,
+            lifetime.ConnectionClosed,
             dispatch);
     }
 

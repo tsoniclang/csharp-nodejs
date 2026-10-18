@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolve6Tests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? addresses = null;
 
-        dns.resolve6("localhost", (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
-            resetEvent.Set();
+            dns.resolve6("localhost", (err, addrs) =>
+            {
+                addresses = addrs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -28,10 +32,13 @@ public class resolve6Tests
         var resetEvent = new ManualResetEventSlim(false);
         object? result = null;
 
-        dns.resolve6("localhost", new ResolveOptions { ttl = true }, (err, res) =>
+        JsEventLoop.Run(() =>
         {
-            result = res;
-            resetEvent.Set();
+            dns.resolve6("localhost", new ResolveOptions { ttl = true }, (err, res) =>
+            {
+                result = res;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

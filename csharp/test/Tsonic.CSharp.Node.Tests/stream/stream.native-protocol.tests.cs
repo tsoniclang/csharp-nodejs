@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -11,13 +13,15 @@ public partial class StreamTests
         var readable = new Readable();
         var transform = new PassThrough();
         var writable = new Writable();
-        PassThrough selectedTransform = readable.pipeTo(transform);
-        Writable selectedWritable = transform.pipeTo(writable);
-
-        Assert.Same(transform, selectedTransform);
-        Assert.Same(writable, selectedWritable);
-        readable.push("native stream");
-        readable.push(null);
+        JsEventLoop.Run(() =>
+        {
+            PassThrough selectedTransform = readable.pipeTo(transform);
+            Writable selectedWritable = transform.pipeTo(writable);
+            Assert.Same(transform, selectedTransform);
+            Assert.Same(writable, selectedWritable);
+            readable.push("native stream");
+            readable.push(null);
+        });
         Assert.True(transform.writableEnded);
         Assert.True(writable.writableEnded);
     }
@@ -35,9 +39,15 @@ public partial class StreamTests
         var source = Readable.from(new[] { Buffer.from("native stream") });
         var destination = new PassThrough();
 
-        Assert.Same(destination, source.pipeTo(destination));
-        Assert.True(destination.writableEnded);
-        Assert.Equal("native stream", Assert.IsType<Buffer>(destination.read()).toString("utf8"));
+        JsEventLoop.Run(async () =>
+        {
+            var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            destination.once("finish", () => finished.TrySetResult());
+            Assert.Same(destination, source.pipeTo(destination));
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(destination.writableEnded);
+            Assert.Equal("native stream", Assert.IsType<Buffer>(destination.read()).toString("utf8"));
+        });
     }
 
     [Fact]

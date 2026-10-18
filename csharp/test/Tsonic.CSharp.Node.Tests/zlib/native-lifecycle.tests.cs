@@ -22,17 +22,22 @@ public class NativeCodecLifecycleTests
     [InlineData(ZlibMode.Unzip)]
     public void IdleCodec_DestructionThroughReadableReleasesItsProcessor(ZlibMode mode)
     {
-        var codec = new ZlibTransform(mode);
-        Readable projection = codec;
+        ZlibTransform? codec = null;
         var closes = 0;
         var finishes = 0;
         var errors = 0;
-        projection.on("close", () => closes++);
-        codec.on("finish", () => finishes++);
-        codec.on<Exception>("error", _ => errors++);
-        Assert.Same(codec, projection.destroyChain());
-        projection.destroyChain();
-        DrainEventLoop();
+        JsEventLoop.Run(() =>
+        {
+            codec = new ZlibTransform(mode);
+            Readable projection = codec;
+            projection.on("close", () => closes++);
+            codec.on("finish", () => finishes++);
+            codec.on<Exception>("error", _ => errors++);
+            Assert.Same(codec, projection.destroyChain());
+            projection.destroyChain();
+        });
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
         Assert.True(codec.destroyed);
         Assert.False(codec.readable);
         Assert.False(codec.writable);
@@ -54,7 +59,7 @@ public class NativeCodecLifecycleTests
     [InlineData(ZlibMode.Unzip)]
     public void NormalCodecCompletion_QueuesFinalAcknowledgementBeforeReleasingTheProcessor(ZlibMode mode)
     {
-        var codec = new ZlibTransform(mode);
+        ZlibTransform? codec = null;
         var plain = Buffer.from("native completed codec");
         var input = mode switch
         {
@@ -67,14 +72,19 @@ public class NativeCodecLifecycleTests
         var chunks = new List<Buffer>();
         var errors = new List<Exception>();
         var finishes = 0;
-        codec.on<Buffer>("data", chunks.Add);
-        codec.on<Exception>("error", errors.Add);
-        codec.once("finish", () => finishes++);
-        codec.write(Buffer.alloc(0));
-        codec.write(input);
-        codec.write(Buffer.alloc(0));
-        codec.end();
-        DrainEventLoop();
+        JsEventLoop.Run(() =>
+        {
+            codec = new ZlibTransform(mode);
+            codec.on<Buffer>("data", chunks.Add);
+            codec.on<Exception>("error", errors.Add);
+            codec.once("finish", () => finishes++);
+            codec.write(Buffer.alloc(0));
+            codec.write(input);
+            codec.write(Buffer.alloc(0));
+            codec.end();
+        });
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
         var output = Buffer.concat(chunks);
         var decoded = mode switch
         {
@@ -96,29 +106,34 @@ public class NativeCodecLifecycleTests
     public void ConcurrentIdleCodecs_DoNotBlockIndependentCodecProgress()
     {
         var idle = new ZlibTransform[12];
-        for (var index = 0; index < idle.Length; index++)
-            idle[index] = zlib.createGzip();
-        var active = zlib.createGzip();
+        ZlibTransform? active = null;
         var finishes = 0;
         var chunks = new List<Buffer>();
-        active.on<Buffer>("data", chunks.Add);
-        active.once("finish", () =>
-        {
-            finishes++;
-            foreach (var codec in idle)
-                codec.destroy();
-        });
         try
         {
-            active.end(Buffer.from("independent native progress"));
-            DrainEventLoop();
+            JsEventLoop.Run(() =>
+            {
+                for (var index = 0; index < idle.Length; index++)
+                    idle[index] = zlib.createGzip();
+                active = zlib.createGzip();
+                active.on<Buffer>("data", chunks.Add);
+                active.once("finish", () =>
+                {
+                    finishes++;
+                    foreach (var codec in idle)
+                        codec.destroy();
+                });
+                active.end(Buffer.from("independent native progress"));
+            });
+            Assert.False(ProcessKeepAlive.HasReferences);
         }
         finally
         {
             foreach (var codec in idle)
-                codec.destroy();
-            active.destroy();
-            DrainEventLoop();
+                codec?.destroy();
+            active?.destroy();
+            JsEventLoop.Run();
+            Assert.False(ProcessKeepAlive.HasReferences);
         }
         Assert.Equal(1, finishes);
         Assert.Equal("independent native progress", zlib.gunzipSync(Buffer.concat(chunks)).toString());
@@ -128,15 +143,20 @@ public class NativeCodecLifecycleTests
     [Fact]
     public void CodecInputFailure_ClosesItsProcessorWithoutSuccessfulFinish()
     {
-        var codec = zlib.createGunzip();
+        ZlibTransform? codec = null;
         var errors = new List<Exception>();
         var closes = 0;
         var finishes = 0;
-        codec.once<Exception>("error", errors.Add);
-        codec.once("close", () => closes++);
-        codec.on("finish", () => finishes++);
-        codec.end(Buffer.from("not compressed data"));
-        DrainEventLoop();
+        JsEventLoop.Run(() =>
+        {
+            codec = zlib.createGunzip();
+            codec.once<Exception>("error", errors.Add);
+            codec.once("close", () => closes++);
+            codec.on("finish", () => finishes++);
+            codec.end(Buffer.from("not compressed data"));
+        });
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
         Assert.Single(errors);
         Assert.Equal(1, closes);
         Assert.Equal(0, finishes);
@@ -149,20 +169,25 @@ public class NativeCodecLifecycleTests
     [Fact]
     public void PendingCodecInputAndPublication_AbortRetainsOneErrorAndNoFinish()
     {
-        var codec = zlib.createGzip();
-        Duplex projection = codec;
+        ZlibTransform? codec = null;
         var expected = new InvalidOperationException("abort pending native codec work");
         var errors = new List<Exception>();
         var closes = 0;
         var finishes = 0;
-        codec.on<Exception>("error", errors.Add);
-        codec.on("close", () => closes++);
-        codec.on("finish", () => finishes++);
-        codec.write(Buffer.alloc(256 * 1024));
-        codec.end();
-        Assert.Same(codec, projection.destroyChain(expected));
-        projection.destroyChain(expected);
-        DrainEventLoop();
+        JsEventLoop.Run(() =>
+        {
+            codec = zlib.createGzip();
+            Duplex projection = codec;
+            codec.on<Exception>("error", errors.Add);
+            codec.on("close", () => closes++);
+            codec.on("finish", () => finishes++);
+            codec.write(Buffer.alloc(256 * 1024));
+            codec.end();
+            Assert.Same(codec, projection.destroyChain(expected));
+            projection.destroyChain(expected);
+        });
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
         Assert.Collection(errors, error => Assert.Same(expected, error));
         Assert.Equal(1, closes);
         Assert.Equal(0, finishes);
@@ -174,25 +199,30 @@ public class NativeCodecLifecycleTests
     [Fact]
     public void BackpressuredCodecOutput_DestructionReleasesTheCapacityWait()
     {
-        var codec = zlib.createGunzip();
+        ZlibTransform? codec = null;
         var expected = new InvalidOperationException("abort native output pressure");
         var errors = new List<Exception>();
         var pressureObserved = false;
         var closes = 0;
         var finishes = 0;
-        codec.on<Exception>("error", errors.Add);
-        codec.on("close", () => closes++);
-        codec.on("finish", () => finishes++);
-        codec.on("readable", () =>
+        JsEventLoop.Run(() =>
         {
-            if (codec.readableLength >= 64 * 1024)
+            codec = zlib.createGunzip();
+            codec.on<Exception>("error", errors.Add);
+            codec.on("close", () => closes++);
+            codec.on("finish", () => finishes++);
+            codec.on("readable", () =>
             {
-                pressureObserved = true;
-                codec.destroy(expected);
-            }
+                if (codec.readableLength >= 64 * 1024)
+                {
+                    pressureObserved = true;
+                    codec.destroy(expected);
+                }
+            });
+            codec.end(zlib.gzipSync(Buffer.alloc(256 * 1024)));
         });
-        codec.end(zlib.gzipSync(Buffer.alloc(256 * 1024)));
-        DrainEventLoop();
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
         Assert.True(pressureObserved);
         Assert.Collection(errors, error => Assert.Same(expected, error));
         Assert.Equal(1, closes);
@@ -204,18 +234,33 @@ public class NativeCodecLifecycleTests
     [Fact]
     public void CodecOutputCallbackFailure_ClosesTheProcessorWithTheOriginalError()
     {
-        var codec = zlib.createGzip();
+        ZlibTransform? codec = null;
         var expected = new InvalidOperationException("native output listener failure");
         var errors = new List<Exception>();
         var closes = 0;
-        codec.on<Buffer>("data", _ => throw expected);
-        codec.on<Exception>("error", errors.Add);
-        codec.on("close", () => closes++);
-        codec.end(Buffer.from("native callback identity"));
-        DrainEventLoop();
-        Assert.Collection(errors, error => Assert.Same(expected, error));
-        Assert.Equal(1, closes);
+        Assert.Same(expected, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
+        {
+            codec = zlib.createGzip();
+            codec.on<Buffer>("data", _ => throw expected);
+            codec.on<Exception>("error", errors.Add);
+            codec.on("close", () => closes++);
+            codec.end(Buffer.from("native callback identity"));
+        })));
+        Assert.False(ProcessKeepAlive.HasReferences);
+        Assert.NotNull(codec);
+        Assert.Empty(errors);
+        Assert.Equal(0, closes);
         Assert.True(codec.destroyed);
+        Assert.False(codec.readable);
+        Assert.False(codec.writable);
+        Assert.Equal(0, codec.readableLength);
+        Assert.Equal(0, codec.writableLength);
+        var freshCalls = 0;
+        JsEventLoop.Run(() => process.nextTick(() => freshCalls++));
+        Assert.Equal(1, freshCalls);
+        Assert.Empty(errors);
+        Assert.Equal(0, closes);
+        Assert.False(ProcessKeepAlive.HasReferences);
     }
 
     [Theory]
@@ -223,41 +268,36 @@ public class NativeCodecLifecycleTests
     [InlineData(true)]
     public void DestructionInsideOutputCallback_DoesNotHideAThrowingErrorListener(bool throwsCancellation)
     {
-        var codec = zlib.createGzip();
+        ZlibTransform? codec = null;
         var supplied = new Exception("native supplied error");
         Exception expected = throwsCancellation
             ? new OperationCanceledException("native error listener failure")
             : new InvalidOperationException("native error listener failure");
         var closes = 0;
-        codec.on("close", () => closes++);
-        codec.once<Exception>("error", error =>
-        {
-            Assert.Same(supplied, error);
-            throw expected;
-        });
-        codec.on<Buffer>("data", _ => codec.destroy(supplied));
-        codec.end(Buffer.from("native nested destruction"));
         try
         {
-            Assert.Same(expected, Assert.ThrowsAny<Exception>(DrainEventLoop));
+            Assert.Same(expected, Assert.ThrowsAny<Exception>(() => JsEventLoop.Run(() =>
+            {
+                codec = zlib.createGzip();
+                codec.on("close", () => closes++);
+                codec.once<Exception>("error", error =>
+                {
+                    Assert.Same(supplied, error);
+                    throw expected;
+                });
+                codec.on<Buffer>("data", _ => codec.destroy(supplied));
+                codec.end(Buffer.from("native nested destruction"));
+            })));
         }
         finally
         {
-            codec.destroy();
-            DrainEventLoop();
+            codec?.destroy();
+            JsEventLoop.Run();
+            Assert.False(ProcessKeepAlive.HasReferences);
         }
+        Assert.NotNull(codec);
         Assert.Equal(1, closes);
         Assert.True(codec.destroyed);
     }
 
-    private static void DrainEventLoop()
-    {
-        var loop = Task.Factory.StartNew(
-            JsEventLoop.Run,
-            CancellationToken.None,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default);
-        loop.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
-        Assert.False(ProcessKeepAlive.HasReferences);
-    }
 }

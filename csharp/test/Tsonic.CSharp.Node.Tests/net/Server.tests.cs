@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 using System;
 using System.Net.Sockets;
 using System.Threading;
@@ -57,142 +59,196 @@ public class ServerTests
     [Fact]
     public void Server_Listen_StartsServer()
     {
-        var server = new Server();
-        var resetEvent = new ManualResetEventSlim(false);
-        var listeningEmitted = false;
-
-        server.on("listening", () =>
+        JsEventLoop.Run(async () =>
         {
-            listeningEmitted = true;
-            resetEvent.Set();
+            var server = new Server();
+            var resetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var listeningEmitted = false;
+
+            server.on("listening", () =>
+            {
+                listeningEmitted = true;
+                resetEvent.TrySetResult(true);
+            });
+
+            server.listen(0, "127.0.0.1");
+            try
+            {
+
+                await resetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+                Assert.True(listeningEmitted);
+                Assert.True(server.listening);
+
+                server.close();
+            }
+            finally
+            {
+                server.close();
+            }
         });
-
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-
-        resetEvent.Wait(2000);
-        Assert.True(listeningEmitted);
-        Assert.True(server.listening);
-
-        server.close();
     }
 
     [Fact]
     public void Server_Listen_WithCallback_CallsCallback()
     {
-        var server = new Server();
-        var resetEvent = new ManualResetEventSlim(false);
-        var callbackCalled = false;
-
-        server.listen(0, "127.0.0.1", () =>
+        JsEventLoop.Run(async () =>
         {
-            callbackCalled = true;
-            resetEvent.Set();
+            var server = new Server();
+            var resetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var callbackCalled = false;
+
+            server.listen(0, "127.0.0.1", () =>
+            {
+                callbackCalled = true;
+                resetEvent.TrySetResult(true);
+            });
+            try
+            {
+
+                await resetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+                Assert.True(callbackCalled);
+
+                server.close();
+            }
+            finally
+            {
+                server.close();
+            }
         });
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-
-        resetEvent.Wait(2000);
-        Assert.True(callbackCalled);
-
-        server.close();
     }
 
     [Fact]
     public void Server_Close_StopsServer()
     {
-        var server = new Server();
-        var listenResetEvent = new ManualResetEventSlim(false);
-        var closeResetEvent = new ManualResetEventSlim(false);
-        var closeEmitted = false;
-
-        server.on("listening", () => listenResetEvent.Set());
-        server.on("close", () =>
+        JsEventLoop.Run(async () =>
         {
-            closeEmitted = true;
-            closeResetEvent.Set();
+            var server = new Server();
+            var listenResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeEmitted = false;
+
+            server.on("listening", () => listenResetEvent.TrySetResult(true));
+            server.on("close", () =>
+            {
+                closeEmitted = true;
+                closeResetEvent.TrySetResult(true);
+            });
+
+            server.listen(0, "127.0.0.1");
+            try
+            {
+                await listenResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+
+                server.close();
+                await closeResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+
+                Assert.True(closeEmitted);
+                Assert.False(server.listening);
+            }
+            finally
+            {
+                server.close();
+            }
         });
-
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-        listenResetEvent.Wait(2000);
-
-        server.close();
-        closeResetEvent.Wait(2000);
-
-        Assert.True(closeEmitted);
-        Assert.False(server.listening);
     }
 
     [Fact]
     public void Server_Close_WithCallback_CallsCallback()
     {
-        var server = new Server();
-        var listenResetEvent = new ManualResetEventSlim(false);
-        var closeResetEvent = new ManualResetEventSlim(false);
-        var callbackCalled = false;
-
-        server.on("listening", () => listenResetEvent.Set());
-
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-        listenResetEvent.Wait(2000);
-
-        server.close((err) =>
+        JsEventLoop.Run(async () =>
         {
-            callbackCalled = true;
-            closeResetEvent.Set();
-        });
+            var server = new Server();
+            var listenResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var callbackCalled = false;
 
-        closeResetEvent.Wait(2000);
-        Assert.True(callbackCalled);
+            server.on("listening", () => listenResetEvent.TrySetResult(true));
+
+            server.listen(0, "127.0.0.1");
+            try
+            {
+                await listenResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+
+                server.close((err) =>
+                {
+                    callbackCalled = true;
+                    closeResetEvent.TrySetResult(true);
+                });
+
+                await closeResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+                Assert.True(callbackCalled);
+            }
+            finally
+            {
+                server.close();
+            }
+        });
     }
 
     [Fact]
     public void Server_Address_ReturnsAddressInfo()
     {
-        var server = new Server();
-        var resetEvent = new ManualResetEventSlim(false);
+        JsEventLoop.Run(async () =>
+        {
+            var server = new Server();
+            var resetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        server.on("listening", () => resetEvent.Set());
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-        resetEvent.Wait(2000);
+            server.on("listening", () => resetEvent.TrySetResult(true));
+            server.listen(0, "127.0.0.1");
+            try
+            {
+                await resetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
 
-        var address = server.address();
-        Assert.NotNull(address);
-        Assert.IsType<AddressInfo>(address);
+                var address = server.address();
+                Assert.NotNull(address);
+                Assert.IsType<AddressInfo>(address);
 
-        var addrInfo = (AddressInfo)address;
-        Assert.True(addrInfo.port > 0);
-        Assert.NotEmpty(addrInfo.address);
-        Assert.NotEmpty(addrInfo.family);
+                var addrInfo = (AddressInfo)address;
+                Assert.True(addrInfo.port > 0);
+                Assert.NotEmpty(addrInfo.address);
+                Assert.NotEmpty(addrInfo.family);
 
-        server.close();
+                server.close();
+            }
+            finally
+            {
+                server.close();
+            }
+        });
     }
 
     [Fact]
     public void Server_GetConnections_ReturnsCount()
     {
-        var server = new Server();
-        var resetEvent = new ManualResetEventSlim(false);
-        var connectionsRead = new ManualResetEventSlim(false);
-        var connectionCount = -1;
-
-        server.on("listening", () => resetEvent.Set());
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() => server.close());
-        resetEvent.Wait(2000);
-
-        server.getConnections((err, count) =>
+        JsEventLoop.Run(async () =>
         {
-            connectionCount = count;
-            connectionsRead.Set();
+            var server = new Server();
+            var resetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionsRead = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionCount = -1;
+
+            server.on("listening", () => resetEvent.TrySetResult(true));
+            server.listen(0, "127.0.0.1");
+            try
+            {
+                await resetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+
+                server.getConnections((err, count) =>
+                {
+                    connectionCount = count;
+                    connectionsRead.TrySetResult(true);
+                });
+
+                Assert.True(await connectionsRead.Task.WaitAsync(TimeSpan.FromMilliseconds(2000)));
+                Assert.Equal(0, connectionCount);
+
+                server.close();
+            }
+            finally
+            {
+                server.close();
+            }
         });
-
-        Assert.True(connectionsRead.Wait(2000));
-        Assert.Equal(0, connectionCount);
-
-        server.close();
     }
 
     [Fact]
@@ -214,33 +270,39 @@ public class ServerTests
     [Fact]
     public void ServerClient_Connection_EmitsConnectionEvent()
     {
-        var server = new Server();
-        var serverResetEvent = new ManualResetEventSlim(false);
-        var connectionResetEvent = new ManualResetEventSlim(false);
-        Socket? serverSocket = null;
-
-        server.on("listening", () => serverResetEvent.Set());
-        server.on("connection", (Socket socket) =>
+        JsEventLoop.Run(async () =>
         {
-            serverSocket = socket;
-            connectionResetEvent.Set();
+            var server = new Server();
+            var serverResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionResetEvent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Socket? serverSocket = null;
+
+            server.on("listening", () => serverResetEvent.TrySetResult(true));
+            server.on("connection", (Socket socket) =>
+            {
+                serverSocket = socket;
+                connectionResetEvent.TrySetResult(true);
+            });
+
+            server.listen(0, "127.0.0.1");
+            try
+            {
+                await serverResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+
+                // Connect a client
+                using var client = new TcpClient();
+                client.Connect("127.0.0.1", GetListeningPort(server));
+
+                await connectionResetEvent.Task.WaitAsync(TimeSpan.FromMilliseconds(2000));
+                Assert.NotNull(serverSocket);
+
+                server.close();
+            }
+            finally
+            {
+                serverSocket?.destroy();
+                server.close();
+            }
         });
-
-        server.listen(0, "127.0.0.1");
-        using var eventLoop = JsEventLoopTestHost.Start(() =>
-        {
-            serverSocket?.destroy();
-            server.close();
-        });
-        serverResetEvent.Wait(2000);
-
-        // Connect a client
-        using var client = new TcpClient();
-        client.Connect("127.0.0.1", GetListeningPort(server));
-
-        connectionResetEvent.Wait(2000);
-        Assert.NotNull(serverSocket);
-
-        server.close();
     }
 }

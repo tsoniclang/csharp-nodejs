@@ -18,8 +18,7 @@ function execute(sourceText, name, nativeProgram) {
 
 test("generated native Node driver consumes the exact native watcher root", { timeout: 300_000 }, () => {
   const output = execute(nativeWatcherCompletionSource, "native-watcher-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main);
 `);
   assert.match(output, /native watcher completion/u);
 });
@@ -34,18 +33,26 @@ if (Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences)
 
 test("original source watcher failure preserves reentrant native stat work", { timeout: 300_000 }, () => {
   const output = execute(nativeWatcherFailureSource, "native-watcher-original-error", `
-var original = Tsonic.Generated.Index.schedule();
 try {
-    Tsonic.CSharp.Js.JsEventLoop.Run();
+System.Exception? original = null;
+try {
+    Tsonic.CSharp.Js.JsEventLoop.Run(() => original = Tsonic.Generated.Index.schedule());
     throw new System.Exception("source callback did not fail");
 } catch (System.Exception error) {
     if (!object.ReferenceEquals(error, original) || error.Message != "original watcher failure")
         throw new System.Exception("original error identity lost", error);
 }
 if (Tsonic.Generated.Index.count() != 0) throw new System.Exception("reentrant watcher already invoked");
-Tsonic.CSharp.Js.JsEventLoop.Run();
-if (Tsonic.Generated.Index.count() != 1) throw new System.Exception("reentrant watcher lost");
+var freshCalls = 0;
+Tsonic.CSharp.Js.JsEventLoop.Run(() => Tsonic.CSharp.Node.process.nextTick(() => freshCalls++));
+if (freshCalls != 1) throw new System.Exception("fresh explicit owner did not dispatch");
+if (Tsonic.Generated.Index.count() != 0) throw new System.Exception("retired source callback entered a fresh generation");
+if (Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences) throw new System.Exception("retired owner retained work");
 System.Console.WriteLine("native original watcher error");
+} finally {
+    System.IO.File.Delete("native-watcher-first.txt");
+    System.IO.File.Delete("native-watcher-later.txt");
+}
 `);
   assert.match(output, /native original watcher error/u);
 });

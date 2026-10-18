@@ -120,9 +120,11 @@ public partial class Duplex : Readable, IWritableStream
     /// <param name="error">Optional error to emit.</param>
     public override void destroy(Exception? error = null)
     {
-        _writableState.Destroy();
+        DestroyOutput();
         base.destroy(error);
     }
+
+    internal void DestroyOutput() => _writableState.Destroy();
 
     /// <summary>Destroys both sides and returns this stream.</summary>
     public new Duplex destroyChain(Exception? error = null)

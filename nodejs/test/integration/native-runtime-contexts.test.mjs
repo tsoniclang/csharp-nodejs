@@ -18,17 +18,16 @@ function execute(sourceText, name, nativeProgram) {
 
 test("generated Node driver selects source-thread readline tasks without worker scheduling", { timeout: 300_000 }, () => {
   const output = execute(nativeRuntimeCompletionSource, "native-runtime-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main);
 `);
   assert.match(output, /native runtime completion/u);
 });
 
 test("generated readline callback retains its original Error identity through native context grouping", { timeout: 300_000 }, () => {
   const output = execute(nativeRuntimeOriginalErrorSource, "native-runtime-original-error", `
-var original = Tsonic.Generated.Index.schedule();
+System.Exception? original = null;
 try {
-    Tsonic.CSharp.Js.JsEventLoop.Run();
+    Tsonic.CSharp.Js.JsEventLoop.Run(() => original = Tsonic.Generated.Index.schedule());
     throw new System.Exception("source callback did not fail");
 } catch (System.Exception error) {
     if (!object.ReferenceEquals(error, original) || error.Message != "original readline failure")

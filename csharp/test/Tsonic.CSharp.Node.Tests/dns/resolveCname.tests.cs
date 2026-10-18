@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolveCnameTests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? cnames = null;
 
-        dns.resolveCname("localhost", (err, names) =>
+        JsEventLoop.Run(() =>
         {
-            cnames = names;
-            resetEvent.Set();
+            dns.resolveCname("localhost", (err, names) =>
+            {
+                cnames = names;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

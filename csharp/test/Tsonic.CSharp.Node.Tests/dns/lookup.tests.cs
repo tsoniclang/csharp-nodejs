@@ -15,14 +15,16 @@ public class lookupTests
         int family = 0;
         Exception? error = null;
 
-        dns.lookup("localhost", (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            address = addr;
-            family = fam;
+            dns.lookup("localhost", (err, addr, fam) =>
+            {
+                error = err;
+                address = addr;
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.Null(error);
         Assert.NotNull(address);
         Assert.True(family == 4 || family == 6);
@@ -34,13 +36,15 @@ public class lookupTests
         string? address = null;
         int family = 0;
 
-        dns.lookup("localhost", 4, (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            address = addr;
-            family = fam;
+            dns.lookup("localhost", 4, (err, addr, fam) =>
+            {
+                address = addr;
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.NotNull(address);
         Assert.Equal(4, family);
     }
@@ -51,13 +55,15 @@ public class lookupTests
         string? address = null;
         int family = 0;
 
-        dns.lookup("localhost", 6, (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            address = addr;
-            family = fam;
+            dns.lookup("localhost", 6, (err, addr, fam) =>
+            {
+                address = addr;
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         // May not have IPv6 support on all systems
         Assert.True(family == 0 || family == 6);
     }
@@ -67,12 +73,14 @@ public class lookupTests
     {
         JSArray<LookupAddress>? addresses = null;
 
-        dns.lookup("localhost", new LookupOptions { all = true }, (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
+            dns.lookup("localhost", new LookupOptions { all = true }, (err, addrs) =>
+            {
+                addresses = addrs;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.NotNull(addresses);
         Assert.True(addresses.length > 0);
         Assert.All(addresses, addr =>
@@ -87,12 +95,14 @@ public class lookupTests
     {
         JSArray<LookupAddress>? addresses = null;
 
-        dns.lookup("localhost", new LookupOptions { all = true, order = "ipv4first" }, (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
+            dns.lookup("localhost", new LookupOptions { all = true, order = "ipv4first" }, (err, addrs) =>
+            {
+                addresses = addrs;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.NotNull(addresses);
 
         // Check that IPv4 addresses come before IPv6
@@ -111,12 +121,14 @@ public class lookupTests
     {
         Exception? error = null;
 
-        dns.lookup("this-hostname-definitely-does-not-exist-12345.invalid", (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
+            dns.lookup("this-hostname-definitely-does-not-exist-12345.invalid", (err, addr, fam) =>
+            {
+                error = err;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.NotNull(error);
     }
 
@@ -125,12 +137,14 @@ public class lookupTests
     {
         int family = 0;
 
-        dns.lookup("localhost", new LookupOptions { family = 4 }, (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            family = fam;
+            dns.lookup("localhost", new LookupOptions { family = 4 }, (err, addr, fam) =>
+            {
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.Equal(4, family);
     }
 
@@ -139,12 +153,14 @@ public class lookupTests
     {
         int family = 0;
 
-        dns.lookup("localhost", new LookupOptions { family = "IPv4" }, (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            family = fam;
+            dns.lookup("localhost", new LookupOptions { family = "IPv4" }, (err, addr, fam) =>
+            {
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         Assert.Equal(4, family);
     }
 
@@ -153,12 +169,14 @@ public class lookupTests
     {
         int family = 0;
 
-        dns.lookup("localhost", new LookupOptions { family = "IPv6" }, (err, addr, fam) =>
+        JsEventLoop.Run(() =>
         {
-            family = fam;
+            dns.lookup("localhost", new LookupOptions { family = "IPv6" }, (err, addr, fam) =>
+            {
+                family = fam;
+            });
         });
 
-        JsEventLoop.Run();
         // May not have IPv6 support on all systems
         Assert.True(family == 0 || family == 6);
     }
