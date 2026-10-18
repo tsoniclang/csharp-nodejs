@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -13,11 +14,14 @@ public class reverseTests
         string[]? hostnames = null;
         Exception? error = null;
 
-        dns.reverse("127.0.0.1", (err, hosts) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            hostnames = hosts;
-            resetEvent.Set();
+            dns.reverse("127.0.0.1", (err, hosts) =>
+            {
+                error = err;
+                hostnames = hosts;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -33,11 +37,14 @@ public class reverseTests
         string[]? hostnames = null;
         Exception? error = null;
 
-        dns.reverse("::1", (err, hosts) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            hostnames = hosts;
-            resetEvent.Set();
+            dns.reverse("::1", (err, hosts) =>
+            {
+                error = err;
+                hostnames = hosts;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -51,10 +58,13 @@ public class reverseTests
         var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
-        dns.reverse("invalid-ip", (err, hosts) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            resetEvent.Set();
+            dns.reverse("invalid-ip", (err, hosts) =>
+            {
+                error = err;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

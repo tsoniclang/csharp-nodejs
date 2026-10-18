@@ -23,8 +23,7 @@ for (const [name, source, expected] of [
 ]) {
   test(name, { timeout: 300_000 }, () => {
     const output = execute(source, name, `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main);
 `);
     assert.equal(output.includes(expected), true);
   });

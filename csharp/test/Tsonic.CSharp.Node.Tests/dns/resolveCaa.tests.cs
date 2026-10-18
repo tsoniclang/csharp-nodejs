@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolveCaaTests
         var resetEvent = new ManualResetEventSlim(false);
         CaaRecord[]? records = null;
 
-        dns.resolveCaa("localhost", (err, recs) =>
+        JsEventLoop.Run(() =>
         {
-            records = recs;
-            resetEvent.Set();
+            dns.resolveCaa("localhost", (err, recs) =>
+            {
+                records = recs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

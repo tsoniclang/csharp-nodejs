@@ -83,13 +83,15 @@ public class ProcessMetricsTests : FsTestBase
         var tcs = new TaskCompletionSource();
         int owner = Environment.CurrentManagedThreadId;
         int observed = 0;
-        process.nextTick(() =>
+        Tsonic.CSharp.Js.JsEventLoop.Run(() =>
         {
-            observed = Environment.CurrentManagedThreadId;
-            tcs.SetResult();
+            process.nextTick(() =>
+            {
+                observed = Environment.CurrentManagedThreadId;
+                tcs.SetResult();
+            });
+            Assert.False(tcs.Task.IsCompleted);
         });
-        Assert.False(tcs.Task.IsCompleted);
-        Tsonic.CSharp.Js.JsEventLoop.Run();
         await tcs.Task.WaitAsync(System.TimeSpan.FromSeconds(2));
         Assert.Equal(owner, observed);
     }

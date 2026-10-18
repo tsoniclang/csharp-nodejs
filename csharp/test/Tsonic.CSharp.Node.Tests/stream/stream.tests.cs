@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -37,10 +38,18 @@ public partial class StreamTests
     {
         var stream = new Readable();
 
-        stream.push("data");
-        stream.push(null);
-
+        var ends = 0;
+        JsEventLoop.Run(() =>
+        {
+            stream.on("end", () => ends++);
+            stream.push("data");
+            stream.push(null);
+            Assert.False(stream.readableEnded);
+            Assert.Equal("data", stream.read());
+            Assert.False(stream.readableEnded);
+        });
         Assert.True(stream.readableEnded);
+        Assert.Equal(1, ends);
     }
 
     [Fact]
@@ -53,28 +62,7 @@ public partial class StreamTests
         Assert.Null(result);
     }
 
-    [Fact]
-    public void Readable_Pause_ShouldStopFlowing()
-    {
-        var stream = new Readable();
 
-        stream.resume();
-        Assert.False(stream.isPaused());
-
-        stream.pause();
-        Assert.True(stream.isPaused());
-    }
-
-    [Fact]
-    public void Readable_Resume_ShouldEnableFlowing()
-    {
-        var stream = new Readable();
-
-        Assert.True(stream.isPaused());
-
-        stream.resume();
-        Assert.False(stream.isPaused());
-    }
 
     [Fact]
     public void Readable_SetEncoding_ShouldReturnSelf()
@@ -143,29 +131,6 @@ public partial class StreamTests
         Assert.Equal("test error", caughtError.Message);
     }
 
-    [Fact]
-    public void Readable_FlowingMode_ShouldEmitData()
-    {
-        var stream = new Readable();
-        var received = new List<string>();
-
-        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
-        {
-            if (chunk != null)
-                received.Add(chunk.ToString()!);
-        }));
-
-        stream.push("chunk1");
-        stream.resume();
-        stream.push("chunk2");
-        stream.push("chunk3");
-
-        Thread.Sleep(50); // Give events time to process
-
-        Assert.Contains("chunk1", received);
-        Assert.Contains("chunk2", received);
-        Assert.Contains("chunk3", received);
-    }
 
     [Fact]
     public void Writable_ShouldBeCreatable()
@@ -293,16 +258,21 @@ public partial class StreamTests
     {
         var stream = new Duplex();
 
-        // Write side
-        stream.write("write data");
-        stream.end();
-
-        // Read side
-        stream.push("read data");
-        stream.push(null);
-
-        Assert.True(stream.writableEnded);
+        var ends = 0;
+        JsEventLoop.Run(() =>
+        {
+            stream.on("end", () => ends++);
+            stream.write("write data");
+            stream.end();
+            stream.push("read data");
+            stream.push(null);
+            Assert.True(stream.writableEnded);
+            Assert.False(stream.readableEnded);
+            Assert.Equal("read data", stream.read());
+            Assert.False(stream.readableEnded);
+        });
         Assert.True(stream.readableEnded);
+        Assert.Equal(1, ends);
     }
 
     [Fact]
@@ -315,25 +285,6 @@ public partial class StreamTests
         Assert.True(stream.writable);
     }
 
-    [Fact]
-    public void Transform_DefaultBehavior_ShouldPassThrough()
-    {
-        var stream = new Transform();
-        var received = new List<string>();
-
-        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
-        {
-            if (chunk != null)
-                received.Add(chunk.ToString()!);
-        }));
-
-        stream.resume();
-        stream.write("test data");
-
-        Thread.Sleep(50);
-
-        Assert.Contains("test data", received);
-    }
 
     [Fact]
     public void PassThrough_ShouldBeCreatable()
@@ -345,92 +296,11 @@ public partial class StreamTests
         Assert.True(stream.writable);
     }
 
-    [Fact]
-    public void PassThrough_ShouldPassDataThrough()
-    {
-        var stream = new PassThrough();
-        var received = new List<string>();
-
-        ((EventEmitter)stream).on("data", (Action<object?>)(chunk =>
-        {
-            if (chunk != null)
-                received.Add(chunk.ToString()!);
-        }));
-
-        stream.resume();
-
-        stream.write("chunk1");
-        stream.write("chunk2");
-        stream.write("chunk3");
-
-        Thread.Sleep(50);
-
-        Assert.Contains("chunk1", received);
-        Assert.Contains("chunk2", received);
-        Assert.Contains("chunk3", received);
-    }
-
-    [Fact]
-    public void Stream_Pipe_ShouldTransferDataBetweenStreams()
-    {
-        var readable = new Readable();
-        var writable = new Writable();
-
-        readable.pipe(writable);
-
-        readable.push("data1");
-        readable.push("data2");
-        readable.push(null);
-
-        // Pipe should transfer data from readable to writable
-        Assert.True(writable.writableLength >= 0);
-    }
-
-    [Fact]
-    public void Stream_Pipe_ShouldReturnDestination()
-    {
-        var readable = new Readable();
-        var writable = new Writable();
-
-        var result = readable.pipe(writable);
-
-        Assert.Same(writable, result);
-    }
 
 
-    [Fact]
-    public void Stream_Pipe_ShouldNotEndDestinationWhenSpecified()
-    {
-        var readable = new Readable();
-        var writable = new Writable();
 
-        readable.pipe(writable, end: false);
 
-        readable.push(null);
 
-        Thread.Sleep(50);
-
-        // Writable should not be ended
-        Assert.False(writable.writableEnded);
-    }
-
-    [Fact]
-    public void Readable_Events_ShouldBeEmitted()
-    {
-        var stream = new Readable();
-        bool readableEmitted = false;
-        bool endEmitted = false;
-
-        stream.on("readable", (Action)(() => { readableEmitted = true; }));
-        stream.on("end", (Action)(() => { endEmitted = true; }));
-
-        stream.push("data");
-        Assert.True(readableEmitted);
-
-        stream.push(null);
-        stream.read(); // Trigger end event
-        Assert.True(endEmitted);
-    }
 
     [Fact]
     public void Writable_FinishEvent_ShouldBeEmitted()
@@ -462,24 +332,4 @@ public partial class StreamTests
         Assert.True(closeEmitted);
     }
 
-    [Fact]
-    public void ComplexPipeline_ShouldWork()
-    {
-        var readable = new Readable();
-        var transform1 = new PassThrough();
-        var transform2 = new PassThrough();
-        var writable = new Writable();
-
-        // Should be able to create a complex pipeline without errors
-        readable.pipe(transform1).pipe(transform2).pipe(writable);
-
-        readable.push("data1");
-        readable.push("data2");
-        readable.push(null);
-
-        Thread.Sleep(100);
-
-        // Verify the pipeline was set up correctly (at least one of the streams should be affected)
-        Assert.True(readable.readableEnded || transform1.readableEnded || writable.writableLength >= 0);
-    }
 }

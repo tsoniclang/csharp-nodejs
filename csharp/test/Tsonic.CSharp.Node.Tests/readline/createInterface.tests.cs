@@ -1,3 +1,4 @@
+using Tsonic.CSharp.Js;
 using Xunit;
 using System;
 
@@ -8,30 +9,36 @@ public class Readline_createInterfaceTests
     [Fact]
     public void createInterface_WithValidOptions_ShouldCreateInterface()
     {
-        var input = new Readable();
-        var output = new Writable();
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input,
-            output = output
-        });
+            var input = new Readable();
+            var output = new Writable();
 
-        Assert.NotNull(rl);
-        Assert.IsType<Interface>(rl);
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input,
+                output = output
+            });
+
+            Assert.NotNull(rl);
+            Assert.IsType<Interface>(rl);
+        });
     }
 
     [Fact]
     public void createInterface_WithInputOnly_ShouldWork()
     {
-        var input = new Readable();
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input
-        });
+            var input = new Readable();
 
-        Assert.NotNull(rl);
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input
+            });
+
+            Assert.NotNull(rl);
+        });
     }
 
     [Fact]
@@ -51,70 +58,85 @@ public class Readline_createInterfaceTests
     [Fact]
     public void createInterface_WithStreams_ShouldWork()
     {
-        var input = new Readable();
-        var output = new Writable();
+        JsEventLoop.Run(() =>
+        {
+            var input = new Readable();
+            var output = new Writable();
 
-        var rl = readline.createInterface(input, output);
+            var rl = readline.createInterface(input, output);
 
-        Assert.NotNull(rl);
+            Assert.NotNull(rl);
+        });
     }
 
     [Fact]
     public void createInterface_WithCustomPrompt_ShouldUsePrompt()
     {
-        var input = new Readable();
-        var customPrompt = "custom> ";
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input,
-            prompt = customPrompt
-        });
+            var input = new Readable();
+            var customPrompt = "custom> ";
 
-        Assert.Equal(customPrompt, rl.getPrompt());
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input,
+                prompt = customPrompt
+            });
+
+            Assert.Equal(customPrompt, rl.getPrompt());
+        });
     }
 
     [Fact]
     public void createInterface_WithHistory_ShouldInitializeHistory()
     {
-        var input = new Readable();
-        var history = new[] { "line1", "line2", "line3" };
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input,
-            history = history
-        });
+            var input = new Readable();
+            var history = new[] { "line1", "line2", "line3" };
 
-        Assert.NotNull(rl);
-        // History is initialized (we can't directly access it, but no exception)
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input,
+                history = history
+            });
+
+            Assert.NotNull(rl);
+            // History is initialized (we can't directly access it, but no exception)
+        });
     }
 
     [Fact]
     public void createInterface_WithTerminalOption_ShouldWork()
     {
-        var input = new Readable();
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input,
-            terminal = true
-        });
+            var input = new Readable();
 
-        Assert.NotNull(rl);
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input,
+                terminal = true
+            });
+
+            Assert.NotNull(rl);
+        });
     }
 
     [Fact]
     public void createInterface_WithHistorySize_ShouldWork()
     {
-        var input = new Readable();
-
-        var rl = readline.createInterface(new InterfaceOptions
+        JsEventLoop.Run(() =>
         {
-            input = input,
-            historySize = 100
-        });
+            var input = new Readable();
 
-        Assert.NotNull(rl);
+            var rl = readline.createInterface(new InterfaceOptions
+            {
+                input = input,
+                historySize = 100
+            });
+
+            Assert.NotNull(rl);
+        });
     }
 }

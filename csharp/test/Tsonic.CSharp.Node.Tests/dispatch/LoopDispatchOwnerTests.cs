@@ -16,7 +16,18 @@ public sealed class LoopDispatchOwnerTests
         var failure = Assert.Throws<InvalidOperationException>(() => BackgroundDispatch.Capture(NodePhases.Net));
         Assert.Equal("No JavaScript event loop is running on this thread.", failure.Message);
         Assert.Throws<InvalidOperationException>(() => timers.setTimeout(static () => { }, 1));
-        Assert.Throws<InvalidOperationException>(() => new Worker("missing-native-owner"));
+        var channel = new MessageChannel();
+        try
+        {
+            var portFailure = Assert.Throws<InvalidOperationException>(() =>
+                channel.port1.on<Tsonic.CSharp.Runtime.TsValue>("message", static _ => { }));
+            Assert.Equal("No JavaScript event loop is running on this thread.", portFailure.Message);
+        }
+        finally
+        {
+            channel.port1.close();
+            channel.port2.close();
+        }
     }
 
     [Fact]

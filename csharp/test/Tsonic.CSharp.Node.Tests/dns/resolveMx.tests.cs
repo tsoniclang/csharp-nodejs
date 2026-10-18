@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolveMxTests
         var resetEvent = new ManualResetEventSlim(false);
         MxRecord[]? records = null;
 
-        dns.resolveMx("localhost", (err, recs) =>
+        JsEventLoop.Run(() =>
         {
-            records = recs;
-            resetEvent.Set();
+            dns.resolveMx("localhost", (err, recs) =>
+            {
+                records = recs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

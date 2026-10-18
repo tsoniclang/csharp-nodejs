@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -12,10 +13,13 @@ public class resolveSoaTests
         var resetEvent = new ManualResetEventSlim(false);
         SoaRecord? record = null;
 
-        dns.resolveSoa("localhost", (err, rec) =>
+        JsEventLoop.Run(() =>
         {
-            record = rec;
-            resetEvent.Set();
+            dns.resolveSoa("localhost", (err, rec) =>
+            {
+                record = rec;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

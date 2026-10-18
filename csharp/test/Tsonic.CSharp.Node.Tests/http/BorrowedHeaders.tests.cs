@@ -69,29 +69,32 @@ public class BorrowedHttpHeadersTests
     [Fact]
     public void AdmissionRetainsMetadataWhenTheNativeRequestFeaturesAreReused()
     {
-        var context = new DefaultHttpContext();
-        context.Request.Method = "POST";
-        context.Request.Path = "/first";
-        context.Request.QueryString = new QueryString("?one=1");
-        context.Request.Protocol = "HTTP/1.1";
-        context.Request.Headers["x-request"] = "first";
-        var first = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
-        context.Request.Headers.Clear();
-        context.Request.Headers["x-request"] = "second";
-        context.Request.Method = "GET";
-        context.Request.Path = "/second";
-        context.Request.QueryString = QueryString.Empty;
-        context.Request.Protocol = "HTTP/2";
-        var second = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
-        Assert.Equal("first", first.headers.get("x-request"));
-        Assert.Equal("POST", first.method);
-        Assert.Equal("/first?one=1", first.url);
-        Assert.Equal("1.1", first.httpVersion);
-        Assert.Equal("second", second.headers.get("x-request"));
-        Assert.Equal("GET", second.method);
-        Assert.Equal("/second", second.url);
-        Assert.Equal("2", second.httpVersion);
-        first.destroy();
-        second.destroy();
+        JsEventLoop.Run(() =>
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Method = "POST";
+            context.Request.Path = "/first";
+            context.Request.QueryString = new QueryString("?one=1");
+            context.Request.Protocol = "HTTP/1.1";
+            context.Request.Headers["x-request"] = "first";
+            var first = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+            context.Request.Headers.Clear();
+            context.Request.Headers["x-request"] = "second";
+            context.Request.Method = "GET";
+            context.Request.Path = "/second";
+            context.Request.QueryString = QueryString.Empty;
+            context.Request.Protocol = "HTTP/2";
+            var second = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+            Assert.Equal("first", first.headers.get("x-request"));
+            Assert.Equal("POST", first.method);
+            Assert.Equal("/first?one=1", first.url);
+            Assert.Equal("1.1", first.httpVersion);
+            Assert.Equal("second", second.headers.get("x-request"));
+            Assert.Equal("GET", second.method);
+            Assert.Equal("/second", second.url);
+            Assert.Equal("2", second.httpVersion);
+            first.destroy();
+            second.destroy();
+        });
     }
 }

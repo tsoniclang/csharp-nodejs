@@ -18,8 +18,7 @@ function execute(sourceText, name, nativeProgram) {
 
 test("generated native Node driver consumes the exact native network root", { timeout: 300_000 }, () => {
   const output = execute(nativeNetworkCompletionSource, "native-network-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main);
 `);
   assert.match(output, /native network completion/u);
 });

@@ -98,20 +98,28 @@ public class FsMoreSyncTests : FsTestBase
     }
 
     [Fact]
-    public async Task CreateReadStream_ReadsFileIntoReadable()
+    public void CreateReadStream_ReadsFileIntoReadable()
     {
-        var path = GetTestPath("stream.txt");
-        File.WriteAllText(path, "stream");
+        Tsonic.CSharp.Js.JsEventLoop.Run(async () =>
+        {
+            var path = GetTestPath("stream.txt");
+            File.WriteAllText(path, "stream");
 
-        var stream = fs.createReadStream(path);
-        var received = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        stream.on("data", (Action<Buffer>)(bytes => received.TrySetResult(bytes.toString())));
-        stream.on("error", (Action<Exception>)(error => received.TrySetException(error)));
-        using var eventLoop = JsEventLoopTestHost.Start(stream.close);
-        stream.resume();
-
-        Assert.Equal("stream", await received.Task.WaitAsync(TimeSpan.FromSeconds(5)));
-        Assert.Equal(6, stream.bytesRead);
+            var stream = fs.createReadStream(path);
+            var received = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            stream.on("data", (Action<Buffer>)(bytes => received.TrySetResult(bytes.toString())));
+            stream.on("error", (Action<Exception>)(error => received.TrySetException(error)));
+            try
+            {
+                stream.resume();
+                Assert.Equal("stream", await received.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+                Assert.Equal(6, stream.bytesRead);
+            }
+            finally
+            {
+                stream.close();
+            }
+        });
     }
 
     [Fact]

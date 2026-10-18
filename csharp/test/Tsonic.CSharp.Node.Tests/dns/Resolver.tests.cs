@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -45,10 +46,13 @@ public class ResolverTests
         var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
-        resolver.resolve4("localhost", (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            resetEvent.Set();
+            resolver.resolve4("localhost", (err, addrs) =>
+            {
+                error = err;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -63,10 +67,13 @@ public class ResolverTests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? addresses = null;
 
-        resolver.resolve4("localhost", (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
-            resetEvent.Set();
+            resolver.resolve4("localhost", (err, addrs) =>
+            {
+                addresses = addrs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -80,10 +87,13 @@ public class ResolverTests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? addresses = null;
 
-        resolver.resolve6("localhost", (err, addrs) =>
+        JsEventLoop.Run(() =>
         {
-            addresses = addrs;
-            resetEvent.Set();
+            resolver.resolve6("localhost", (err, addrs) =>
+            {
+                addresses = addrs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -97,10 +107,13 @@ public class ResolverTests
         var resetEvent = new ManualResetEventSlim(false);
         MxRecord[]? records = null;
 
-        resolver.resolveMx("localhost", (err, recs) =>
+        JsEventLoop.Run(() =>
         {
-            records = recs;
-            resetEvent.Set();
+            resolver.resolveMx("localhost", (err, recs) =>
+            {
+                records = recs;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -114,10 +127,13 @@ public class ResolverTests
         var resetEvent = new ManualResetEventSlim(false);
         string[]? hostnames = null;
 
-        resolver.reverse("127.0.0.1", (err, hosts) =>
+        JsEventLoop.Run(() =>
         {
-            hostnames = hosts;
-            resetEvent.Set();
+            resolver.reverse("127.0.0.1", (err, hosts) =>
+            {
+                hostnames = hosts;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);

@@ -18,8 +18,7 @@ function execute(sourceText, name, nativeProgram) {
 
 test("generated native Node driver consumes exact TLS and background roots", { timeout: 300_000 }, () => {
   const output = execute(nativeTlsCompletionSource, "native-tls-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(Tsonic.Generated.Index.main);
 `);
   assert.match(output, /native TLS completion/u);
 });

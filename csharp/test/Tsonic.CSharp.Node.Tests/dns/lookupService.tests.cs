@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -14,12 +15,15 @@ public class lookupServiceTests
         string? service = null;
         Exception? error = null;
 
-        dns.lookupService("127.0.0.1", 22, (err, host, svc) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            hostname = host;
-            service = svc;
-            resetEvent.Set();
+            dns.lookupService("127.0.0.1", 22, (err, host, svc) =>
+            {
+                error = err;
+                hostname = host;
+                service = svc;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -34,10 +38,13 @@ public class lookupServiceTests
         var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
-        dns.lookupService("invalid-ip", 22, (err, host, svc) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            resetEvent.Set();
+            dns.lookupService("invalid-ip", 22, (err, host, svc) =>
+            {
+                error = err;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
@@ -50,10 +57,13 @@ public class lookupServiceTests
         var resetEvent = new ManualResetEventSlim(false);
         Exception? error = null;
 
-        dns.lookupService("127.0.0.1", 99999, (err, host, svc) =>
+        JsEventLoop.Run(() =>
         {
-            error = err;
-            resetEvent.Set();
+            dns.lookupService("127.0.0.1", 99999, (err, host, svc) =>
+            {
+                error = err;
+                resetEvent.Set();
+            });
         });
 
         resetEvent.Wait(5000);
