@@ -18,25 +18,23 @@ function execute(sourceText, name, nativeProgram, node = true) {
 
 test("generated Node driver drains independent Node and JS timer roots", { timeout: 300_000 }, () => {
   const output = execute(nativeTimerCompletionSource, "native-timer-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(() => { Tsonic.Generated.Index.main(); });
 `);
   assert.match(output, /native timer completion/u);
 });
 
 test("generated JS-only driver selects the same native typed timer owner", { timeout: 300_000 }, () => {
   const output = execute(nativeJsTimerCompletionSource, "native-js-timer-context", `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(() => { Tsonic.Generated.Index.main(); });
 `, false);
   assert.match(output, /native timer completion/u);
 });
 
 test("original timer error stops dispatch without consuming another selected root", { timeout: 300_000 }, () => {
   const output = execute(nativeTimerOriginalErrorSource, "native-timer-original-error", `
-var original = Tsonic.Generated.Index.schedule();
+System.Exception? original = null;
 try {
-    Tsonic.CSharp.Js.JsEventLoop.Run();
+    Tsonic.CSharp.Js.JsEventLoop.Run(() => { original = Tsonic.Generated.Index.schedule(); });
     throw new System.Exception("source callback did not fail");
 } catch (System.Exception error) {
     if (!object.ReferenceEquals(error, original) || error.Message != "original timer failure")
@@ -44,7 +42,7 @@ try {
 }
 if (Tsonic.Generated.Index.count() != 0) throw new System.Exception("later callback consumed on failure");
 Tsonic.CSharp.Js.JsEventLoop.Run();
-if (Tsonic.Generated.Index.count() != 1) throw new System.Exception("pending callback lost");
+if (Tsonic.Generated.Index.count() != 0) throw new System.Exception("retired callback entered a new owner epoch");
 System.Console.WriteLine("native original error");
 `);
   assert.match(output, /native original error/u);

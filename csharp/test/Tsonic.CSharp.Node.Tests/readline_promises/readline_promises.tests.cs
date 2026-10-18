@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Tsonic.CSharp.Js;
 using Xunit;
 
 namespace Tsonic.CSharp.Node.Tests;
@@ -6,13 +7,13 @@ namespace Tsonic.CSharp.Node.Tests;
 public class ReadlinePromisesModuleTests
 {
     [Fact]
-    public void CreateInterface_ReturnsPromiseInterface()
+    public void CreateInterface_ReturnsPromiseInterface() => JsEventLoop.Run(() =>
     {
         var rl = readline_promises.createInterface();
 
         Assert.NotNull(rl);
         rl.close();
-    }
+    });
 
     [Fact]
     public async Task CursorHelpers_Complete()

@@ -302,7 +302,14 @@ internal static partial class Program
                 Require(PhysicalJoin(worker).WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult() == 0,
                     "actual process exit is observed before the native consumer");
                 var completion = (Task<int>)observe.Invoke(worker, null)!;
-                Require(completion.GetAwaiter().GetResult() == 0, "IO consumed after observed exit is suppressed without a timer");
+                try
+                {
+                    completion.GetAwaiter().GetResult();
+                    throw new InvalidOperationException("late native observation erased a truncated-frame protocol error");
+                }
+                catch (EndOfStreamException) { }
+                Require(PhysicalJoin(worker).IsCompletedSuccessfully && PhysicalJoin(worker).Result == 0,
+                    "the protocol error never changes the actual native process status");
             }
             else
             {
@@ -327,7 +334,7 @@ internal static partial class Program
         finally
         {
             try { worker.Dispose(); }
-            catch (EndOfStreamException) when (!observeAfterExit) { }
+            catch (EndOfStreamException) { }
         }
     }
 

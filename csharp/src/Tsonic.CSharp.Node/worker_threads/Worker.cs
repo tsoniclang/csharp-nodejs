@@ -24,6 +24,15 @@ public sealed partial class Worker : EventEmitter, IDisposable
     private bool _refed = true;
     private bool _terminationRequested;
     private bool _processExitObserved;
+    private bool _peerStopped;
+    private ulong _unreadPosts;
+    private SocketError? _readerSocketError;
+    private WorkerFramePhase _readerFramePhase;
+
+    internal (ulong Unread, SocketError? Error, WorkerFramePhase Phase, bool PeerStopped) NativeTerminalSnapshot
+    {
+        get { lock (_stateLock) return (_unreadPosts, _readerSocketError, _readerFramePhase, _peerStopped); }
+    }
     private bool _terminalConsumed;
     private int? _exitCode;
     private int _nativeObservers;
@@ -114,7 +123,11 @@ public sealed partial class Worker : EventEmitter, IDisposable
         {
             if (_closed)
                 throw new InvalidOperationException("Worker is no longer running.");
-            _transport.Send(WorkerFrameKind.Message, StructuredClone.Encode(value));
+            try { _transport.Send(WorkerFrameKind.Message, StructuredClone.Encode(value)); }
+            catch (Exception error) when (WorkerTransport.IsBrokenPipe(error))
+            {
+                _unreadPosts = checked(_unreadPosts + 1);
+            }
         }
     }
 
@@ -268,6 +281,9 @@ public sealed partial class Worker : EventEmitter, IDisposable
     private int ReadWorkerFrames()
     {
         WorkerSignal? terminal = null;
+        var peerStopped = true;
+        var nativeFailure = false;
+        SocketError? nativeSocketError = null;
         try
         {
             while (true)
@@ -304,19 +320,29 @@ public sealed partial class Worker : EventEmitter, IDisposable
         }
         catch (Exception error) when (error is InvalidDataException)
         {
+            peerStopped = false;
             terminal = new(WorkerSignalKind.Error, default, error);
         }
         catch (Exception error) when (error is IOException or ObjectDisposedException or SocketException)
         {
-            terminal = new(WorkerSignalKind.TransportError, default, error);
+            nativeFailure = true;
+            nativeSocketError = WorkerTransport.NativeSocketError(error);
+            peerStopped = _transport.ReadPhase == WorkerFramePhase.Boundary && WorkerTransport.IsPeerStopped(error);
+            terminal = new(_transport.ReadPhase == WorkerFramePhase.Boundary
+                ? WorkerSignalKind.TransportError : WorkerSignalKind.Error, default, error);
         }
         catch (Exception error)
         {
+            peerStopped = false;
             terminal = new(WorkerSignalKind.InternalError, default, error);
         }
     ReaderFinished:
         lock (_stateLock)
         {
+            _peerStopped = peerStopped;
+            _readerSocketError = nativeSocketError;
+            _readerFramePhase = _transport.ReadPhase;
+            if (nativeFailure && (_terminationRequested || _peerStopped || _processExitObserved)) terminal = null;
             _readerTerminal = terminal;
             if (_callbackOwner is null && _nativeObservers != 0)
                 ConsumeUnownedSignals();
@@ -385,7 +411,7 @@ public sealed partial class Worker : EventEmitter, IDisposable
     }
 
     private bool SuppressesNativeIo(WorkerSignal signal) =>
-        signal.Kind == WorkerSignalKind.TransportError && (_terminationRequested || _processExitObserved);
+        signal.Kind == WorkerSignalKind.TransportError && (_terminationRequested || _peerStopped || _processExitObserved);
 
     private void ConsumeUnownedSignals()
     {

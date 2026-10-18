@@ -17,8 +17,7 @@ function compile(sourceText, outputType = "Library") {
 }
 
 function execute(compiled, name, nativeProgram = `
-Tsonic.Generated.Index.main();
-Tsonic.CSharp.Js.JsEventLoop.Run();
+Tsonic.CSharp.Js.JsEventLoop.Run(() => { Tsonic.Generated.Index.main(); });
 `) {
   return executeCsharpConstruction(compiled, name, false, false, [
     fileURLToPath(new URL("../../../csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj", import.meta.url)),
@@ -39,9 +38,9 @@ Tsonic.CSharp.Js.JsEventLoop.Run(() => Tsonic.Generated.Index.main());
 
 test("generated source compression callback retains its original Error identity", { timeout: 300_000 }, () => {
   const output = execute(compile(nativeBackgroundOriginalErrorSource, "Library"), "native-background-original-error", `
-var original = Tsonic.Generated.Index.schedule();
+System.Exception? original = null;
 try {
-    Tsonic.CSharp.Js.JsEventLoop.Run();
+    Tsonic.CSharp.Js.JsEventLoop.Run(() => { original = Tsonic.Generated.Index.schedule(); });
     throw new System.Exception("source callback did not fail");
 } catch (System.Exception error) {
     if (!object.ReferenceEquals(error, original) || error.Message != "original compression failure")

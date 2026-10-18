@@ -11,6 +11,46 @@ namespace Tsonic.CSharp.Node.Tests;
 public sealed class WorkerBootstrapProcessTests
 {
     [Fact]
+    public void NativeBrokenPipeRetainsItsSocketErrorWithoutAcknowledgmentIo()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start(1);
+        using var sender = new TcpClient(AddressFamily.InterNetwork);
+        sender.Connect((IPEndPoint)listener.LocalEndpoint);
+        using var receiver = listener.AcceptTcpClient();
+        using var transport = new WorkerTransport(sender);
+        sender.Client.Shutdown(SocketShutdown.Send);
+        var error = Assert.Throws<IOException>(() => transport.Send(WorkerFrameKind.Message, [1]));
+        var native = Assert.IsType<SocketException>(error.InnerException);
+        Assert.Equal(SocketError.Shutdown, native.SocketErrorCode);
+        Assert.True(WorkerTransport.IsBrokenPipe(error), "only proven native EPIPE is counted");
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(5, 2)]
+    public void NativeFrameFailuresRetainTheExactKindAndFramePhase(int prefix, int expected)
+    {
+        using var stream = new FailingStream(prefix);
+        var phase = WorkerFramePhase.Boundary;
+        var error = Assert.Throws<IOException>(() => WorkerTransport.ReadFrame(stream, out phase));
+        Assert.True(ReferenceEquals(stream.Failure, error), "the original native IO exception is retained");
+        Assert.Equal(SocketError.ConnectionReset, WorkerTransport.NativeSocketError(error));
+        Assert.Equal((WorkerFramePhase)expected, phase);
+    }
+
+    private sealed class FailingStream(int prefix) : MemoryStream(new byte[] { 4, 0, 0, 0, 1 }, 0, prefix)
+    {
+        internal IOException Failure { get; } = new("native reset", new SocketException((int)SocketError.ConnectionReset));
+        public override int Read(Span<byte> buffer)
+        {
+            if (Position == Length) throw Failure;
+            return base.Read(buffer);
+        }
+    }
+
+    [Fact]
     public void NativeFrameEndRetainsCompleteMessagesWithoutManufacturingAnError()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -52,6 +92,7 @@ public sealed class WorkerBootstrapProcessTests
         sender.GetStream().Write(frame.AsSpan(0, length));
         sender.Client.Shutdown(SocketShutdown.Send);
         Assert.Throws<EndOfStreamException>(() => transport.Receive());
+        Assert.Equal(length < 5 ? WorkerFramePhase.Header : WorkerFramePhase.Payload, transport.ReadPhase);
     }
 
     [Fact]
@@ -133,7 +174,7 @@ public sealed class WorkerBootstrapProcessTests
     {
         byte[] bytes = [(byte)WorkerFrameKind.Message, 0, 0, 0, 1, 17];
         using var stream = new CountedStream(bytes, chunk);
-        var frame = Assert.IsType<WorkerFrame>(WorkerTransport.ReadFrame(stream));
+        var frame = Assert.IsType<WorkerFrame>(WorkerTransport.ReadFrame(stream, out _));
         Assert.Equal(WorkerFrameKind.Message, frame.Kind);
         Assert.Equal(new byte[] { 17 }, frame.Payload);
         Assert.Equal(expected, stream.Reads);

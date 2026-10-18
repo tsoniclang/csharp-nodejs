@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using Tsonic.CSharp.Js;
@@ -27,7 +28,7 @@ internal static partial class Program
                 Require(new[] { "construction", "cancellation", "concurrent", "signal-status", "ready-cost",
                     "retained-prefix", "unobserved-errors", "retired-errors", "saturation-private", "default-ref",
                     "saturated-terminate", "saturated-dispose", "owner-saturated-dispose", "rebind", "io-before-exit", "io-after-exit",
-                    "delivery-native-worker-partial", "delivery-native-worker-unread", "delivery-native-worker-live-failure" }.Contains(selected),
+                    "delivery-native-worker-partial", "delivery-native-worker-unread", "delivery-native-worker-live-failure", "delivery-native-worker-epipe" }.Contains(selected),
                     "one known independently selected native control");
                 VerifyNativePhysicalObservation();
                 if (selected.StartsWith("delivery-", StringComparison.Ordinal)) VerifyNativeTerminationAndUnreadPosts();
@@ -282,7 +283,7 @@ internal static partial class Program
     {
         var nativeExit = DirectNativeKillStatus();
         if (!OperatingSystem.IsWindows()) Require(nativeExit == 137, "native SIGKILL status preserves 128 plus signal");
-        foreach (var entry in new[] { "native-worker-partial", "native-worker-unread", "native-worker-live-failure" })
+        foreach (var entry in new[] { "native-worker-partial", "native-worker-unread", "native-worker-live-failure", "native-worker-epipe" })
         {
             if (_selectedControl is not null && _selectedControl != $"delivery-{entry}") continue;
             using var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -296,7 +297,7 @@ internal static partial class Program
             {
                 JsEventLoop.Run(async () =>
                 {
-                    worker = new Worker(entry, new WorkerOptions {
+                    worker = new Worker(entry == "native-worker-epipe" ? "native-worker-unread" : entry, new WorkerOptions {
                         argv = new JSArray<string> { ((IPEndPoint)listener.LocalEndpoint).Port.ToString() },
                     });
                     worker.on<TsValue>("message", value => messages.Add(ExactInt64(value)));
@@ -328,6 +329,11 @@ internal static partial class Program
                     }
                     else
                     {
+                        if (entry == "native-worker-epipe")
+                        {
+                            var nativeClient = NativeClient(NativeTransport(worker));
+                            nativeClient.Client.Shutdown(SocketShutdown.Send);
+                        }
                         for (var index = 0; index < 128; index++) worker.postMessage(TsValue.from(new string('x', 1024)));
                         control.GetStream().WriteByte(1);
                     }
@@ -335,10 +341,23 @@ internal static partial class Program
                 Require(failures.Count == (entry == "native-worker-live-failure" ? 1 : 0),
                     "only a still-live native transport failure is delivered as an IO error");
                 Require(exits == 1, "native worker terminal event is delivered once");
+                var terminal = worker!.NativeTerminalSnapshot;
+                var unread = terminal.Unread;
+                Require(unread == (entry == "native-worker-epipe" ? 128UL : 0UL),
+                    "only proven failed EPIPE writes are observable unread posts");
+                Require(unread <= 128, "fixture ground truth bounds runtime observability");
+                if (_selectedControl is not null)
+                    Console.WriteLine($"CH08 native terminal {entry}: socket={terminal.Error}, phase={terminal.Phase}, peer-stopped={terminal.PeerStopped}, unread={unread}");
             }
             finally { worker?.Dispose(); }
         }
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_transport")]
+    private static extern ref WorkerTransport NativeTransport(Worker worker);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_client")]
+    private static extern ref TcpClient NativeClient(WorkerTransport transport);
 
     private static int DirectNativeKillStatus()
     {
