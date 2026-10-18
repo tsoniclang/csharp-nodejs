@@ -1,6 +1,8 @@
 using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using Tsonic.CSharp.Node.Http;
 using Tsonic.CSharp.Js;
@@ -73,7 +75,8 @@ public class BorrowedHttpHeadersTests
         await using var connection = new DefaultConnectionContext();
         JsEventLoop.Run(() =>
         {
-            var context = new DefaultHttpContext(connection.Features);
+            var context = new DefaultHttpContext();
+            context.Features.Set<IConnectionLifetimeFeature>(connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
             context.Request.Method = "POST";
             context.Request.Path = "/first";
             context.Request.QueryString = new QueryString("?one=1");

@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Tsonic.CSharp.Node.Http;
 using Xunit;
 
@@ -53,7 +55,9 @@ public class NativeBodyBufferCostTests
 
     private static (Buffer Body, long Allocated) Materialize(DefaultConnectionContext connection, IReadOnlyList<Buffer> chunks)
     {
-        var message = new IncomingMessage(new DefaultHttpContext(connection.Features).Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+        var context = new DefaultHttpContext();
+        context.Features.Set<IConnectionLifetimeFeature>(connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
+        var message = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         var result = message.readAllBuffer();
         Assert.Throws<InvalidOperationException>(() => { _ = message.readAllBuffer(); });
         foreach (var chunk in chunks)
