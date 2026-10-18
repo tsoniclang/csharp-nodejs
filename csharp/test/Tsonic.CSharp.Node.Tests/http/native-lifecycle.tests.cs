@@ -1,6 +1,8 @@
 using Tsonic.CSharp.Js;
 using System;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
 using Tsonic.CSharp.Node.Http;
 using Xunit;
 
@@ -9,11 +11,12 @@ namespace Tsonic.CSharp.Node.Tests;
 public class NativeHttpLifecycleTests
 {
     [Fact]
-    public void AbortFailure_LeavesPhysicalCleanupAndNativeTerminalErrorIntact()
+    public async Task AbortFailure_LeavesPhysicalCleanupAndNativeTerminalErrorIntact()
     {
+        await using var connection = new DefaultConnectionContext();
         JsEventLoop.Run(() =>
         {
-            var message = new IncomingMessage(new DefaultHttpContext().Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+            var message = new IncomingMessage(new DefaultHttpContext(connection.Features).Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
             message.push(Buffer.from("pending body"));
             var original = new InvalidOperationException("original abort callback");
             var supplied = new Exception("native abort");
@@ -46,5 +49,19 @@ public class NativeHttpLifecycleTests
             Assert.Equal(1, errors);
             Assert.Equal(1, closes);
         });
+    }
+
+    [Fact]
+    public void MissingConnectionLifetimeFeature_IsRejectedWithoutRetainedWork()
+    {
+        JsEventLoop.Run(() =>
+        {
+            var context = new DefaultHttpContext();
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                new IncomingMessage(context.Request, JsEventLoop.Capture()));
+            Assert.Contains(nameof(IConnectionLifetimeFeature), error.Message, StringComparison.Ordinal);
+            Assert.False(ProcessKeepAlive.HasReferences);
+        });
+        Assert.False(ProcessKeepAlive.HasReferences);
     }
 }

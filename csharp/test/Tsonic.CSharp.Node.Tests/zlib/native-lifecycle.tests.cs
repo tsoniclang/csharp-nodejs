@@ -238,19 +238,29 @@ public class NativeCodecLifecycleTests
         var expected = new InvalidOperationException("native output listener failure");
         var errors = new List<Exception>();
         var closes = 0;
-        JsEventLoop.Run(() =>
+        Assert.Same(expected, Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
         {
             codec = zlib.createGzip();
             codec.on<Buffer>("data", _ => throw expected);
             codec.on<Exception>("error", errors.Add);
             codec.on("close", () => closes++);
             codec.end(Buffer.from("native callback identity"));
-        });
+        })));
         Assert.False(ProcessKeepAlive.HasReferences);
         Assert.NotNull(codec);
-        Assert.Collection(errors, error => Assert.Same(expected, error));
-        Assert.Equal(1, closes);
+        Assert.Empty(errors);
+        Assert.Equal(0, closes);
         Assert.True(codec.destroyed);
+        Assert.False(codec.readable);
+        Assert.False(codec.writable);
+        Assert.Equal(0, codec.readableLength);
+        Assert.Equal(0, codec.writableLength);
+        var freshCalls = 0;
+        JsEventLoop.Run(() => process.nextTick(() => freshCalls++));
+        Assert.Equal(1, freshCalls);
+        Assert.Empty(errors);
+        Assert.Equal(0, closes);
+        Assert.False(ProcessKeepAlive.HasReferences);
     }
 
     [Theory]

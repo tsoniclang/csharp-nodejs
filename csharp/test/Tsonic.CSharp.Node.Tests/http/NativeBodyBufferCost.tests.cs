@@ -2,6 +2,7 @@ using JsEventLoop = Tsonic.CSharp.Js.JsEventLoop;
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Connections;
 using Tsonic.CSharp.Node.Http;
 using Xunit;
 
@@ -11,24 +12,26 @@ namespace Tsonic.CSharp.Node.Tests;
 public class NativeBodyBufferCostTests
 {
     [Fact]
-    public void MaterializedBodyPreservesChunkOrderEmptyChunksAndIndependentStorage()
+    public async Task MaterializedBodyPreservesChunkOrderEmptyChunksAndIndependentStorage()
     {
+        await using var connection = new DefaultConnectionContext();
         JsEventLoop.Run(() =>
         {
             var first = Buffer.from("0080ff", "hex");
             var second = Buffer.from("ab", "hex");
-            var (body, _) = Materialize(new[] { first, Buffer.alloc(0), second });
+            var (body, _) = Materialize(connection, new[] { first, Buffer.alloc(0), second });
             Assert.Equal("0080ffab", body.toString("hex"));
             first[1] = 0;
             second[0] = 0;
             Assert.Equal("0080ffab", body.toString("hex"));
-            Assert.Equal(0, Materialize(Array.Empty<Buffer>()).Body.length);
+            Assert.Equal(0, Materialize(connection, Array.Empty<Buffer>()).Body.length);
         });
     }
 
     [Fact]
-    public void BodyCompletionDoesNotAllocateAnArrayProportionalToChunkCount()
+    public async Task BodyCompletionDoesNotAllocateAnArrayProportionalToChunkCount()
     {
+        await using var connection = new DefaultConnectionContext();
         JsEventLoop.Run(() =>
         {
             var empty = Buffer.alloc(0);
@@ -37,20 +40,20 @@ public class NativeBodyBufferCostTests
             Array.Fill(many, empty);
             for (var index = 0; index < 16; index++)
             {
-                _ = Materialize(single);
-                _ = Materialize(many);
+                _ = Materialize(connection, single);
+                _ = Materialize(connection, many);
             }
-            var (first, singleAllocated) = Materialize(single);
-            var (second, manyAllocated) = Materialize(many);
+            var (first, singleAllocated) = Materialize(connection, single);
+            var (second, manyAllocated) = Materialize(connection, many);
             Assert.Equal(0, first.length);
             Assert.Equal(0, second.length);
             Assert.Equal(singleAllocated, manyAllocated);
         });
     }
 
-    private static (Buffer Body, long Allocated) Materialize(IReadOnlyList<Buffer> chunks)
+    private static (Buffer Body, long Allocated) Materialize(DefaultConnectionContext connection, IReadOnlyList<Buffer> chunks)
     {
-        var message = new IncomingMessage(new DefaultHttpContext().Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+        var message = new IncomingMessage(new DefaultHttpContext(connection.Features).Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
         var result = message.readAllBuffer();
         Assert.Throws<InvalidOperationException>(() => { _ = message.readAllBuffer(); });
         foreach (var chunk in chunks)

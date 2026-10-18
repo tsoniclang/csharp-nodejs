@@ -33,6 +33,7 @@ if (Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences)
 
 test("original source watcher failure preserves reentrant native stat work", { timeout: 300_000 }, () => {
   const output = execute(nativeWatcherFailureSource, "native-watcher-original-error", `
+try {
 System.Exception? original = null;
 try {
     Tsonic.CSharp.Js.JsEventLoop.Run(() => original = Tsonic.Generated.Index.schedule());
@@ -48,6 +49,10 @@ if (freshCalls != 1) throw new System.Exception("fresh explicit owner did not di
 if (Tsonic.Generated.Index.count() != 0) throw new System.Exception("retired source callback entered a fresh generation");
 if (Tsonic.CSharp.Js.ProcessKeepAlive.HasReferences) throw new System.Exception("retired owner retained work");
 System.Console.WriteLine("native original watcher error");
+} finally {
+    System.IO.File.Delete("native-watcher-first.txt");
+    System.IO.File.Delete("native-watcher-later.txt");
+}
 `);
   assert.match(output, /native original watcher error/u);
 });

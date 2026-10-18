@@ -6,14 +6,14 @@ namespace Tsonic.CSharp.Node.Tests;
 public class readlinePromisesTests
 {
     [Fact]
-    public void createInterface_ShouldCreateInterface()
+    public void createInterface_ShouldCreateInterface() => JsEventLoop.Run(() =>
     {
         var input = new Readable();
         var output = new Writable();
 
         var rl = readline.promises.createInterface(input, output);
         Assert.NotNull(rl);
-    }
+    });
 
     [Fact]
     public void question_ShouldResolveAnswer()

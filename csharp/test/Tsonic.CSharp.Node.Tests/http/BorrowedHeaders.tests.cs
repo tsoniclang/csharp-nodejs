@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Primitives;
 using Tsonic.CSharp.Node.Http;
 using Tsonic.CSharp.Js;
@@ -67,11 +68,12 @@ public class BorrowedHttpHeadersTests
     }
 
     [Fact]
-    public void AdmissionRetainsMetadataWhenTheNativeRequestFeaturesAreReused()
+    public async Task AdmissionRetainsMetadataWhenTheNativeRequestFeaturesAreReused()
     {
+        await using var connection = new DefaultConnectionContext();
         JsEventLoop.Run(() =>
         {
-            var context = new DefaultHttpContext();
+            var context = new DefaultHttpContext(connection.Features);
             context.Request.Method = "POST";
             context.Request.Path = "/first";
             context.Request.QueryString = new QueryString("?one=1");

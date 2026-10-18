@@ -64,6 +64,8 @@ public class ZlibTransform : Transform
     {
         if (Interlocked.Exchange(ref _destroyStarted, 1) != 0) return;
         _stopping.Cancel();
+        DestroyOutput();
+        DestroyInput();
         _input.Fail(new OperationCanceledException(_stopping.Token));
         _loopRegistration.Dispose();
     }

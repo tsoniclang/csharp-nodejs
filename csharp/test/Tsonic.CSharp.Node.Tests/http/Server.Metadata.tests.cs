@@ -52,10 +52,12 @@ public partial class HttpServerTests
                 using var initial = new HttpRequestMessage(HttpMethod.Post, $"{address}/first?one=1");
                 initial.Headers.Add("x-request", "first");
                 using var initialReply = await client.SendAsync(initial);
+                Assert.Equal(System.Net.HttpVersion.Version11, initialReply.Version);
                 Assert.Equal("ok", await initialReply.Content.ReadAsStringAsync());
                 using var next = new HttpRequestMessage(HttpMethod.Get, $"{address}/second");
                 next.Headers.Add("x-request", "second");
                 using var nextReply = await client.SendAsync(next);
+                Assert.Equal(System.Net.HttpVersion.Version11, nextReply.Version);
                 Assert.Equal("ok", await nextReply.Content.ReadAsStringAsync());
                 Assert.Equal(1, connections);
                 Assert.NotNull(first);
@@ -69,6 +71,7 @@ public partial class HttpServerTests
                 server.close();
             }
         });
+        Assert.False(ProcessKeepAlive.HasReferences);
     }
 
     [Fact]
