@@ -1,4 +1,4 @@
-using Tsonic.CSharp.Js;
+using JsEventLoop = Tsonic.CSharp.Js.JsEventLoop;
 using System;
 using System.Net.Http;
 using System.Threading;

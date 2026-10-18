@@ -1,4 +1,4 @@
-using Tsonic.CSharp.Js;
+using JsEventLoop = Tsonic.CSharp.Js.JsEventLoop;
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
