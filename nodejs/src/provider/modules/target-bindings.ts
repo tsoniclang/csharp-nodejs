@@ -22,6 +22,22 @@ export interface NodejsProviderTargetTypeRow {
   readonly targetType?: (includeJsSurfaceMembers: boolean) => CsharpTargetNamedTypeRef;
 }
 
+export const nodejsProviderPhysicalTargetBindings: readonly CsharpTargetBindingFact[] = Object.freeze([
+  Object.freeze({
+    id: "Tsonic.CSharp.Node.IWritableStream",
+    sourceName: "IWritableStream",
+    targetName: "Tsonic.CSharp.Node.IWritableStream",
+    target: "csharp",
+    kind: "interface",
+    csharpType: csharpTargetNamedType(
+      "Tsonic.CSharp.Node.IWritableStream",
+      undefined,
+      csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "IWritableStream"),
+      { allowsRefLikeTypeArguments: [] },
+    ),
+  }),
+]);
+
 export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncOptions", targetType: js => nodeChildProcessOptionsTarget(js).type, objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncError", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncError" },
