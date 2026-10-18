@@ -289,14 +289,14 @@ public class TimersTests
     [Fact]
     public void Timeout_refresh_ShouldRestartDelay() => JsEventLoop.Run(async () =>
     {
-        using var resetEvent = new ManualResetEventSlim(false);
-        var timeout = timers.setTimeout(resetEvent.Set, 120);
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var timeout = timers.setTimeout(completed.SetResult, 120);
         try
         {
             await Task.Delay(80);
             timeout.refresh();
-            Assert.False(await Task.Run(() => resetEvent.Wait(60)), "refresh should restart the original timeout delay");
-            Assert.True(await Task.Run(() => resetEvent.Wait(500)), "refreshed timeout should eventually execute");
+            Assert.False(await Task.WhenAny(completed.Task, Task.Delay(60)) == completed.Task, "refresh should restart the original timeout delay");
+            Assert.True(await Task.WhenAny(completed.Task, Task.Delay(500)) == completed.Task, "refreshed timeout should eventually execute");
         }
         finally { timers.clearTimeout(timeout); }
     });
