@@ -21,5 +21,9 @@ test("Node optional arguments preserve omitted and explicit absence at native ca
   ` });
   executeCsharpConstruction(compiled, "native-optional-arguments", false, false, [
     fileURLToPath(new URL("../../../csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj", import.meta.url)),
-  ]);
+  ], `
+Tsonic.CSharp.Js.JsEventLoop.Run(() => {
+    if (!Tsonic.Generated.Index.run()) throw new System.Exception("source construction contract");
+});
+`);
 });
