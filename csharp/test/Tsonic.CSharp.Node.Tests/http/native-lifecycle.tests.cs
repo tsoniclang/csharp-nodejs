@@ -14,44 +14,61 @@ public class NativeHttpLifecycleTests
     [Fact]
     public async Task AbortFailure_LeavesPhysicalCleanupAndNativeTerminalErrorIntact()
     {
-        await using var connection = new DefaultConnectionContext();
-        JsEventLoop.Run(() =>
+        var connection = new DefaultConnectionContext();
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = connection.ConnectionClosed.Register(static state => ((TaskCompletionSource)state!).TrySetResult(), closed);
+        var admitted = false;
+        try
         {
-            var context = new DefaultHttpContext();
-            context.Features.Set<IConnectionLifetimeFeature>(connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
-            var message = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
-            message.push(Buffer.from("pending body"));
-            var original = new InvalidOperationException("original abort callback");
-            var supplied = new Exception("native abort");
-            var aborts = 0;
-            var errors = 0;
-            var closes = 0;
-            message.once("aborted", () =>
+            JsEventLoop.Run(() =>
             {
-                aborts++;
-                throw original;
+                var context = new DefaultHttpContext();
+                context.Features.Set<IConnectionLifetimeFeature>(connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
+                var message = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+                admitted = true;
+                message.push(Buffer.from("pending body"));
+                var original = new InvalidOperationException("original abort callback");
+                var supplied = new Exception("native abort");
+                var aborts = 0;
+                var errors = 0;
+                var closes = 0;
+                message.once("aborted", () =>
+                {
+                    aborts++;
+                    throw original;
+                });
+                message.on("error", (Exception received) =>
+                {
+                    Assert.Same(supplied, received);
+                    errors++;
+                });
+                message.once("close", () => closes++);
+                Assert.Same(original, Assert.Throws<InvalidOperationException>(() => message.destroy(supplied)));
+                Assert.True(message.aborted);
+                Assert.True(message.destroyed);
+                Assert.False(message.readable);
+                Assert.Equal(0, message.readableLength);
+                Assert.Equal(0, errors);
+                Assert.Equal(0, closes);
+                message.destroy();
+                Assert.Equal(1, errors);
+                Assert.Equal(1, closes);
+                message.destroy();
+                Assert.Equal(1, aborts);
+                Assert.Equal(1, errors);
+                Assert.Equal(1, closes);
             });
-            message.on("error", (Exception received) =>
+        }
+        finally
+        {
+            if (admitted)
             {
-                Assert.Same(supplied, received);
-                errors++;
-            });
-            message.once("close", () => closes++);
-            Assert.Same(original, Assert.Throws<InvalidOperationException>(() => message.destroy(supplied)));
-            Assert.True(message.aborted);
-            Assert.True(message.destroyed);
-            Assert.False(message.readable);
-            Assert.Equal(0, message.readableLength);
-            Assert.Equal(0, errors);
-            Assert.Equal(0, closes);
-            message.destroy();
-            Assert.Equal(1, errors);
-            Assert.Equal(1, closes);
-            message.destroy();
-            Assert.Equal(1, aborts);
-            Assert.Equal(1, errors);
-            Assert.Equal(1, closes);
-        });
+                await closed.Task;
+                Assert.True(connection.ConnectionClosed.IsCancellationRequested);
+            }
+            registration.Dispose();
+            await connection.DisposeAsync();
+        }
     }
 
     [Fact]

@@ -72,34 +72,55 @@ public class BorrowedHttpHeadersTests
     [Fact]
     public async Task AdmissionRetainsMetadataWhenTheNativeRequestFeaturesAreReused()
     {
-        await using var connection = new DefaultConnectionContext();
-        JsEventLoop.Run(() =>
+        var connections = Enumerable.Range(0, 2).Select(index => new DefaultConnectionContext()).ToArray();
+        var closedSignals = connections.Select(connection =>
         {
-            var context = new DefaultHttpContext();
-            context.Features.Set<IConnectionLifetimeFeature>(connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
-            context.Request.Method = "POST";
-            context.Request.Path = "/first";
-            context.Request.QueryString = new QueryString("?one=1");
-            context.Request.Protocol = "HTTP/1.1";
-            context.Request.Headers["x-request"] = "first";
-            var first = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
-            context.Request.Headers.Clear();
-            context.Request.Headers["x-request"] = "second";
-            context.Request.Method = "GET";
-            context.Request.Path = "/second";
-            context.Request.QueryString = QueryString.Empty;
-            context.Request.Protocol = "HTTP/2";
-            var second = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
-            Assert.Equal("first", first.headers.get("x-request"));
-            Assert.Equal("POST", first.method);
-            Assert.Equal("/first?one=1", first.url);
-            Assert.Equal("1.1", first.httpVersion);
-            Assert.Equal("second", second.headers.get("x-request"));
-            Assert.Equal("GET", second.method);
-            Assert.Equal("/second", second.url);
-            Assert.Equal("2", second.httpVersion);
-            first.destroy();
-            second.destroy();
-        });
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var registration = connection.ConnectionClosed.Register(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+            return (Completion: completion, Registration: registration);
+        }).ToArray();
+        var admitted = new List<DefaultConnectionContext>();
+        try
+        {
+            JsEventLoop.Run(() =>
+            {
+                var context = new DefaultHttpContext();
+                context.Features.Set<IConnectionLifetimeFeature>(connections[0].Features.GetRequiredFeature<IConnectionLifetimeFeature>());
+                context.Request.Method = "POST";
+                context.Request.Path = "/first";
+                context.Request.QueryString = new QueryString("?one=1");
+                context.Request.Protocol = "HTTP/1.1";
+                context.Request.Headers["x-request"] = "first";
+                var first = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+                admitted.Add(connections[0]);
+                context.Request.Headers.Clear();
+                context.Request.Headers["x-request"] = "second";
+                context.Request.Method = "GET";
+                context.Request.Path = "/second";
+                context.Request.QueryString = QueryString.Empty;
+                context.Request.Protocol = "HTTP/2";
+                context.Features.Set<IConnectionLifetimeFeature>(connections[1].Features.GetRequiredFeature<IConnectionLifetimeFeature>());
+                var second = new IncomingMessage(context.Request, Tsonic.CSharp.Js.JsEventLoop.Capture());
+                admitted.Add(connections[1]);
+                Assert.Equal("first", first.headers.get("x-request"));
+                Assert.Equal("POST", first.method);
+                Assert.Equal("/first?one=1", first.url);
+                Assert.Equal("1.1", first.httpVersion);
+                Assert.Equal("second", second.headers.get("x-request"));
+                Assert.Equal("GET", second.method);
+                Assert.Equal("/second", second.url);
+                Assert.Equal("2", second.httpVersion);
+                first.destroy();
+                second.destroy();
+            });
+            Assert.Equal(connections.Length, admitted.Count);
+        }
+        finally
+        {
+            await Task.WhenAll(closedSignals.Where((signal, index) => admitted.Contains(connections[index])).Select(signal => signal.Completion.Task));
+            foreach (var connection in admitted) Assert.True(connection.ConnectionClosed.IsCancellationRequested);
+            foreach (var signal in closedSignals) signal.Registration.Dispose();
+            foreach (var connection in connections) await connection.DisposeAsync();
+        }
     }
 }
