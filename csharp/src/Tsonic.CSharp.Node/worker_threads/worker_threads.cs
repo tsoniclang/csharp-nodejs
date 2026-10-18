@@ -138,8 +138,10 @@ public static class worker_threads
                 .GetResult();
             var transport = new WorkerTransport(client);
             transport.Send(WorkerFrameKind.Authenticate, token);
-            var workerDataFrame = transport.Receive();
-            var environmentDataFrame = transport.Receive();
+            var workerDataFrame = transport.Receive() ??
+                throw new EndOfStreamException("Worker bootstrap transport ended before worker data.");
+            var environmentDataFrame = transport.Receive() ??
+                throw new EndOfStreamException("Worker bootstrap transport ended before environment data.");
             if (workerDataFrame.Kind != WorkerFrameKind.WorkerData ||
                 environmentDataFrame.Kind != WorkerFrameKind.EnvironmentData)
             {
