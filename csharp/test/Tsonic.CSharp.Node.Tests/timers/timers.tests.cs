@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Tsonic.CSharp.Js;
@@ -300,6 +301,37 @@ public class TimersTests
         }
         finally { timers.clearTimeout(timeout); }
     });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Timeout_refresh_ShouldRetireQueuedDelivery(bool deliverRefreshedTimeout)
+    {
+        JsEventLoop.Run(() =>
+        {
+            var invocations = 0;
+            var timeout = timers.setTimeout(() => invocations++, 10000);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var execute = typeof(Tsonic.CSharp.Node.Timeout).GetMethod("Execute", flags)!;
+            var dispatch = (LoopDispatch)typeof(Tsonic.CSharp.Node.Timeout)
+                .GetProperty("TimerDispatch", flags)!.GetValue(timeout)!;
+            execute.Invoke(timeout, null);
+            timeout.refresh();
+            if (deliverRefreshedTimeout)
+                execute.Invoke(timeout, null);
+            dispatch.Enqueue(() =>
+            {
+                try
+                {
+                    Assert.Equal(deliverRefreshedTimeout ? 1 : 0, invocations);
+                }
+                finally
+                {
+                    timers.clearTimeout(timeout);
+                }
+            });
+        });
+    }
 
     [Fact]
     public void Timeout_close_ShouldCancelTimeout()
