@@ -469,7 +469,7 @@ public class TimersTests
         JsEventLoop.Run(() =>
         {
             var owner = typeof(JsEventLoop).GetField("_owner", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
-            registrations = (System.Collections.IDictionary)owner.GetType()
+            registrations = (System.Collections.IDictionary)Type.GetType("Tsonic.CSharp.Js.LoopContext, Tsonic.CSharp.Js", throwOnError: true)!
                 .GetField("_registrations", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
             originalCount = registrations.Count;
             timeout = timers.setTimeout(() => Assert.Fail("shutdown must cancel this timeout"), 60000).unref();
