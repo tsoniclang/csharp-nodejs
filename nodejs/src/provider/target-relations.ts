@@ -35,6 +35,7 @@ import {
 } from "./declarations/specifiers.js";
 import {
   nodejsProviderTargetBinding,
+  nodejsProviderPhysicalTargetBindings,
   nodejsProviderTargetTypeRows,
 } from "./modules/target-bindings.js";
 import {
@@ -42,13 +43,14 @@ import {
 } from "./assembly/modules.js";
 
 export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
-  return csharpProviderPolicyContribution(
-    csharpNodejsProviderPackageProviderIdentity.id,
-    csharpNodejsProviderPackageProviderIdentity.version,
-    nodejsProviderTargetRelations(includeJsSurfaceMembers),
-    nodejsProviderTargetRejections(),
-    csharpJsEventLoopBinaryExecutionDriver,
-  );
+  return csharpProviderPolicyContribution({
+    providerId: csharpNodejsProviderPackageProviderIdentity.id,
+    providerVersion: csharpNodejsProviderPackageProviderIdentity.version,
+    targetBindings: nodejsProviderPhysicalTargetBindings,
+    relations: nodejsProviderTargetRelations(includeJsSurfaceMembers),
+    rejections: nodejsProviderTargetRejections(),
+    binaryExecutionDriver: csharpJsEventLoopBinaryExecutionDriver,
+  });
 }
 
 export function nodejsProviderTargetRelations(includeJsSurfaceMembers = true):
