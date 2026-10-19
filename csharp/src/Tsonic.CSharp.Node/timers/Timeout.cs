@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using Tsonic.CSharp.Js;
 
@@ -14,22 +13,20 @@ public class Timeout : IDisposable
     private Tsonic.CSharp.Js.LoopRegistration _loopRegistration;
     private Tsonic.CSharp.Js.LoopDispatch TimerDispatch => BackgroundDispatch.Bind(ref _ownerDispatch, NodePhases.Timers);
 
-    private static int _nextHandleId = 0;
-    private static readonly ConcurrentDictionary<int, Timeout> ActiveHandles = new();
     private static readonly SendOrPostCallback DispatchCallback = static state => ((Timeout)state!).InvokeCallback();
 
-    private readonly int _handleId;
     private readonly Timer _timer;
     private readonly Action _callback;
     private readonly int _delay;
     private readonly int _period;
     private readonly object _gate = new();
+    private long _startedAt;
+    private long _armGeneration;
     private bool _isRef = true;
     private bool _disposed = false;
 
     internal Timeout(Action callback, int delay, int period = System.Threading.Timeout.Infinite)
     {
-        _handleId = Interlocked.Increment(ref _nextHandleId);
         _callback = callback;
         _delay = delay;
         _period = period;
@@ -40,12 +37,15 @@ public class Timeout : IDisposable
         try
         {
             _timer = timer = new Timer(static state => ((Timeout)state!).Execute(), this, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-            ActiveHandles[_handleId] = this;
-            _timer.Change(_delay, _period);
+            lock (_gate)
+            {
+                _startedAt = Environment.TickCount64;
+                _armGeneration = unchecked(_armGeneration + 1);
+                _timer.Change(_delay, _period);
+            }
         }
         catch
         {
-            ActiveHandles.TryRemove(_handleId, out _);
             dispatch.Release();
             _loopRegistration.Dispose();
             timer?.Dispose();
@@ -62,6 +62,13 @@ public class Timeout : IDisposable
                 return;
             }
 
+            var remaining = _delay - unchecked(Environment.TickCount64 - _startedAt);
+            if (remaining > 0)
+            {
+                _timer.Change((int)remaining, _period);
+                return;
+            }
+
             if (_period == System.Threading.Timeout.Infinite)
             {
                 _timer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
@@ -73,10 +80,12 @@ public class Timeout : IDisposable
 
     private void InvokeCallback()
     {
+        long generation;
         lock (_gate)
         {
-            if (_disposed)
+            if (_disposed || unchecked(Environment.TickCount64 - _startedAt) < _delay)
                 return;
+            generation = _armGeneration;
         }
         try
         {
@@ -85,7 +94,7 @@ public class Timeout : IDisposable
         finally
         {
             if (_period == System.Threading.Timeout.Infinite)
-                Dispose();
+                DisposeCore(true, generation);
         }
     }
 
@@ -132,6 +141,8 @@ public class Timeout : IDisposable
         {
             if (!_disposed)
             {
+                _startedAt = Environment.TickCount64;
+                _armGeneration = unchecked(_armGeneration + 1);
                 _timer.Change(_delay, _period);
             }
         }
@@ -149,14 +160,17 @@ public class Timeout : IDisposable
     /// <summary>
     /// Disposes the timer resources.
     /// </summary>
-    public void Dispose()
+    public void Dispose() => DisposeCore(false, 0);
+
+    private void DisposeCore(bool completingCallback, long generation)
     {
         lock (_gate)
         {
+            if (completingCallback && _armGeneration != generation)
+                return;
             if (!_disposed)
             {
                 _disposed = true;
-                ActiveHandles.TryRemove(_handleId, out _);
                 _timer.Dispose();
                 if (_isRef)
                 {
