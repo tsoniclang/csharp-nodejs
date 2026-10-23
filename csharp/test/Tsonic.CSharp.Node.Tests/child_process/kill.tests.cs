@@ -51,7 +51,15 @@ public class ChildProcessKillTests
         {
             Assert.True(native.WaitForExit(5000));
             var child = new ChildProcess(native);
-            Assert.False(child.kill());
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            {
+                Assert.Contains("ERR_UNKNOWN_SIGNAL", Assert.Throws<ArgumentException>(() => child.kill("not-a-signal")).Message);
+                Assert.False(child.kill());
+            }
+            else
+            {
+                Assert.Contains("ERR_FEATURE_UNAVAILABLE", Assert.Throws<PlatformNotSupportedException>(() => child.kill()).Message);
+            }
             Assert.False(child.killed);
         }
         finally

@@ -57,7 +57,7 @@ public static partial class process
         }
     }
 
-    private static int processSignalNumber(string signal)
+    internal static int processSignalNumber(string signal)
     {
         var linux = OperatingSystem.IsLinux();
         var macOS = OperatingSystem.IsMacOS();

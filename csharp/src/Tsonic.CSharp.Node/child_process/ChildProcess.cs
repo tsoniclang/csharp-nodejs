@@ -86,12 +86,13 @@ public class ChildProcess : EventEmitter
     /// <returns>True if the signal was sent successfully</returns>
     public bool kill(string? signal = null)
     {
+        var signalNumber = process.processSignalNumber(signal ?? "SIGTERM");
         try
         {
             if (_process.HasExited)
                 return false;
 
-            var sent = process.killNamed(_process.Id, signal ?? "SIGTERM");
+            var sent = process.kill(_process.Id, signalNumber);
             _killed = sent;
             return sent;
         }
