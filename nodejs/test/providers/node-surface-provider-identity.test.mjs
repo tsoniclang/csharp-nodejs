@@ -59,7 +59,7 @@ test("process.kill groups three exact typed overloads without a boxed signal", (
     relation.source.moduleSpecifier === "node:process" &&
     relation.source.exportName === "kill");
   assert.equal(killRelations.length, 3, "one native relation per source overload");
-  for (const [targetName, arity, genericArity] of [["kill", 1, 1], ["killNamed", 2, 1], ["killNumber", 2, 2]]) {
+  for (const [targetName, arity, genericArity] of [["kill", 2, 1], ["killNamed", 2, 1], ["killNumber", 2, 2]]) {
     const matches = killRelations.filter(relation => relation.targetMember.targetName === targetName);
     assert.equal(matches.length, 1, targetName);
     const relation = matches[0];
@@ -78,6 +78,15 @@ test("process.kill groups three exact typed overloads without a boxed signal", (
       assert.equal(relation.targetMember.parameters[1].type.id, "System.String");
     if (targetName === "killNumber")
       assert.equal(relation.targetMember.parameters[1].type.kind, "type-parameter");
+    if (targetName === "kill") {
+      const source = exports[0].signatures.find(signature => signature.id === relation.source.signatureId);
+      assert.equal(source !== undefined, true, "actual default/absence source overload");
+      assert.equal(source.parameters[1].type.kind, "undefined", "explicit source undefined retains the default overload");
+      assert.equal(source.parameters[1].optional, true, "source omission remains supported");
+      assert.equal(relation.targetMember.parameters[1].optional, true, "the actual native nullable slot is optional");
+      assert.equal(relation.targetMember.parameters[1].type.id, "System.Nullable`1", "canonical native absence carrier");
+      assert.equal(relation.targetMember.parameters[1].type.typeArguments[0].name, "int32", "native signal remains int32");
+    }
     assert.equal(relation.targetMember.parameters.some(parameter => parameter.type.id === "System.Object"), false);
   }
   assert.equal(relations.some(relation => relation.kind === "signature" &&

@@ -31,8 +31,8 @@ public static partial class process
     }
 
     /// <summary>Sends the default signal after an exact native process-ID conversion.</summary>
-    public static bool kill<TPid>(TPid pid) where TPid : INumberBase<TPid>
-        => kill(processSignalInteger(pid, nameof(pid)), null);
+    public static bool kill<TPid>(TPid pid, int? signal = null) where TPid : INumberBase<TPid>
+        => kill(processSignalInteger(pid, nameof(pid)), signal);
 
     /// <summary>Sends a named native signal after an exact process-ID conversion.</summary>
     public static bool killNamed<TPid>(TPid pid, string signal) where TPid : INumberBase<TPid>
