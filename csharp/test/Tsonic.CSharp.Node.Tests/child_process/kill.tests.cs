@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Tsonic.CSharp.Node.Tests;
 
@@ -13,39 +14,59 @@ public class ChildProcessKillTests
     [Fact]
     public void kill_ReturnsTrue()
     {
-        if (IsWindows)
+        using var native = IsWindows ? startWindowsSignalChild() : killTests.startSignalChild("TERM", 41);
+        var child = new ChildProcess(native);
+        try
         {
-            // On Windows, use a command that will run for a bit
-            var child = child_process.spawn("cmd", new[] { "/c", "timeout", "5" });
-            Thread.Sleep(100); // Let it start
-
-            var killed = child.kill();
-            Assert.True(killed);
-            Assert.True(child.killed);
+            if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+            {
+                var exception = Assert.Throws<PlatformNotSupportedException>(() => child.kill());
+                Assert.Contains("ERR_FEATURE_UNAVAILABLE", exception.Message);
+                Assert.False(child.killed);
+                Assert.False(native.HasExited);
+            }
+            else
+            {
+                Assert.True(child.kill());
+                Assert.True(child.killed);
+                Assert.True(native.WaitForExit(5000));
+                Assert.Equal(41, native.ExitCode);
+            }
         }
-        else
+        finally
         {
-            var child = child_process.spawn("sleep", new[] { "5" });
-            Thread.Sleep(100); // Let it start
-
-            var killed = child.kill();
-            Assert.True(killed);
-            Assert.True(child.killed);
+            killTests.reapSignalChild(native);
         }
     }
 
     [Fact]
     public void kill_AlreadyExited_ReturnsFalse()
     {
-        var command = IsWindows ? "cmd" : "echo";
-        var args = IsWindows ? new[] { "/c", "echo", "test" } : new[] { "test" };
-        var child = child_process.spawn(command, args);
+        var start = new ProcessStartInfo { FileName = IsWindows ? "cmd.exe" : "/bin/sh", UseShellExecute = false };
+        start.ArgumentList.Add(IsWindows ? "/c" : "-c");
+        start.ArgumentList.Add("exit 0");
+        using var native = Process.Start(start);
+        Assert.NotNull(native);
+        try
+        {
+            Assert.True(native.WaitForExit(5000));
+            var child = new ChildProcess(native);
+            Assert.False(child.kill());
+            Assert.False(child.killed);
+        }
+        finally
+        {
+            killTests.reapSignalChild(native);
+        }
+    }
 
-        // Wait for process to complete
-        Thread.Sleep(500);
-
-        // Try to kill already-exited process
-        var killed = child.kill();
-        Assert.False(killed);
+    internal static Process startWindowsSignalChild()
+    {
+        var start = new ProcessStartInfo { FileName = "cmd.exe", UseShellExecute = false, RedirectStandardInput = true };
+        start.ArgumentList.Add("/c");
+        start.ArgumentList.Add("set /p value=");
+        var child = Process.Start(start);
+        Assert.NotNull(child);
+        return child;
     }
 }

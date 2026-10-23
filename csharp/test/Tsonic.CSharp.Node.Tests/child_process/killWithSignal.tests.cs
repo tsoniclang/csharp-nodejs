@@ -13,48 +13,75 @@ public class ChildProcessKillWithSignalTests
     [Fact]
     public void killWithSignal_SetsSignalCode()
     {
-        if (IsWindows)
+        using var native = IsWindows ? ChildProcessKillTests.startWindowsSignalChild() : killTests.startSignalChild("TERM", 41);
+        var child = new ChildProcess(native);
+        try
         {
-            var child = child_process.spawn("cmd", new[] { "/c", "timeout", "10" });
-            Thread.Sleep(100);
-
-            var killed = child.kill("SIGKILL");
-
-            Assert.True(killed);
-            Assert.True(child.killed);
-            // Note: signalCode might not be set on Windows due to .NET limitations
+            if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+            {
+                var exception = Assert.Throws<PlatformNotSupportedException>(() => child.kill("SIGKILL"));
+                Assert.Contains("ERR_FEATURE_UNAVAILABLE", exception.Message);
+                Assert.False(child.killed);
+                Assert.False(native.HasExited);
+            }
+            else
+            {
+                Assert.True(child.kill("SIGKILL"));
+                Assert.True(child.killed);
+                Assert.True(native.WaitForExit(5000));
+            }
         }
-        else
+        finally
         {
-            var child = child_process.spawn("sleep", new[] { "10" });
-            Thread.Sleep(100);
-
-            var killed = child.kill("SIGKILL");
-
-            Assert.True(killed);
-            Assert.True(child.killed);
+            killTests.reapSignalChild(native);
         }
     }
 
     [Fact]
     public void killWithSignal_WithDifferentSignals_Works()
     {
-        if (!IsWindows)
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
-            // Test SIGTERM
-            var child1 = child_process.spawn("sleep", new[] { "10" });
-            Thread.Sleep(100);
-            Assert.True(child1.kill("SIGTERM"));
+            foreach (var signal in new string?[] { "SIGTERM", "SIGKILL", null })
+            {
+                using var native = killTests.startSignalChild("TERM", 41);
+                var child = new ChildProcess(native);
+                try
+                {
+                    Assert.True(child.kill(signal));
+                    Assert.True(child.killed);
+                    Assert.True(native.WaitForExit(5000));
+                    if (signal != "SIGKILL")
+                        Assert.Equal(41, native.ExitCode);
+                }
+                finally
+                {
+                    killTests.reapSignalChild(native);
+                }
+            }
+        }
+    }
 
-            // Test SIGKILL
-            var child2 = child_process.spawn("sleep", new[] { "10" });
-            Thread.Sleep(100);
-            Assert.True(child2.kill("SIGKILL"));
-
-            // Test default (should be SIGTERM)
-            var child3 = child_process.spawn("sleep", new[] { "10" });
-            Thread.Sleep(100);
-            Assert.True(child3.kill());
+    [Fact]
+    public void killWithSignal_ShouldShareNativeDeliveryAndUnknownSignalRefusal()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+            return;
+        using var native = killTests.startSignalChild("USR1", 37);
+        var child = new ChildProcess(native);
+        try
+        {
+            Assert.Contains("ERR_UNKNOWN_SIGNAL", Assert.Throws<ArgumentException>(() => child.kill("BOGUS")).Message);
+            Assert.False(child.killed);
+            Assert.True(process.kill(native.Id, 0));
+            Assert.True(child.kill("SIGUSR1"));
+            Assert.True(child.killed);
+            Assert.True(native.WaitForExit(5000));
+            Assert.Equal(37, native.ExitCode);
+        }
+        finally
+        {
+            killTests.reapSignalChild(native);
         }
     }
 }

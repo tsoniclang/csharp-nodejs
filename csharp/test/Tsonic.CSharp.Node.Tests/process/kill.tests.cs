@@ -139,7 +139,7 @@ public class killTests
         Assert.Equal(0, allocated);
     }
 
-    private static Process startSignalChild(string signal, int exitCode)
+    internal static Process startSignalChild(string signal, int exitCode)
     {
         var start = new ProcessStartInfo
         {
@@ -167,7 +167,7 @@ public class killTests
         }
     }
 
-    private static void reapSignalChild(Process child)
+    internal static void reapSignalChild(Process child)
     {
         if (!child.HasExited)
             child.Kill();

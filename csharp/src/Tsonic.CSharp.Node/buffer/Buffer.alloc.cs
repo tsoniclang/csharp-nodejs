@@ -20,18 +20,7 @@ public partial class Buffer
 
         if (fill != null)
         {
-            if (fill is string str)
-            {
-                buffer.fill(str, 0, size, encoding ?? "utf8");
-            }
-            else if (fill is int intValue)
-            {
-                buffer.fill(intValue, 0, size);
-            }
-            else if (fill is Buffer bufferValue)
-            {
-                buffer.fill(bufferValue, 0, size);
-            }
+            buffer.fill(fill, 0, size, encoding ?? "utf8");
         }
 
         return buffer;

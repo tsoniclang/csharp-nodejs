@@ -1,4 +1,5 @@
 using System;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -20,34 +21,62 @@ public partial class Buffer
         offset = Math.Max(0, Math.Min(offset, length));
         endIndex = Math.Max(offset, Math.Min(endIndex, length));
 
-        if (offset >= endIndex)
-            return this;
+        var destination = _data.Slice(offset, endIndex - offset);
 
         if (value is string str)
         {
-            if (str.Length == 0)
+            if (destination.IsEmpty || str.Length == 0)
                 return this;
 
             var bytes = GetEncoding(encoding).GetBytes(str);
             if (bytes.Length == 0)
                 return this;
 
-            FillPattern(bytes, _data.Slice(offset, endIndex - offset));
-        }
-        else if (value is int intValue)
-        {
-            var byteValue = (byte)(intValue & 0xFF);
-            _data.Slice(offset, endIndex - offset).Fill(byteValue);
+            FillPattern(bytes, destination);
         }
         else if (value is Buffer bufferValue)
         {
-            if (bufferValue.length == 0)
+            if (destination.IsEmpty || bufferValue.length == 0)
                 return this;
 
-            FillPattern(bufferValue._data, _data.Slice(offset, endIndex - offset));
+            FillPattern(bufferValue._data, destination);
+        }
+        else
+        {
+            var byteValue = value switch
+            {
+                sbyte number => (byte)(number & 0xFF),
+                byte number => number,
+                short number => (byte)(number & 0xFF),
+                ushort number => (byte)(number & 0xFF),
+                int number => (byte)(number & 0xFF),
+                uint number => (byte)(number & 0xFFU),
+                long number => (byte)(number & 0xFFL),
+                ulong number => (byte)(number & 0xFFUL),
+                Half number => fillByte((double)number),
+                float number => fillByte((double)number),
+                double number => fillByte(number),
+                decimal number => fillByte(number),
+                _ => throw new TypeError("ERR_INVALID_ARG_TYPE: fill value must be a string, Buffer or native numeric value.")
+            };
+            destination.Fill(byteValue);
         }
 
         return this;
+    }
+
+    private static byte fillByte(double value)
+    {
+        if (!double.IsFinite(value))
+            return 0;
+        var remainder = Math.Truncate(value) % 256;
+        return (byte)(remainder < 0 ? remainder + 256 : remainder);
+    }
+
+    private static byte fillByte(decimal value)
+    {
+        var remainder = decimal.Truncate(value) % 256M;
+        return (byte)(remainder < 0 ? remainder + 256M : remainder);
     }
 
     private static void FillPattern(ReadOnlySpan<byte> pattern, Span<byte> destination)

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace Tsonic.CSharp.Node;
 
@@ -90,28 +91,11 @@ public class ChildProcess : EventEmitter
             if (_process.HasExited)
                 return false;
 
-            // Map Node.js signal names to .NET Process.Kill()
-            // Note: .NET doesn't support sending specific signals on all platforms
-            // On Windows, this always terminates the process
-            // On Unix, we can only terminate (similar to SIGKILL)
-
-            if (signal == "SIGKILL" || signal == "SIGTERM" || signal == null)
-            {
-                _process.Kill(entireProcessTree: true);
-                _killed = true;
-                return true;
-            }
-            else
-            {
-                // For other signals, we'll just terminate
-                // This is a limitation of .NET's Process class
-                _process.Kill(entireProcessTree: true);
-                _killed = true;
-                signalCode = signal;
-                return true;
-            }
+            var sent = process.killNamed(_process.Id, signal ?? "SIGTERM");
+            _killed = sent;
+            return sent;
         }
-        catch
+        catch (Win32Exception error) when (error.NativeErrorCode == 3)
         {
             return false;
         }

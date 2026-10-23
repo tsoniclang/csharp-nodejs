@@ -1,6 +1,7 @@
 using Xunit;
 using System.Linq;
 using System.Diagnostics.CodeAnalysis;
+using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node.Tests;
 
@@ -228,6 +229,49 @@ public class BufferTests
         buf.fill(42);
 
         Assert.All(Enumerable.Range(0, 5), i => Assert.Equal(42, buf[i]));
+    }
+
+    [Fact]
+    public void fill_AndAlloc_ShouldUseExactUint8ConversionForEveryNativeNumericWidth()
+    {
+        var cases = new (object value, byte expected)[]
+        {
+            ((sbyte)-1, 255), ((byte)7, 7), ((short)-257, 255), ((ushort)65535, 255),
+            (257, 1), (uint.MaxValue, 255), (9007199254740993L, 1), (long.MinValue, 0),
+            (ulong.MaxValue, 255), (1.5F, 1), (-257.75F, 255), (float.NaN, 0),
+            (float.PositiveInfinity, 0), (float.NegativeInfinity, 0),
+            (1.5D, 1), (-1D, 255), (256D, 0), (-257.75D, 255), (double.NaN, 0),
+            (double.PositiveInfinity, 0), (double.NegativeInfinity, 0),
+            (9007199254740993.75M, 1), (decimal.MaxValue, 255), (decimal.MinValue, 1),
+            ((Half)1.5F, 1), (Half.NaN, 0), (Half.PositiveInfinity, 0), (Half.NegativeInfinity, 0)
+        };
+        foreach (var (value, expected) in cases)
+        {
+            var buffer = Buffer.alloc(4, 9);
+            Assert.Same(buffer, buffer.fill(value, 1, 3));
+            Assert.Equal(9, buffer[0]);
+            Assert.Equal(expected, buffer[1]);
+            Assert.Equal(expected, buffer[2]);
+            Assert.Equal(9, buffer[3]);
+            var allocated = Buffer.alloc(3, value);
+            Assert.All(Enumerable.Range(0, 3), index => Assert.Equal(expected, allocated[index]));
+        }
+    }
+
+    [Fact]
+    public void fill_AndAlloc_ShouldRefuseUnsupportedValuesEvenForAnEmptyRange()
+    {
+        var values = new object[] { true, false, new object(), new byte[] { 1 }, new Tsonic.CSharp.Js.Uint8Array(1) };
+        foreach (var value in values)
+        {
+            var buffer = Buffer.alloc(3, 9);
+            var fillError = Assert.Throws<TypeError>(() => buffer.fill(value));
+            Assert.Contains("ERR_INVALID_ARG_TYPE", fillError.Message);
+            Assert.All(Enumerable.Range(0, 3), index => Assert.Equal(9, buffer[index]));
+            Assert.Contains("ERR_INVALID_ARG_TYPE", Assert.Throws<TypeError>(() => buffer.fill(value, 0, 0)).Message);
+            Assert.Contains("ERR_INVALID_ARG_TYPE", Assert.Throws<TypeError>(() => Buffer.alloc(3, value)).Message);
+            Assert.Contains("ERR_INVALID_ARG_TYPE", Assert.Throws<TypeError>(() => Buffer.alloc(0, value)).Message);
+        }
     }
 
     [Fact]
