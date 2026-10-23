@@ -7,6 +7,7 @@ import {
 import {
   nodejsProviderTargetRelations,
 } from "../../../dist/provider/target-relations.js";
+import { nodeProcessExports } from "../../../dist/provider/modules/process/declarations.js";
 
 const relations = nodejsProviderTargetRelations();
 const catalog = createCsharpProviderRelationCatalog([relations]);
@@ -47,6 +48,41 @@ test("Node provider relations reject contradictory property keys", () => {
     ...mtime.source,
     memberKey: { kind: "string", name: "sameSpellingElsewhere" },
   }), []);
+});
+
+test("process.kill groups three exact typed overloads without a boxed signal", () => {
+  const exports = nodeProcessExports().filter(declaration => declaration.name === "kill");
+  assert.equal(exports.length, 1, "one canonical process.kill export");
+  assert.equal(exports[0].kind, "function");
+  assert.equal(exports[0].signatures.length, 3);
+  const killRelations = relations.filter(relation => relation.kind === "signature" &&
+    relation.source.moduleSpecifier === "node:process" &&
+    relation.source.exportName === "kill");
+  assert.equal(killRelations.length, 3, "one native relation per source overload");
+  for (const [targetName, arity, genericArity] of [["kill", 1, 1], ["killNamed", 2, 1], ["killNumber", 2, 2]]) {
+    const matches = killRelations.filter(relation => relation.targetMember.targetName === targetName);
+    assert.equal(matches.length, 1, targetName);
+    const relation = matches[0];
+    assert.equal(relation.targetMember.parameters.length, arity, `${targetName} exact parameters`);
+    assert.equal(relation.selectedTypeParameterCount, genericArity, `${targetName} source generic inputs`);
+    assert.equal(relation.targetMember.typeParameters.length, genericArity, `${targetName} native generic inputs`);
+    assert.equal(relation.targetMember.parameters[0].type.kind, "type-parameter", `${targetName} exact PID input`);
+    for (const parameter of relation.targetMember.typeParameters) {
+      assert.equal(parameter.csharpAllowsRefLike, false, `${targetName} numeric constraint`);
+      assert.equal(parameter.constraints.length, 1);
+      assert.equal(parameter.constraints[0].kind, "implements");
+      assert.equal(parameter.constraints[0].contract, "System.Numerics.INumberBase`1");
+      assert.equal(parameter.constraints[0].typeArguments[0].identity, parameter.identity);
+    }
+    if (targetName === "killNamed")
+      assert.equal(relation.targetMember.parameters[1].type.id, "System.String");
+    if (targetName === "killNumber")
+      assert.equal(relation.targetMember.parameters[1].type.kind, "type-parameter");
+    assert.equal(relation.targetMember.parameters.some(parameter => parameter.type.id === "System.Object"), false);
+  }
+  assert.equal(relations.some(relation => relation.kind === "signature" &&
+    relation.source.signatureId === "node:process.kill(System.Int32,System.Object)"), false,
+  "removed boxed API has no provider relation");
 });
 
 function requireRelation(predicate) {

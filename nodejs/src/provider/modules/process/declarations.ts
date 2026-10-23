@@ -3,7 +3,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember, TargetTypeRef } from "@tsonic/target-csharp/provider";
 import {
   csharpNullableTargetType,
   csharpNullableValueTargetType,
@@ -24,6 +24,7 @@ import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, node
 import {
   nodejsDefaultModuleObjectExports,
 } from "../../declarations/defaults.js";
+import { nodejsCapabilityModuleExports } from "../../declarations/exports.js";
 import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow, NodejsModulePropertyTargetMetadata, NodejsModulePropertyTargetMetadataRow } from "../../model/target-members.js";
 import type { NodejsClassPropertyTargetMember } from "../../model/members.js";
 
@@ -52,7 +53,6 @@ const processMemoryUsageProviderType = { kind: "provider-ref", moduleSpecifier: 
 const processCpuUsageProviderType = { kind: "provider-ref", moduleSpecifier: "node:process", exportName: "CpuUsage" } satisfies ProviderTypeExpression;
 const processVersionsProviderType = { kind: "provider-ref", moduleSpecifier: "node:process", exportName: "ProcessVersions" } satisfies ProviderTypeExpression;
 const stringOrUndefinedProviderType = { kind: "union", types: [stringProviderType, undefinedProviderType] } satisfies ProviderTypeExpression;
-const stringOrNumberProviderType = { kind: "union", types: [stringProviderType, numberProviderType] } satisfies ProviderTypeExpression;
 
 type NodeProcessCallTargetMember = NodejsModuleCallTargetMetadata;
 type NodeProcessPropertyTargetMember = NodejsModulePropertyTargetMetadata;
@@ -98,16 +98,11 @@ export function nodeProcessExports(): readonly ProviderExportDeclaration[] {
       })),
     },
     nodeProcessVersionsExportDeclaration(),
-    ...nodeProcessCallTargetMembers().map(({ exportName, signatureId, providerParameters, providerReturnType }) => ({
-      id: `node:process.${exportName}`,
-      name: exportName,
-      kind: "function" as const,
-      signatures: [{
-        id: signatureId,
-        parameters: providerParameters,
-        returnType: providerReturnType,
-      }],
-    })),
+    ...nodejsCapabilityModuleExports({
+      moduleSpecifier: nodeProcessModuleSpecifier,
+      moduleCalls: nodeProcessCallTargetMembers(),
+      includeDefaultExports: false,
+    }),
     ...nodeProcessPropertyTargetMembers().map(({ exportName, providerType }) => ({
       id: `node:process.${exportName}`,
       name: exportName,
@@ -163,6 +158,10 @@ export function nodeProcessCallTargetMembers(): readonly NodeProcessCallTargetMe
   const optionalNumberParameter = (name: string) => ({ name, type: numberProviderType, optional: true });
   const numberArrayProviderType = { kind: "array", elementType: numberProviderType } satisfies ProviderTypeExpression;
   const timeArrayTargetType = { kind: "array", element: longTargetType } as const;
+  const defaultPid = processIntegerInput("TPid", "kill");
+  const namedPid = processIntegerInput("TPid", "killNamed");
+  const numericPid = processIntegerInput("TPid", "killNumber");
+  const numericSignal = processIntegerInput("TSignal", "killNumber");
   return [
     processCall({ exportName: "availableMemory", signatureId: "node:process.availableMemory()", targetMemberId: "Tsonic.CSharp.Node.process.availableMemory()", sourceName: "availableMemory", targetName: "availableMemory", providerParameters: [], providerReturnType: numberProviderType, targetParameters: [], targetReturnType: longTargetType }),
     processCall({
@@ -182,13 +181,39 @@ export function nodeProcessCallTargetMembers(): readonly NodeProcessCallTargetMe
     processCall({ exportName: "exit", signatureId: "node:process.exit(System.Nullable`1)", targetMemberId: "Tsonic.CSharp.Node.process.exit(System.Nullable`1)", sourceName: "exit", targetName: "exit", providerParameters: [optionalNumberParameter("code")], providerReturnType: voidProviderType, targetParameters: [
       targetParameter("code", csharpNullableValueTargetType(intTargetType), { optional: true }),
     ], targetReturnType: voidTargetType }),
-    processCall({ exportName: "kill", signatureId: "node:process.kill(System.Int32,System.Object)", targetMemberId: "Tsonic.CSharp.Node.process.kill(System.Int32,System.Object)", sourceName: "kill", targetName: "kill", providerParameters: [
-      { name: "pid", type: numberProviderType },
-      { name: "signal", type: stringOrNumberProviderType, optional: true },
-    ], providerReturnType: boolProviderType, targetParameters: [
-      targetParameter("pid", intTargetType),
-      targetParameter("signal", objectTargetType, { optional: true, csharpAcceptsClosedSourceArgument: true }),
-    ], targetReturnType: boolTargetType }),
+    processCall({
+      exportName: "kill", signatureId: "node:process.kill(TPid)",
+      targetMemberId: "Tsonic.CSharp.Node.process.kill<TPid>(TPid)",
+      sourceName: "kill", targetName: "kill",
+      providerParameters: [{ name: "pid", type: defaultPid.provider }],
+      providerTypeParameters: [{ name: "TPid", constraints: [numberProviderType] }],
+      providerReturnType: boolProviderType,
+      targetParameters: [targetParameter("pid", defaultPid.target)],
+      targetTypeParameters: [defaultPid.declaration], targetReturnType: boolTargetType,
+    }),
+    processCall({
+      exportName: "kill", signatureId: "node:process.kill(TPid,System.String)",
+      targetMemberId: "Tsonic.CSharp.Node.process.killNamed<TPid>(TPid,System.String)",
+      sourceName: "kill", targetName: "killNamed",
+      providerParameters: [{ name: "pid", type: namedPid.provider }, { name: "signal", type: stringProviderType }],
+      providerTypeParameters: [{ name: "TPid", constraints: [numberProviderType] }],
+      providerReturnType: boolProviderType,
+      targetParameters: [targetParameter("pid", namedPid.target), targetParameter("signal", stringTargetType)],
+      targetTypeParameters: [namedPid.declaration], targetReturnType: boolTargetType,
+    }),
+    processCall({
+      exportName: "kill", signatureId: "node:process.kill(TPid,TSignal)",
+      targetMemberId: "Tsonic.CSharp.Node.process.killNumber<TPid,TSignal>(TPid,TSignal)",
+      sourceName: "kill", targetName: "killNumber",
+      providerParameters: [{ name: "pid", type: numericPid.provider }, { name: "signal", type: numericSignal.provider }],
+      providerTypeParameters: [
+        { name: "TPid", constraints: [numberProviderType] },
+        { name: "TSignal", constraints: [numberProviderType] },
+      ],
+      providerReturnType: boolProviderType,
+      targetParameters: [targetParameter("pid", numericPid.target), targetParameter("signal", numericSignal.target)],
+      targetTypeParameters: [numericPid.declaration, numericSignal.declaration], targetReturnType: boolTargetType,
+    }),
     processCall({ exportName: "hrtime", signatureId: "node:process.hrtime(System.Int64[])", targetMemberId: "Tsonic.CSharp.Node.process.hrtime(System.Int64[])", sourceName: "hrtime", targetName: "hrtime", providerParameters: [
       { name: "time", type: numberArrayProviderType, optional: true },
     ], providerReturnType: numberArrayProviderType, targetParameters: [
@@ -409,6 +434,24 @@ function unknownRestParameter(name: string): ProviderParameterDeclaration {
     name,
     type: { kind: "array", elementType: unknownProviderType },
     rest: true,
+  };
+}
+
+function processIntegerInput(name: string, method: string): {
+  readonly provider: ProviderTypeExpression;
+  readonly target: TargetTypeRef;
+  readonly declaration: NonNullable<CsharpTargetMember["typeParameters"]>[number];
+} {
+  const target = {
+    kind: "type-parameter", identity: `node:process:${method}:${name}`, name,
+  } satisfies TargetTypeRef;
+  return {
+    provider: { kind: "type-parameter", name },
+    target,
+    declaration: {
+      identity: target.identity, name, csharpAllowsRefLike: false,
+      constraints: [{ kind: "implements", contract: "System.Numerics.INumberBase`1", typeArguments: [target] }],
+    },
   };
 }
 
