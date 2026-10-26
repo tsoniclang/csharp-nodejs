@@ -71,8 +71,12 @@ test("process.kill groups three exact typed overloads without a boxed signal", (
       assert.equal(parameter.csharpAllowsRefLike, false, `${targetName} numeric constraint`);
       assert.equal(parameter.constraints.length, 1);
       assert.equal(parameter.constraints[0].kind, "implements");
-      assert.equal(parameter.constraints[0].contract, "System.Numerics.INumberBase`1");
-      assert.equal(parameter.constraints[0].typeArguments[0].identity, parameter.identity);
+      const contract = parameter.constraints[0].contract;
+      assert.equal(contract.kind, "target-named");
+      assert.equal(contract.id, "System.Numerics.INumberBase`1");
+      assert.equal(contract.typeArguments[0].identity, parameter.identity);
+      assert.deepEqual(contract.csharpAllowsRefLikeTypeArguments, [false]);
+      assert.deepEqual(contract.csharpRender, { kind: "named", namespace: ["System", "Numerics"], name: "INumberBase" });
     }
     if (targetName === "killNamed")
       assert.equal(relation.targetMember.parameters[1].type.id, "System.String");

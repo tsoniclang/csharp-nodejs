@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { csharpQualifiedTypeRenderShape, csharpTargetNamedType } from "@tsonic/target-csharp/provider";
 import { nodejsProviderTargetRelations } from "../../../dist/provider/target-relations.js";
+
+const nativeContract = name => csharpTargetNamedType(`Tsonic.CSharp.Node.${name}`, undefined,
+  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", name), { allowsRefLikeTypeArguments: [] });
 
 test("Readable pipe preserves its destination binding through parameters, result and requirements", () => {
   const relations = nodejsProviderTargetRelations().filter(relation =>
@@ -13,8 +17,8 @@ test("Readable pipe preserves its destination binding through parameters, result
     assert.deepEqual(relation.targetMember.parameters.map(parameter => parameter.type), [carrier]);
     assert.deepEqual(relation.targetMember.returnType, carrier);
     assert.deepEqual(relation.targetMember.typeParameters, [{ identity, name: "TDestination", csharpAllowsRefLike: false, constraints: [
-      { kind: "implements", contract: "Tsonic.CSharp.Node.Stream" },
-      { kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" },
+      { kind: "implements", contract: nativeContract("Stream") },
+      { kind: "implements", contract: nativeContract("IWritableStream") },
     ] }]);
     assert.deepEqual(relation.methodTypeParameters, [{ sourceTypeParameterIndex: 0, targetTypeParameterIndex: 0 }]);
     assert.equal(relation.selectedTypeParameterCount, 1);
@@ -43,7 +47,7 @@ test("native stream bindings expose their actual inheritance and writable contra
   }
   for (const exportName of ["Writable", "Duplex"]) {
     assert.deepEqual(binding("node:stream", exportName)?.implementedContracts, [
-      { kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" },
+      { kind: "implements", contract: nativeContract("IWritableStream") },
     ]);
   }
   assert.equal(binding("node:stream", "Readable")?.implementedContracts, undefined);

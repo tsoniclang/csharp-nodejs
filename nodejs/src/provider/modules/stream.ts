@@ -96,8 +96,8 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
         name: "TDestination",
         csharpAllowsRefLike: false,
         constraints: [
-          { kind: "implements", contract: "Tsonic.CSharp.Node.Stream" },
-          { kind: "implements", contract: "Tsonic.CSharp.Node.IWritableStream" },
+          { kind: "implements", contract: nodejsTargetNamedType("Tsonic.CSharp.Node", "Stream") },
+          { kind: "implements", contract: nodejsTargetNamedType("Tsonic.CSharp.Node", "IWritableStream") },
         ],
       }],
     }),

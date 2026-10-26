@@ -452,7 +452,8 @@ function processIntegerInput(name: string, method: string): {
     target,
     declaration: {
       identity: target.identity, name, csharpAllowsRefLike: false,
-      constraints: [{ kind: "implements", contract: "System.Numerics.INumberBase`1", typeArguments: [target] }],
+      constraints: [{ kind: "implements", contract: csharpTargetNamedType("System.Numerics.INumberBase`1", [target],
+        csharpQualifiedTypeRenderShape("System.Numerics", "INumberBase"), { allowsRefLikeTypeArguments: [false] }) }],
     },
   };
 }
