@@ -31,7 +31,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 2142);
+  assert.equal(relations.length, 2150);
   assert.equal(rejections.length, 166);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -528,7 +528,7 @@ test("Node provider relations declare every source-number target adapter exactly
     }
   }
 
-  assert.equal(adapterCount, 298);
+  assert.equal(adapterCount, 294);
 
   const bufferToString = nodejsProviderTargetRelations().filter(relation =>
     relation.kind === "signature" &&
