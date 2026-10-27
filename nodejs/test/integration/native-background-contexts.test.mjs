@@ -63,6 +63,9 @@ test("component background roots dispatch through exact two-hop package error do
     files: Object.fromEntries(Object.entries(nativeBackgroundPackageFiles).filter(([path]) => path !== "index.ts")),
     capabilities: [createTsonicPlugin()],
   });
+  assert.equal(compiled.result.diagnostics.length, 0, compiled.result.diagnostics.slice(0, 4)
+    .map(issue => `${issue.code}: ${issue.message}; ${(issue.evidence ?? []).slice(0, 4)
+      .map(entry => entry.slice(0, 2048)).join(" | ")}`).join("\n"));
   const output = execute(compiled, "native-background-package-domains");
   for (const name of ["Root", "Middle", "Leaf"]) assert.match(output, new RegExp(`${name} completion`, "u"));
 });
