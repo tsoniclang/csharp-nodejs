@@ -20,6 +20,7 @@ export interface NodejsProviderTargetTypeRow {
   readonly implementedContracts?: CsharpTargetBindingFact["implementedContracts"];
   readonly objectLiteralConstruction?: "object-initializer";
   readonly targetType?: (includeJsSurfaceMembers: boolean) => CsharpTargetNamedTypeRef;
+  readonly nativeOwner?: true;
 }
 
 export const nodejsProviderPhysicalTargetBindings: readonly CsharpTargetBindingFact[] = Object.freeze([
@@ -107,7 +108,7 @@ export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[
   { moduleSpecifier: "node:process", exportName: "ProcessVersions", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "ProcessVersions" },
   { moduleSpecifier: "node:timers", exportName: "Timeout", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "Timeout" },
   { moduleSpecifier: "node:util", exportName: "TextDecoder", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "TextDecoder" },
-  { moduleSpecifier: "node:util", exportName: "NodeError", kind: "class", namespace: "System", targetName: "Exception", targetType: () => nodeErrorTargetType },
+  { moduleSpecifier: "node:util", exportName: "NodeError", kind: "class", namespace: "System", targetName: "Exception", targetType: () => nodeErrorTargetType, nativeOwner: true },
   { moduleSpecifier: "node:url", exportName: "URL", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "URL" },
   { moduleSpecifier: "node:url", exportName: "URLSearchParams", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "URLSearchParams" },
   { moduleSpecifier: "node:url", exportName: "UrlObject", kind: "interface", namespace: "Tsonic.CSharp.Node", targetName: "LegacyUrlObject" },

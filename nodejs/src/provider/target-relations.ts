@@ -43,11 +43,19 @@ import {
 } from "./assembly/modules.js";
 
 export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
+  const relations = nodejsProviderTargetRelations(includeJsSurfaceMembers);
+  const nativeOwned = new Set(nodejsProviderTargetTypeRows.filter(row => row.nativeOwner === true)
+    .flatMap(row => {
+      const binding = nodejsProviderTargetBinding(row.moduleSpecifier, row.exportName, includeJsSurfaceMembers);
+      return binding === undefined ? [] : [binding.id];
+    }));
+  const physical = [...nodejsProviderPhysicalTargetBindings,
+    ...relations.filter(relation => !nativeOwned.has(relation.targetBinding.id)).map(relation => relation.targetBinding)];
   return csharpProviderPolicyContribution({
     providerId: csharpNodejsProviderPackageProviderIdentity.id,
     providerVersion: csharpNodejsProviderPackageProviderIdentity.version,
-    targetBindings: nodejsProviderPhysicalTargetBindings,
-    relations: nodejsProviderTargetRelations(includeJsSurfaceMembers),
+    targetBindings: Object.freeze(physical),
+    relations,
     rejections: nodejsProviderTargetRejections(),
     binaryExecutionDriver: csharpJsEventLoopBinaryExecutionDriver,
   });
