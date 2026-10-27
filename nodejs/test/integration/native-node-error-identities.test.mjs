@@ -14,6 +14,11 @@ import type { Buffer } from "node:buffer";
 import { gunzip } from "node:zlib";
 export function end(stream: Readable, error: NodeError): void { stream.destroy(error); }
 export function echo(error: NodeError): NodeError { return error; }
+export function fromError(error: Error): NodeError { return error; }
+export function toError(error: NodeError): Error { return error; }
+export function construct(): NodeError { return new Error("constructed source error"); }
+class Failure extends Error { constructor() { super("derived source error"); } }
+export function derived(): NodeError { return new Failure(); }
 export function message(error: NodeError): string { return error.message; }
 export function accept(error: NodeError | undefined, result: Buffer | undefined): void {
   if (error !== undefined) throw error;
@@ -35,6 +40,12 @@ var original = new System.InvalidOperationException("original native error");
 if (!object.ReferenceEquals(original, Tsonic.Generated.Index.echo(original)) ||
     Tsonic.Generated.Index.message(original) != original.Message)
     throw new System.Exception("standalone NodeError identity or readonly Message changed");
+if (!object.ReferenceEquals(original, Tsonic.Generated.Index.fromError(original)) ||
+    !object.ReferenceEquals(original, Tsonic.Generated.Index.toError(original)))
+    throw new System.Exception("source Error and imported NodeError disagree on native identity");
+if (Tsonic.Generated.Index.construct().Message != "constructed source error" ||
+    Tsonic.Generated.Index.derived().Message != "derived source error")
+    throw new System.Exception("source Error construction or native inheritance changed");
 var stream = new Tsonic.CSharp.Node.Readable();
 bool destroyedFailed = false;
 try { Tsonic.Generated.Index.end(stream, original); }
@@ -65,6 +76,8 @@ for (int index = 0; index < 4096; index++) {
     Tsonic.Generated.Index.end(stream, original);
     Tsonic.Generated.Index.forward(callback, original, data);
     _ = Tsonic.Generated.Index.echo(original);
+    _ = Tsonic.Generated.Index.fromError(original);
+    _ = Tsonic.Generated.Index.toError(original);
 }
 long nativeBefore = System.GC.GetAllocatedBytesForCurrentThread();
 for (int index = 0; index < 8192; index++) { stream.destroyChain(original); callback(original, data); _ = original; }
@@ -75,6 +88,8 @@ for (int index = 0; index < 8192; index++) {
     Tsonic.Generated.Index.end(stream, original);
     Tsonic.Generated.Index.forward(callback, original, data);
     _ = Tsonic.Generated.Index.echo(original);
+    _ = Tsonic.Generated.Index.fromError(original);
+    _ = Tsonic.Generated.Index.toError(original);
 }
 long sourceBytes = System.GC.GetAllocatedBytesForCurrentThread() - before;
 long allBytes = System.GC.GetTotalAllocatedBytes(true) - allBefore;
