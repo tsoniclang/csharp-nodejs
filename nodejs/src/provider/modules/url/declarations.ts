@@ -178,6 +178,9 @@ function providerMembersForUrlClassCalls(
       ...(first.static === true ? { static: true } : {}),
       signatures: memberGroup.map((member) => ({
         id: member.signatureId,
+        ...(member.member.csharpConstructorAccessibility === undefined
+          ? {}
+          : { accessibility: member.member.csharpConstructorAccessibility }),
         parameters: member.providerParameters,
         ...(member.providerReturnType !== undefined ? { returnType: member.providerReturnType } : {}),
       })),

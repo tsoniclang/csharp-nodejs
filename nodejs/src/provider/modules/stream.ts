@@ -200,7 +200,6 @@ function classCall(
   targetReturnType: TargetTypeRef,
   options: {
     readonly targetName?: string;
-    readonly memberKind?: "constructor" | "method";
     readonly static?: true;
     readonly providerTypeParameters?: NodejsClassCallTargetMetadata["providerTypeParameters"];
     readonly targetTypeParameters?: NodejsClassCallTargetMetadata["member"]["typeParameters"];
@@ -215,7 +214,7 @@ function classCall(
     targetMemberId: `Tsonic.CSharp.Node.${exportName}.${options.targetName ?? memberName}(${parameterShape})`,
     sourceName: memberName,
     targetName: options.targetName ?? memberName,
-    memberKind: options.memberKind ?? "method",
+    memberKind: "method",
     providerParameters,
     ...(providerReturnType === undefined ? {} : { providerReturnType }),
     ...(options.providerTypeParameters === undefined

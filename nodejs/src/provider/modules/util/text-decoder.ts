@@ -52,6 +52,9 @@ export function nodeUtilTextDecoderExportDeclaration(): ProviderExportDeclaratio
         kind: group[0]!.memberKind,
         signatures: group.map((entry) => ({
           id: entry.signatureId,
+          ...(entry.member.csharpConstructorAccessibility === undefined
+            ? {}
+            : { accessibility: entry.member.csharpConstructorAccessibility }),
           parameters: entry.providerParameters,
           ...(entry.providerReturnType === undefined ? {} : { returnType: entry.providerReturnType }),
         })),
@@ -82,6 +85,7 @@ export function nodeUtilTextDecoderClassCallTargetMembers(): readonly NodejsClas
     sourceName: "constructor",
     targetName: "TextDecoder",
     memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
     providerParameters,
     targetParameters,
     targetReturnType: textDecoderTargetType,

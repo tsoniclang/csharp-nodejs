@@ -88,6 +88,7 @@ export function nodeEventsClassCallTargetMembers(): readonly NodejsClassCallTarg
     sourceName: "constructor",
     targetName: "EventEmitter",
     memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
     providerParameters: [],
     targetParameters: [],
     targetReturnType: eventEmitterTargetType,

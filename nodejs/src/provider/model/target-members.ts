@@ -64,7 +64,7 @@ export interface NodejsModulePropertyTargetMetadataRow {
   readonly declaringType: TargetTypeRef;
 }
 
-export interface NodejsClassCallTargetMetadataRow extends NodejsCallArgumentAdapters {
+interface NodejsClassCallTargetMetadataRowBase extends NodejsCallArgumentAdapters {
   readonly exportName: string;
   readonly memberName: string;
   readonly memberId: string;
@@ -72,7 +72,6 @@ export interface NodejsClassCallTargetMetadataRow extends NodejsCallArgumentAdap
   readonly targetMemberId: string;
   readonly sourceName: string;
   readonly targetName: string;
-  readonly memberKind: "constructor" | "method";
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType?: ProviderTypeExpression;
   readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
@@ -83,6 +82,16 @@ export interface NodejsClassCallTargetMetadataRow extends NodejsCallArgumentAdap
   readonly static?: boolean;
   readonly csharpInvocation?: CsharpTargetInvocation;
 }
+
+export type NodejsClassCallTargetMetadataRow = NodejsClassCallTargetMetadataRowBase & (
+  | {
+    readonly memberKind: "constructor";
+    readonly csharpConstructorAccessibility: NonNullable<CsharpTargetMember["csharpConstructorAccessibility"]>;
+  }
+  | {
+    readonly memberKind: "method";
+  }
+);
 
 export interface NodejsClassPropertyTargetMetadataRow {
   readonly exportName: string;

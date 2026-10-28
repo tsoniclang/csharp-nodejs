@@ -69,6 +69,9 @@ export function nodejsClassCallTargetMetadata(
       sourceName: row.sourceName,
       targetName: row.targetName,
       kind: row.memberKind,
+      ...(row.memberKind === "constructor"
+        ? { csharpConstructorAccessibility: row.csharpConstructorAccessibility }
+        : {}),
       targetParameters: row.targetParameters,
       targetReturnType: row.targetReturnType,
       declaringType: row.declaringType,
@@ -119,6 +122,7 @@ function nodejsTargetMember(row: {
   readonly static?: true;
   readonly readonly?: true;
   readonly csharpInvocation?: CsharpTargetInvocation;
+  readonly csharpConstructorAccessibility?: CsharpTargetMember["csharpConstructorAccessibility"];
   readonly typeParameters?: CsharpTargetMember["typeParameters"];
 }): CsharpTargetMember {
   return {
@@ -126,6 +130,9 @@ function nodejsTargetMember(row: {
     sourceName: row.sourceName,
     targetName: row.targetName,
     kind: row.kind,
+    ...(row.csharpConstructorAccessibility === undefined
+      ? {}
+      : { csharpConstructorAccessibility: row.csharpConstructorAccessibility }),
     parameters: row.targetParameters,
     returnType: row.targetReturnType,
     declaringType: row.declaringType,

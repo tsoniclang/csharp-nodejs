@@ -148,6 +148,7 @@ export function nodeWorkerThreadsClassCallTargetMembers(): readonly NodejsClassC
       sourceName: "constructor",
       targetName: "Worker",
       memberKind: "constructor",
+      csharpConstructorAccessibility: "public",
       providerParameters: [
         { name: "modulePath", type: stringProviderType },
         { name: "options", type: workerOptionsType, optional: true },
@@ -286,6 +287,7 @@ function classConstructor(
     sourceName: "constructor",
     targetName: exportName,
     memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
     providerParameters: [],
     targetParameters: [],
     targetReturnType: declaringType,

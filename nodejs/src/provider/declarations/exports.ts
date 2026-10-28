@@ -151,6 +151,7 @@ function providerClassCallMembers(
         member.providerParameters,
         member.providerReturnType,
         member.providerTypeParameters,
+        member.member.csharpConstructorAccessibility,
       )),
     };
   });
@@ -161,9 +162,11 @@ export function nodejsProviderSignature(
   parameters: readonly ProviderParameterDeclaration[],
   returnType: ProviderTypeExpression | undefined,
   typeParameters?: readonly import("@tsonic/tsts").ProviderTypeParameterDeclaration[],
+  accessibility?: ProviderSignatureDeclaration["accessibility"],
 ): ProviderSignatureDeclaration {
   return {
     id: signatureId,
+    ...(accessibility === undefined ? {} : { accessibility }),
     parameters: parameters.map((parameter, index) => ({
       ...parameter,
       type: scopeProviderCallableType(

@@ -185,7 +185,22 @@ function constructor(
   providerParameters: readonly ProviderParameterDeclaration[],
   targetParameters: Parameters<typeof nodejsClassCallTargetMetadata>[0]["targetParameters"],
 ): NodejsClassCallTargetMetadata {
-  return classCall(exportName, "constructor", providerParameters, undefined, targetParameters, targetTypes[exportName], exportName, "constructor");
+  const shape = signatureShape(providerParameters);
+  return nodejsClassCallTargetMetadata({
+    exportName,
+    memberName: "constructor",
+    memberId: `${nodeNetModuleSpecifier}.${exportName}.constructor`,
+    signatureId: `${nodeNetModuleSpecifier}.${exportName}.constructor(${shape})`,
+    targetMemberId: `Tsonic.CSharp.Node.${exportName}.${exportName}(${shape})`,
+    sourceName: "constructor",
+    targetName: exportName,
+    memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
+    providerParameters,
+    targetParameters,
+    targetReturnType: targetTypes[exportName],
+    declaringType: targetTypes[exportName],
+  });
 }
 
 function classCall(
@@ -196,7 +211,6 @@ function classCall(
   targetParameters: Parameters<typeof nodejsClassCallTargetMetadata>[0]["targetParameters"],
   targetReturnType: TargetTypeRef,
   targetName = memberName,
-  memberKind: "constructor" | "method" = "method",
 ): NodejsClassCallTargetMetadata {
   const shape = signatureShape(providerParameters);
   return nodejsClassCallTargetMetadata({
@@ -207,7 +221,7 @@ function classCall(
     targetMemberId: `Tsonic.CSharp.Node.${exportName}.${targetName}(${shape})`,
     sourceName: memberName,
     targetName,
-    memberKind,
+    memberKind: "method",
     providerParameters,
     ...(providerReturnType === undefined ? {} : { providerReturnType }),
     targetParameters,

@@ -84,7 +84,7 @@ import type {
 } from "./types.js";
 
 type NodeUrlModuleCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
-type NodeUrlClassCallTargetMetadataRow = Omit<NodejsClassCallTargetMetadataRow, "declaringType">;
+type NodeUrlClassCallTargetMetadataRow = Omit<Extract<NodejsClassCallTargetMetadataRow, { readonly memberKind: "method" }>, "declaringType">;
 type NodeUrlClassPropertyTargetMetadataRow = Omit<NodejsClassPropertyTargetMetadataRow, "declaringType">;
 type NodeUrlSearchParamsClassCallTargetMetadataRow = Omit<NodeUrlClassCallTargetMetadataRow, "exportName">;
 type NodeUrlSearchParamsClassPropertyTargetMetadataRow = Omit<NodeUrlClassPropertyTargetMetadataRow, "exportName">;
@@ -320,6 +320,7 @@ function urlClassConstructorWithIdentity(
     sourceName: "constructor",
     targetName: "URL",
     memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
     providerParameters,
     targetParameters,
     targetReturnType: urlTargetType,
@@ -337,6 +338,7 @@ function urlSearchParamsConstructor(): NodeUrlClassCallTargetMember {
     sourceName: "constructor",
     targetName: "URLSearchParams",
     memberKind: "constructor",
+    csharpConstructorAccessibility: "public",
     providerParameters: [nodeUrlOptionalStringParameter("init")],
     targetParameters: [targetParameter("init", stringTargetType, { optional: true })],
     targetReturnType: urlSearchParamsTargetType,
