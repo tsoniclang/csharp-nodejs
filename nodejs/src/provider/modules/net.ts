@@ -196,6 +196,7 @@ function constructor(
     targetName: exportName,
     memberKind: "constructor",
     csharpConstructorAccessibility: "public",
+    csharpConstructorObsolete: false,
     providerParameters,
     targetParameters,
     targetReturnType: targetTypes[exportName],

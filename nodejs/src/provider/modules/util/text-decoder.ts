@@ -86,6 +86,7 @@ export function nodeUtilTextDecoderClassCallTargetMembers(): readonly NodejsClas
     targetName: "TextDecoder",
     memberKind: "constructor",
     csharpConstructorAccessibility: "public",
+    csharpConstructorObsolete: false,
     providerParameters,
     targetParameters,
     targetReturnType: textDecoderTargetType,

@@ -17,6 +17,7 @@ test("every owned Node constructor publishes its exact public native and source 
   for (const relation of constructors) {
     signatures.add(relation.source.signatureId);
     assert.equal(relation.targetMember.csharpConstructorAccessibility, "public", relation.targetMember.id);
+    assert.equal(relation.targetMember.csharpConstructorObsolete, false, `${relation.targetMember.id}: native obsolescence`);
     const declaration = nodejsCanonicalProviderExports(relation.source.providerModuleId)
       ?.find(candidate => candidate.id === relation.source.exportId);
     const signature = declaration?.members?.flatMap(member => member.signatures ?? [])
@@ -49,6 +50,7 @@ test("constructor metadata preserves the explicit accessibility of each physical
       targetName: "Owned",
       memberKind: "constructor",
       csharpConstructorAccessibility: accessibility,
+      csharpConstructorObsolete: accessibility === "protected",
       providerParameters: [],
       targetParameters: [],
       targetReturnType: target,
@@ -63,6 +65,7 @@ test("constructor metadata preserves the explicit accessibility of each physical
   const signatures = exports[0].members[0].signatures;
   for (const [index, accessibility] of ["public", "protected", "protected-internal"].entries()) {
     assert.equal(calls[index].member.csharpConstructorAccessibility, accessibility, `target overload ${index}`);
+    assert.equal(calls[index].member.csharpConstructorObsolete, accessibility === "protected", `native obsolescence overload ${index}`);
     assert.equal(signatures[index].accessibility, accessibility, `source overload ${index}`);
   }
 });

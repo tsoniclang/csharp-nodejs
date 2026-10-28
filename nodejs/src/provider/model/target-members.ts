@@ -87,6 +87,7 @@ export type NodejsClassCallTargetMetadataRow = NodejsClassCallTargetMetadataRowB
   | {
     readonly memberKind: "constructor";
     readonly csharpConstructorAccessibility: NonNullable<CsharpTargetMember["csharpConstructorAccessibility"]>;
+    readonly csharpConstructorObsolete: boolean;
   }
   | {
     readonly memberKind: "method";
