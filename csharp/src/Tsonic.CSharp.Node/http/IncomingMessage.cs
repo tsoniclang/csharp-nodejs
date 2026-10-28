@@ -26,6 +26,7 @@ public partial class IncomingMessage : Readable
     private int _materializerClaimed;
     private int _released;
     private int _terminal;
+    private long _timeoutDeadline;
     private Timer? _timeoutTimer;
 
     internal IncomingMessage(HttpRequest request, LoopDispatch dispatch) : base(64 * 1024, dispatch)
@@ -100,6 +101,7 @@ public partial class IncomingMessage : Readable
     /// <summary>Destroys the request body and aborts its native transport.</summary>
     public override void destroy(Exception? error = null)
     {
+        Interlocked.Exchange(ref _timeoutDeadline, 0);
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
         {
             base.destroy(error);
@@ -133,19 +135,40 @@ public partial class IncomingMessage : Readable
             once("timeout", callback);
 
         _timeoutTimer?.Dispose();
-        if (msecs > 0)
+        Interlocked.Exchange(ref _timeoutDeadline, msecs > 0 ? Environment.TickCount64 + msecs : 0);
+        if (msecs > 0 && Volatile.Read(ref _terminal) == 0)
         {
-            _timeoutTimer = new Timer(_ =>
+            _timeoutTimer = new Timer(static state =>
             {
-                if (Volatile.Read(ref _terminal) == 0)
-                    BackgroundDispatch.Enqueue(ReadDispatch, () =>
-                    {
-                        if (Volatile.Read(ref _terminal) == 0)
-                            emit("timeout");
-                    });
-            }, null, msecs, System.Threading.Timeout.Infinite);
+                var message = (IncomingMessage)state!;
+                if (Volatile.Read(ref message._terminal) == 0)
+                    BackgroundDispatch.Enqueue(message.ReadDispatch,
+                        static queued => ((IncomingMessage)queued!).EmitTimeoutIfDue(), message);
+            }, this, msecs, System.Threading.Timeout.Infinite);
         }
         return this;
+    }
+
+    private void EmitTimeoutIfDue()
+    {
+        var deadline = Volatile.Read(ref _timeoutDeadline);
+        if (deadline > 0 && Environment.TickCount64 >= deadline && Volatile.Read(ref _terminal) == 0
+            && Interlocked.CompareExchange(ref _timeoutDeadline, 0, deadline) == deadline)
+            emit("timeout");
+    }
+
+    private void RetireTimeout()
+    {
+        var deadline = Volatile.Read(ref _timeoutDeadline);
+        if (deadline > 0)
+            Interlocked.CompareExchange(ref _timeoutDeadline,
+                Environment.TickCount64 >= deadline ? -1 : 0, deadline);
+    }
+
+    private void EmitRetiredTimeout()
+    {
+        if (Interlocked.CompareExchange(ref _timeoutDeadline, 0, -1) == -1)
+            emit("timeout");
     }
 
     /// <summary>Materializes the body as UTF-8 text through the canonical readable stream.</summary>
@@ -307,20 +330,30 @@ public partial class IncomingMessage : Readable
     {
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
             return;
+        RetireTimeout();
         ReleaseNative();
-        BackgroundDispatch.Enqueue(ReadDispatch, () => emit("close"));
+        BackgroundDispatch.Enqueue(ReadDispatch, () =>
+        {
+            try { EmitRetiredTimeout(); }
+            finally { emit("close"); }
+        });
     }
 
     internal void CloseAfterResponse()
     {
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
             return;
+        RetireTimeout();
         _bodyCancellation.Cancel();
         ReleaseNative();
         BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
-            if (!destroyed)
-                base.destroy();
+            try { EmitRetiredTimeout(); }
+            finally
+            {
+                if (!destroyed)
+                    base.destroy();
+            }
         });
     }
 

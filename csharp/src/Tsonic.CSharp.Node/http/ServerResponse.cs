@@ -23,6 +23,7 @@ public partial class ServerResponse : Writable
     private Task? _headersStartTask;
     private int _headersStarted;
     private int _terminal;
+    private long _timeoutDeadline;
     private Timer? _timeoutTimer;
 
     internal ServerResponse(HttpResponse response, LoopDispatch dispatch)
@@ -203,6 +204,7 @@ public partial class ServerResponse : Writable
     /// <inheritdoc />
     public override void destroy(Exception? error = null)
     {
+        Interlocked.Exchange(ref _timeoutDeadline, 0);
         if (Interlocked.Exchange(ref _terminal, 1) != 0)
         {
             base.destroy(error);
@@ -238,19 +240,40 @@ public partial class ServerResponse : Writable
             once("timeout", callback);
 
         _timeoutTimer?.Dispose();
-        if (msecs > 0)
+        Interlocked.Exchange(ref _timeoutDeadline, msecs > 0 ? Environment.TickCount64 + msecs : 0);
+        if (msecs > 0 && Volatile.Read(ref _terminal) == 0)
         {
-            _timeoutTimer = new Timer(_ =>
+            _timeoutTimer = new Timer(static state =>
             {
-                if (Volatile.Read(ref _terminal) == 0)
-                    BackgroundDispatch.Enqueue(ResponseDispatch, () =>
-                    {
-                        if (Volatile.Read(ref _terminal) == 0)
-                            emit("timeout");
-                    });
-            }, null, msecs, System.Threading.Timeout.Infinite);
+                var response = (ServerResponse)state!;
+                if (Volatile.Read(ref response._terminal) == 0)
+                    BackgroundDispatch.Enqueue(response.ResponseDispatch,
+                        static queued => ((ServerResponse)queued!).EmitTimeoutIfDue(), response);
+            }, this, msecs, System.Threading.Timeout.Infinite);
         }
         return this;
+    }
+
+    private void EmitTimeoutIfDue()
+    {
+        var deadline = Volatile.Read(ref _timeoutDeadline);
+        if (deadline > 0 && Environment.TickCount64 >= deadline && Volatile.Read(ref _terminal) == 0
+            && Interlocked.CompareExchange(ref _timeoutDeadline, 0, deadline) == deadline)
+            emit("timeout");
+    }
+
+    private void RetireTimeout()
+    {
+        var deadline = Volatile.Read(ref _timeoutDeadline);
+        if (deadline > 0)
+            Interlocked.CompareExchange(ref _timeoutDeadline,
+                Environment.TickCount64 >= deadline ? -1 : 0, deadline);
+    }
+
+    private void EmitRetiredTimeout()
+    {
+        if (Interlocked.CompareExchange(ref _timeoutDeadline, 0, -1) == -1)
+            emit("timeout");
     }
 
     /// <summary>Starts native response headers in the ordered response pipeline.</summary>
@@ -339,15 +362,20 @@ public partial class ServerResponse : Writable
         {
             await EnsureHeadersStartedAsync().ConfigureAwait(false);
             await _response.CompleteAsync().ConfigureAwait(false);
+            RetireTimeout();
             BackgroundDispatch.Enqueue(ResponseDispatch, () =>
             {
                 if (Interlocked.Exchange(ref _terminal, 1) != 0)
                     return;
                 _timeoutTimer?.Dispose();
                 _abortRegistration.Dispose();
-                callback();
-                _completion.TrySetResult();
-                emit("close");
+                try { EmitRetiredTimeout(); }
+                finally
+                {
+                    callback();
+                    _completion.TrySetResult();
+                    emit("close");
+                }
             });
         }
         catch (Exception error)

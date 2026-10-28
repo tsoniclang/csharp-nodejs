@@ -11,6 +11,89 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public class NativeHttpLifecycleTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ResponseElapsedTimeout_IsDeliveredBeforeNativeCompletionButCancelledByDestruction(bool destroy)
+    {
+        var timeouts = 0;
+        var closes = 0;
+        JsEventLoop.Run(async () =>
+        {
+            var context = new DefaultHttpContext();
+            var response = new ServerResponse(context.Response, JsEventLoop.Capture());
+            response.once("close", () =>
+            {
+                Assert.Equal(destroy ? 0 : 1, timeouts);
+                closes++;
+            });
+            response.setTimeout(20, () =>
+            {
+                Assert.False(response.destroyed);
+                timeouts++;
+            });
+            System.Threading.Thread.Sleep(80);
+            if (destroy)
+                response.destroy();
+            else
+            {
+                response.end();
+                await response.Completion;
+            }
+        });
+        Assert.Equal(destroy ? 0 : 1, timeouts);
+        Assert.Equal(1, closes);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ElapsedTimeout_IsDeliveredBeforeNativeCompletionButCancelledByDestruction(bool destroy)
+    {
+        var connection = new DefaultConnectionContext();
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = connection.ConnectionClosed.Register(
+            static state => ((TaskCompletionSource)state!).TrySetResult(), closed);
+        var admitted = false;
+        var timeouts = 0;
+        var closes = 0;
+        try
+        {
+            JsEventLoop.Run(() =>
+            {
+                var context = new DefaultHttpContext();
+                context.Features.Set<IConnectionLifetimeFeature>(
+                    connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
+                var message = new IncomingMessage(context.Request, JsEventLoop.Capture());
+                admitted = true;
+                message.once("close", () =>
+                {
+                    Assert.Equal(destroy ? 0 : 1, timeouts);
+                    closes++;
+                });
+                message.setTimeout(20, () =>
+                {
+                    Assert.False(message.destroyed);
+                    timeouts++;
+                });
+                System.Threading.Thread.Sleep(80);
+                if (destroy)
+                    message.destroy();
+                else
+                    message.CloseAfterResponse();
+            });
+            Assert.Equal(destroy ? 0 : 1, timeouts);
+            Assert.Equal(1, closes);
+        }
+        finally
+        {
+            if (admitted)
+                await closed.Task;
+            registration.Dispose();
+            await connection.DisposeAsync();
+        }
+    }
+
     [Fact]
     public async Task AbortFailure_LeavesPhysicalCleanupAndNativeTerminalErrorIntact()
     {
