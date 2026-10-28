@@ -335,7 +335,7 @@ public partial class IncomingMessage : Readable
         BackgroundDispatch.Enqueue(ReadDispatch, () =>
         {
             try { EmitRetiredTimeout(); }
-            finally { emit("close"); }
+            finally { EmitClose(); }
         });
     }
 

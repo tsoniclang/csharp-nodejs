@@ -14,6 +14,88 @@ public class NativeHttpLifecycleTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ResponseRetiredTimeoutDestruction_PublishesOneCloseAndPreservesTheNativeError(bool withError)
+    {
+        var closes = 0;
+        var errors = 0;
+        var timeouts = 0;
+        var finishes = 0;
+        var expected = withError ? new InvalidOperationException("native response timeout") : null;
+        JsEventLoop.Run(async () =>
+        {
+            var context = new DefaultHttpContext();
+            var response = new ServerResponse(context.Response, JsEventLoop.Capture());
+            response.on("close", () => closes++);
+            response.on("finish", () => finishes++);
+            response.on<Exception>("error", actual =>
+            {
+                Assert.Same(expected, actual);
+                errors++;
+            });
+            response.setTimeout(20, () =>
+            {
+                timeouts++;
+                response.destroy(expected);
+            });
+            System.Threading.Thread.Sleep(80);
+            response.end();
+            await response.Completion;
+            Assert.True(response.Completion.IsCompletedSuccessfully);
+            Assert.True(response.destroyed);
+            response.destroy();
+        });
+        Assert.Equal(1, closes);
+        Assert.Equal(1, timeouts);
+        Assert.Equal(withError ? 1 : 0, errors);
+        Assert.Equal(0, finishes);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void IncomingTimeoutDestruction_PublishesOneCloseAndNativeRelease(bool completeBody, bool withError)
+    {
+        var closes = 0;
+        var errors = 0;
+        var timeouts = 0;
+        var releases = 0;
+        var expected = withError ? new InvalidOperationException("native incoming timeout") : null;
+        JsEventLoop.Run(() =>
+        {
+            var response = new System.Net.Http.HttpResponseMessage
+            {
+                Content = new System.Net.Http.ByteArrayContent(System.Array.Empty<byte>()),
+            };
+            var message = new IncomingMessage(response, System.Threading.CancellationToken.None,
+                () => releases++, JsEventLoop.Capture());
+            message.on("close", () => closes++);
+            message.on<Exception>("error", actual =>
+            {
+                Assert.Same(expected, actual);
+                errors++;
+            });
+            message.setTimeout(20, () =>
+            {
+                timeouts++;
+                message.destroy(expected);
+            });
+            System.Threading.Thread.Sleep(80);
+            if (completeBody)
+                message.StartClientBody();
+            else
+                message.CloseAfterResponse();
+        });
+        Assert.Equal(1, closes);
+        Assert.Equal(1, releases);
+        Assert.Equal(1, timeouts);
+        Assert.Equal(withError ? 1 : 0, errors);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ResponseElapsedTimeout_IsDeliveredBeforeNativeCompletionButCancelledByDestruction(bool destroy)
     {
         var timeouts = 0;
@@ -22,7 +104,7 @@ public class NativeHttpLifecycleTests
         {
             var context = new DefaultHttpContext();
             var response = new ServerResponse(context.Response, JsEventLoop.Capture());
-            response.once("close", () =>
+            response.on("close", () =>
             {
                 Assert.Equal(destroy ? 0 : 1, timeouts);
                 closes++;
@@ -66,7 +148,7 @@ public class NativeHttpLifecycleTests
                     connection.Features.GetRequiredFeature<IConnectionLifetimeFeature>());
                 var message = new IncomingMessage(context.Request, JsEventLoop.Capture());
                 admitted = true;
-                message.once("close", () =>
+                message.on("close", () =>
                 {
                     Assert.Equal(destroy ? 0 : 1, timeouts);
                     closes++;

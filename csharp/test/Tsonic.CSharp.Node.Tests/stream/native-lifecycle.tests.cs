@@ -6,6 +6,22 @@ namespace Tsonic.CSharp.Node.Tests;
 public class NativeStreamLifecycleTests
 {
     [Fact]
+    public void NativeCompletionAndReentrantDestruction_ShareOneClosePublication()
+    {
+        var stream = new Readable();
+        var closes = 0;
+        stream.on("close", () =>
+        {
+            closes++;
+            stream.destroy();
+        });
+        stream.EmitClose();
+        stream.destroy();
+        Assert.Equal(1, closes);
+        Assert.True(stream.destroyed);
+    }
+
+    [Fact]
     public void End_PropagatesTheOriginalFinishCallbackFailure()
     {
         var writable = new Writable();

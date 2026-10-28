@@ -374,7 +374,7 @@ public partial class ServerResponse : Writable
                 {
                     callback();
                     _completion.TrySetResult();
-                    emit("close");
+                    EmitClose();
                 }
             });
         }

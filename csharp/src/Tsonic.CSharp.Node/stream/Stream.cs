@@ -137,6 +137,11 @@ public class Stream : EventEmitter
         _destroyError = null;
         if (pendingError is not null)
             emit("error", pendingError);
+        EmitClose();
+    }
+
+    internal void EmitClose()
+    {
         if (!_closeEmitted)
         {
             _closeEmitted = true;
