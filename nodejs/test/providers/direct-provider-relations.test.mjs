@@ -424,7 +424,7 @@ test("Node numeric API parameters validate floating inputs at native integer bou
   assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
-    /Tsonic\.CSharp\.Node\.Http\.Server (?<receiver>\w+) = server;\s+int (?<port>\w+) = Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\);\s+static void (?<callback>\w+)\(\)\s+\{\s*\}\s+\k<receiver>\.listen\(\k<port>, new Action\(\k<callback>\)\);/u,
+    /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), \(\) =>\s*\{\s*\}\);/u,
   );
 
   const relations = nodejsProviderTargetRelations().filter(
