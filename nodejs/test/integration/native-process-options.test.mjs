@@ -19,7 +19,8 @@ for (const expression of [...invalidNativeProcessOptionValues, "2147483648"]) {
       sourceText: nativeProcessOptionSource("maxBuffer", expression),
     });
     assertCsharpCompilationSucceeded(compiled);
-    assert.match(compiled.artifacts.get("src/Index.cs"), /IntegerConversions\.Checked/u);
+    assert.match(compiled.artifacts.get("src/Index.cs"), expression === "2147483648"
+      ? /maxBuffer = checked\(\(int\?\)value\)/u : /IntegerConversions\.Checked/u);
   });
 }
 
