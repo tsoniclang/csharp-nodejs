@@ -3,7 +3,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { compileCsharpSource, assertCsharpCompilationSucceeded } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
 import { executeCsharpConstruction } from "../../../../tsonic-csharp/test/helpers/native-construction.mjs";
-import { nativeEventFailureSource, nativeEventReentrantSource, nativePortCompletionSource, nativePortFailureSource } from "../../../../tsonic/test/fixtures/native-event-contexts.mjs";
+import { nativeEventReentrantSource, nativePortCompletionSource, nativePortFailureSource } from "../../../../tsonic/test/fixtures/native-event-contexts.mjs";
+import { nativeExceptionEventFailureSource } from "../../../../tsonic-csharp/test/fixtures/native-error-contracts.mjs";
 import { createTsonicPlugin } from "../../../dist/index.js";
 
 function execute(sourceText, name, nativeProgram) {
@@ -17,7 +18,7 @@ function execute(sourceText, name, nativeProgram) {
 }
 
 for (const [name, source, expected] of [
-  ["native-event-identity", nativeEventFailureSource, "native event identity"],
+  ["native-event-identity", nativeExceptionEventFailureSource, "native event identity"],
   ["native-event-reentrancy", nativeEventReentrantSource, "native event reentrancy"],
   ["native-port-completion", nativePortCompletionSource, "native port completion"],
 ]) {
