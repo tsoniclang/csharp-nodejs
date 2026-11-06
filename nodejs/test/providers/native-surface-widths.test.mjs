@@ -13,6 +13,60 @@ const relationsByJsSelection = new Map([
   [true, nodejsProviderTargetRelations(true)],
 ]);
 
+for (const surface of ["csharp", "js"]) {
+  test("C2412 exported process member widths retain checked alias identity on " + surface, () => {
+    const { compiled } = withCsharpSessionRequest({
+      surface,
+      capabilities: [createTsonicPlugin()],
+      sourceText: [
+        'import * as process from "node:process";',
+        'import { pid as selectedPid } from "node:process";',
+        'import type { int32 } from "@tsonic/core/types.js";',
+        "export function signalSelf(): boolean { return process.kill(process.pid, 0); }",
+        "export function counts(): int32 { return process.pid + process.ppid + selectedPid; }",
+        "export function current(): int32 | null { return process.exitCode; }",
+        "export function shadow(process: { pid: number }): number { return process.pid; }",
+      ].join("\n"),
+    }, request => {
+      const source = request.input.source;
+      const { ast } = source;
+      const pending = source.sourceFiles.filter(file => ast.getFileName(file) === "/project/index.ts");
+      const seen = new Set();
+      const expected = new Map([
+        ["signalSelf:pid", "int32"],
+        ["counts:pid", "int32"],
+        ["counts:ppid", "int32"],
+        ["current:exitCode", "optional-int32"],
+        ["shadow:pid", "float64"],
+      ]);
+      while (pending.length !== 0) {
+        const node = pending.pop();
+        if (ast.is.IsPropertyAccessExpression(node)) {
+          let owner = ast.parent(node);
+          while (owner !== undefined && !ast.is.IsFunctionDeclaration(owner)) owner = ast.parent(owner);
+          const label = ast.text(ast.name(owner)) + ":" + ast.text(ast.name(node));
+          const width = expected.get(label);
+          if (width !== undefined) {
+            const outcome = source.effectiveTypes.get(node);
+            assert.equal(outcome?.kind === "resolved", true, label + ": canonical read");
+            const type = sourceTypeDescriptorStructure(outcome.type);
+            assert.equal(width === "optional-int32"
+              ? type.kind === "optional" && type.value.kind === "primitive" && type.value.primitive === "int32"
+              : type.kind === "primitive" && type.primitive === width, true, label + ": actual declared width");
+            seen.add(label);
+          }
+        }
+        ast.forEachChild(node, child => { if (child !== undefined) pending.push(child); });
+      }
+      assert.equal(seen.size, expected.size, "all original native and shadow reads are observed");
+    });
+    assertCsharpCompilationSucceeded(compiled);
+    const output = compiled.artifacts.get("src/Index.cs");
+    assert.match(output, /killNumber\(Tsonic\.CSharp\.Node\.process\.pid, 0\)/u);
+    assert.doesNotMatch(output, /Convert\.ToInt32|IntegerConversions/u);
+  });
+}
+
 const auditedNativeCells = [
   [1,"node:process","CpuUsage.system",null,"type","int64"],
   [2,"node:process","CpuUsage.user",null,"type","int64"],
