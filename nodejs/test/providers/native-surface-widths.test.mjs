@@ -405,13 +405,16 @@ for (const surface of ["csharp", "js"]) {
 }
 
 function publishedCell(moduleSpecifier, memberPath, signatureId, position, includeJsSurfaceMembers) {
-  const [exportName, memberName] = memberPath.split(".");
+  const staticMember = memberPath.endsWith(" (static)");
+  const [exportName, memberName] = memberPath.replace(/ \(static\)$/u, "").split(".");
   const declarations = nodejsCanonicalProviderExports(moduleSpecifier, includeJsSurfaceMembers);
   const declaration = declarations.find(entry => entry.name === exportName && entry.exportKind !== "default");
   assert.equal(declaration !== undefined, true, "the audited export exists");
-  const selected = memberName === undefined
-    ? declaration
-    : declaration.members?.find(member => member.name === memberName);
+  const members = memberName === undefined ? [declaration] : declaration.members?.filter(member =>
+    member.name === memberName && (member.static === true) === staticMember &&
+    (signatureId === null || member.signatures?.some(signature => signature.id === signatureId))) ?? [];
+  assert.equal(members.length, 1, "one exact audited member matches staticness and signature");
+  const selected = members[0];
   assert.equal(selected !== undefined, true, "the audited member exists");
   const signature = signatureId === null
     ? undefined

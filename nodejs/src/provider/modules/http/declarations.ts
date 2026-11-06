@@ -180,6 +180,7 @@ function providerClassPropertyMembers(
       name: member.memberName,
       kind: "property" as const,
       ...(member.readonly === true ? { readonly: true } : {}),
+      ...(member.optional === true ? { optional: true } : {}),
       type: member.providerType,
     });
 }
