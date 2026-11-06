@@ -329,7 +329,7 @@ const nodeCryptoUnsupportedCalls = [
     providerParameters: [
       { name: "password", type: unknownProviderType },
       { name: "salt", type: unknownProviderType },
-      { name: "keylen", type: numberProviderType },
+      { name: "keylen", type: int32ProviderType },
       optionalUnknownParameter("options"),
     ],
     providerReturnType: bufferProviderType,
@@ -342,8 +342,8 @@ const nodeCryptoUnsupportedCalls = [
     providerParameters: [
       { name: "password", type: unknownProviderType },
       { name: "salt", type: unknownProviderType },
-      { name: "iterations", type: numberProviderType },
-      { name: "keylen", type: numberProviderType },
+      { name: "iterations", type: int32ProviderType },
+      { name: "keylen", type: int32ProviderType },
       { name: "digest", type: stringProviderType },
     ],
     providerReturnType: bufferProviderType,

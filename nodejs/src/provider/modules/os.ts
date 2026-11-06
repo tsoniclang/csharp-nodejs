@@ -229,8 +229,8 @@ const nodeOsUnsupportedExports = [
     signatureId: "node:os.getPriority(System.Int32)",
     targetIdentityId: "unsupported:Tsonic.CSharp.Node.os.getPriority(System.Int32)",
     displayName: "unsupported NodeJS os.getPriority",
-    providerParameters: [{ name: "pid", type: numberProviderType, optional: true }],
-    providerType: numberProviderType,
+    providerParameters: [{ name: "pid", type: int32ProviderType, optional: true }],
+    providerType: int32ProviderType,
   },
   {
     exportName: "setPriority",
@@ -238,8 +238,8 @@ const nodeOsUnsupportedExports = [
     targetIdentityId: "unsupported:Tsonic.CSharp.Node.os.setPriority(System.Int32,System.Int32)",
     displayName: "unsupported NodeJS os.setPriority",
     providerParameters: [
-      { name: "pid", type: numberProviderType },
-      { name: "priority", type: numberProviderType },
+      { name: "pid", type: int32ProviderType },
+      { name: "priority", type: int32ProviderType },
     ],
     providerType: voidProviderType,
   },

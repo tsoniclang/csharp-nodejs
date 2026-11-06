@@ -3,7 +3,9 @@ import test from "node:test";
 import { getCsharpNullableElementTargetType } from "../../../../tsonic-csharp/dist/public/provider.js";
 import { nodejsCanonicalProviderExports } from "../../../dist/provider/assembly/modules.js";
 import { nodejsProviderTargetRelations } from "../../../dist/provider/target-relations.js";
-import { assertCsharpCompilationSucceeded, compileCsharpSource } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { assertCsharpCheckingSucceeded, assertCsharpCompilationSucceeded, compileCsharpSource, withCsharpSessionRequest } from "../../../../tsonic-csharp/test/helpers/direct-csharp-session.mjs";
+import { sourceTypeDescriptorStructure } from "@tsonic/target-api/source";
+import { nodeV8PropertyTargetMembers } from "../../../dist/provider/modules/v8.js";
 import { createTsonicPlugin } from "../../../dist/index.js";
 
 const relationsByJsSelection = new Map([
@@ -481,4 +483,113 @@ function presentSourceType(type) {
     arm.kind !== "undefined" && !(arm.kind === "literal" && arm.value === null));
   assert.equal(present.length, 1, "one exact present native kind remains");
   return present[0];
+}
+
+const nativeHeapByteMembers = [
+  "total_heap_size", "total_heap_size_executable", "total_physical_size", "total_available_size",
+  "used_heap_size", "heap_size_limit", "malloced_memory", "peak_malloced_memory",
+  "total_global_handles_size", "used_global_handles_size", "external_memory", "total_allocated_bytes",
+];
+
+test("C2395 crypto and OS native integer slots retain exact declarations and existing refusals", () => {
+  for (const [moduleSpecifier, name, parameters] of [
+    ["node:crypto", "scryptSync", ["keylen"]],
+    ["node:crypto", "pbkdf2Sync", ["iterations", "keylen"]],
+    ["node:os", "getPriority", ["pid"]],
+    ["node:os", "setPriority", ["pid", "priority"]],
+  ]) {
+    const declaration = nodejsCanonicalProviderExports(moduleSpecifier)
+      .find(entry => entry.name === name && entry.exportKind !== "default");
+    assert.equal(declaration !== undefined, true, `${moduleSpecifier}.${name}: existing declaration`);
+    const signature = declaration.signatures[0];
+    for (const name of parameters) {
+      const parameter = signature.parameters.find(entry => entry.name === name);
+      assert.deepEqual(parameter.type, { kind: "source-primitive", name: "int32" });
+    }
+    if (name === "getPriority") {
+      assert.equal(signature.parameters[0].optional, true);
+      assert.deepEqual(signature.returnType, { kind: "source-primitive", name: "int32" });
+    }
+  }
+  const properties = nodeV8PropertyTargetMembers();
+  for (const name of nativeHeapByteMembers) {
+    const member = properties.find(entry => entry.memberName === name);
+    assert.deepEqual(member.providerType, { kind: "source-primitive", name: "int64" });
+    assert.equal(member.member.returnType.kind === "source-primitive" && member.member.returnType.name === "int64", true);
+  }
+});
+
+for (const surface of ["csharp", "js"]) {
+  test(`C2395 exact crypto and OS parameter publications preserve unsupported operations on ${surface}`, () => {
+    const { compiled } = withCsharpSessionRequest({ surface, capabilities: [createTsonicPlugin()], sourceText: `
+      import { scryptSync, pbkdf2Sync } from "node:crypto";
+      import { getPriority, setPriority } from "node:os";
+      import type { int32 } from "@tsonic/core/types.js";
+      export function run(value: int32): void {
+        scryptSync("password", "salt", value);
+        pbkdf2Sync("password", "salt", value, value, "sha256");
+        getPriority(value);
+        setPriority(value, value);
+      }
+    ` }, request => {
+      const source = request.input.source;
+      const ast = source.ast;
+      const pending = source.sourceFiles.filter(file => ast.getFileName(file) === "/project/index.ts");
+      const parameters = new Map();
+      while (pending.length > 0) {
+        const node = pending.pop();
+        if (ast.is.IsCallExpression(node)) {
+          const callee = ast.as.AsCallExpression(node)?.Expression;
+          const name = ast.text(callee);
+          const outcome = source.effectiveTypes.get(callee);
+          assert.equal(outcome !== undefined && outcome.kind !== "refused", true, `${name}: canonical callable`);
+          const callable = sourceTypeDescriptorStructure(outcome.type);
+          assert.equal(callable.kind === "callable" && callable.calls.length === 1, true, `${name}: one original overload`);
+          parameters.set(name, callable.calls[0].parameters.map(parameter => parameter.type));
+        }
+        ast.forEachChild(node, child => { if (child !== undefined) pending.push(child); });
+      }
+      for (const [name, positions] of [["scryptSync", [2]], ["pbkdf2Sync", [2, 3]], ["getPriority", [0]], ["setPriority", [0, 1]]]) {
+        assert.equal(parameters.has(name), true, `${name}: original call`);
+        for (const index of positions) {
+          const type = sourceTypeDescriptorStructure(parameters.get(name)[index]);
+          assert.equal(type.kind === "primitive" && type.primitive === "int32", true, `${name}[${index}]: exact Source int32`);
+        }
+      }
+    });
+    assertCsharpCheckingSucceeded(compiled);
+    assert.deepEqual(compiled.targetDiagnostics.map(diagnostic => diagnostic.code), ["TS9100203", "TS9100203", "TS9100203", "TS9100203"]);
+    assert.equal(compiled.artifacts.size, 0, "the native-width correction adds no implementation or conversion shim");
+  });
+
+  test(`C2395 V8 byte reads publish and emit int64 without a floating round trip on ${surface}`, () => {
+    const { compiled } = withCsharpSessionRequest({ surface, capabilities: [createTsonicPlugin()], sourceText: `
+      import type { HeapInfo } from "node:v8";
+      import type { int64 } from "@tsonic/core/types.js";
+      ${nativeHeapByteMembers.map((name, index) => `export function read${index}(info: HeapInfo): int64 { return info.${name}; }`).join("\n")}
+    ` }, request => {
+      const source = request.input.source;
+      const ast = source.ast;
+      const pending = source.sourceFiles.filter(file => ast.getFileName(file) === "/project/index.ts");
+      let reads = 0;
+      while (pending.length > 0) {
+        const node = pending.pop();
+        if (ast.is.IsPropertyAccessExpression(node)) {
+          const outcome = source.effectiveTypes.get(node);
+          assert.equal(outcome?.kind === "resolved" && outcome.type.kind === "primitive" && outcome.type.primitive === "int64", true,
+            `${ast.text(ast.name(node))}: exact canonical int64 publication`);
+          reads += 1;
+        }
+        ast.forEachChild(node, child => { if (child !== undefined) pending.push(child); });
+      }
+      assert.equal(reads, nativeHeapByteMembers.length);
+    });
+    assertCsharpCompilationSucceeded(compiled);
+    const output = compiled.artifacts.get("src/Index.cs");
+    for (const [index, name] of nativeHeapByteMembers.entries()) {
+      assert.match(output, new RegExp(`long read${index}\\(Tsonic\\.CSharp\\.Node\\.HeapInfo info\\)`, "u"));
+      assert.equal(output.includes(`return info.${name};`), true);
+    }
+    assert.doesNotMatch(output, /\bdouble\b|BigInteger|Convert\.|IntegerConversions/u);
+  });
 }
