@@ -1,10 +1,6 @@
-import type { CsharpTargetMember, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 
-export interface NodejsCallArgumentAdapters {
-  readonly argumentAdapters?: readonly (CsharpProviderArgumentAdapter | undefined)[];
-}
-
-export interface NodejsModuleCallTargetMember extends NodejsCallArgumentAdapters {
+export interface NodejsModuleCallTargetMember {
   readonly exportName: string;
   readonly signatureId: string;
   readonly member: CsharpTargetMember;
@@ -15,7 +11,7 @@ export interface NodejsModulePropertyTargetMember {
   readonly member: CsharpTargetMember;
 }
 
-export interface NodejsClassCallTargetMember extends NodejsCallArgumentAdapters {
+export interface NodejsClassCallTargetMember {
   readonly exportName: string;
   readonly memberName: string;
   readonly memberId: string;

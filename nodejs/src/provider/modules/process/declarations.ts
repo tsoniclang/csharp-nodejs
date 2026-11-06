@@ -4,7 +4,7 @@ import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
 } from "@tsonic/tsts";
-import type { CsharpTargetMember, TargetTypeRef } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
 import {
   csharpNullableTargetType,
   csharpNullableValueTargetType,
@@ -159,10 +159,6 @@ export function nodeProcessCallTargetMembers(): readonly NodeProcessCallTargetMe
   const optionalInt32Parameter = (name: string) => ({ name, type: int32ProviderType, optional: true });
   const timeArrayProviderType = { kind: "array", elementType: int64ProviderType } satisfies ProviderTypeExpression;
   const timeArrayTargetType = { kind: "array", element: longTargetType } as const;
-  const defaultPid = processIntegerInput("TPid", "kill");
-  const namedPid = processIntegerInput("TPid", "killNamed");
-  const numericPid = processIntegerInput("TPid", "killNumber");
-  const numericSignal = processIntegerInput("TSignal", "killNumber");
   return [
     processCall({ exportName: "availableMemory", signatureId: "node:process.availableMemory()", targetMemberId: "Tsonic.CSharp.Node.process.availableMemory()", sourceName: "availableMemory", targetName: "availableMemory", providerParameters: [], providerReturnType: int64ProviderType, targetParameters: [], targetReturnType: longTargetType }),
     processCall({
@@ -183,39 +179,33 @@ export function nodeProcessCallTargetMembers(): readonly NodeProcessCallTargetMe
       targetParameter("code", csharpNullableValueTargetType(intTargetType), { optional: true }),
     ], targetReturnType: voidTargetType }),
     processCall({
-      exportName: "kill", signatureId: "node:process.kill(TPid,System.Nullable`1)",
-      targetMemberId: "Tsonic.CSharp.Node.process.kill<TPid>(TPid,System.Nullable`1)",
+      exportName: "kill", signatureId: "node:process.kill(System.Int32,System.Nullable`1)",
+      targetMemberId: "Tsonic.CSharp.Node.process.kill(System.Int32,System.Nullable`1)",
       sourceName: "kill", targetName: "kill",
-      providerParameters: [{ name: "pid", type: defaultPid.provider },
+      providerParameters: [{ name: "pid", type: int32ProviderType },
         { name: "signal", type: undefinedProviderType, optional: true }],
-      providerTypeParameters: [{ name: "TPid", constraints: [numberProviderType] }],
       providerReturnType: boolProviderType,
-      targetParameters: [targetParameter("pid", defaultPid.target),
+      targetParameters: [targetParameter("pid", intTargetType),
         targetParameter("signal", csharpNullableValueTargetType(intTargetType), { optional: true })],
-      targetTypeParameters: [defaultPid.declaration], targetReturnType: boolTargetType,
+      targetReturnType: boolTargetType,
     }),
     processCall({
-      exportName: "kill", signatureId: "node:process.kill(TPid,System.String)",
-      targetMemberId: "Tsonic.CSharp.Node.process.killNamed<TPid>(TPid,System.String)",
+      exportName: "kill", signatureId: "node:process.kill(System.Int32,System.String)",
+      targetMemberId: "Tsonic.CSharp.Node.process.killNamed(System.Int32,System.String)",
       sourceName: "kill", targetName: "killNamed",
-      providerParameters: [{ name: "pid", type: namedPid.provider }, { name: "signal", type: stringProviderType }],
-      providerTypeParameters: [{ name: "TPid", constraints: [numberProviderType] }],
+      providerParameters: [{ name: "pid", type: int32ProviderType }, { name: "signal", type: stringProviderType }],
       providerReturnType: boolProviderType,
-      targetParameters: [targetParameter("pid", namedPid.target), targetParameter("signal", stringTargetType)],
-      targetTypeParameters: [namedPid.declaration], targetReturnType: boolTargetType,
+      targetParameters: [targetParameter("pid", intTargetType), targetParameter("signal", stringTargetType)],
+      targetReturnType: boolTargetType,
     }),
     processCall({
-      exportName: "kill", signatureId: "node:process.kill(TPid,TSignal)",
-      targetMemberId: "Tsonic.CSharp.Node.process.killNumber<TPid,TSignal>(TPid,TSignal)",
+      exportName: "kill", signatureId: "node:process.kill(System.Int32,System.Int32)",
+      targetMemberId: "Tsonic.CSharp.Node.process.killNumber(System.Int32,System.Int32)",
       sourceName: "kill", targetName: "killNumber",
-      providerParameters: [{ name: "pid", type: numericPid.provider }, { name: "signal", type: numericSignal.provider }],
-      providerTypeParameters: [
-        { name: "TPid", constraints: [numberProviderType] },
-        { name: "TSignal", constraints: [numberProviderType] },
-      ],
+      providerParameters: [{ name: "pid", type: int32ProviderType }, { name: "signal", type: int32ProviderType }],
       providerReturnType: boolProviderType,
-      targetParameters: [targetParameter("pid", numericPid.target), targetParameter("signal", numericSignal.target)],
-      targetTypeParameters: [numericPid.declaration, numericSignal.declaration], targetReturnType: boolTargetType,
+      targetParameters: [targetParameter("pid", intTargetType), targetParameter("signal", intTargetType)],
+      targetReturnType: boolTargetType,
     }),
     processCall({ exportName: "hrtime", signatureId: "node:process.hrtime(System.Int64[])", targetMemberId: "Tsonic.CSharp.Node.process.hrtime(System.Int64[])", sourceName: "hrtime", targetName: "hrtime", providerParameters: [
       { name: "time", type: timeArrayProviderType, optional: true },
@@ -437,25 +427,6 @@ function unknownRestParameter(name: string): ProviderParameterDeclaration {
     name,
     type: { kind: "array", elementType: unknownProviderType },
     rest: true,
-  };
-}
-
-function processIntegerInput(name: string, method: string): {
-  readonly provider: ProviderTypeExpression;
-  readonly target: TargetTypeRef;
-  readonly declaration: NonNullable<CsharpTargetMember["typeParameters"]>[number];
-} {
-  const target = {
-    kind: "type-parameter", identity: `node:process:${method}:${name}`, name,
-  } satisfies TargetTypeRef;
-  return {
-    provider: { kind: "type-parameter", name },
-    target,
-    declaration: {
-      identity: target.identity, name, csharpAllowsRefLike: false,
-      constraints: [{ kind: "implements", contract: csharpTargetNamedType("System.Numerics.INumberBase`1", [target],
-        csharpQualifiedTypeRenderShape("System.Numerics", "INumberBase"), { allowsRefLikeTypeArguments: [false] }) }],
-    },
   };
 }
 

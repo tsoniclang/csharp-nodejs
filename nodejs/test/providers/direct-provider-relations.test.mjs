@@ -448,7 +448,7 @@ test("Node numeric API parameters retain their native integer declarations", () 
 
 test("Node native primitive parameters have exact widths and no floating conversion adapters", () => {
   const records = nodejsTargetMemberMetadataRecords();
-  assert.equal(records.some(record => record.argumentAdapters?.some(adapter => adapter !== undefined)), false);
+  assert.equal(records.some(record => Object.hasOwn(record, "argumentAdapters")), false);
   let parameterCount = 0;
   for (const relation of nodejsProviderTargetRelations()) {
     if (relation.kind !== "signature") continue;
@@ -457,7 +457,7 @@ test("Node native primitive parameters have exact widths and no floating convers
       const source = signature.parameters[parameter.sourceParameterIndex];
       const target = relation.targetMember.parameters[parameter.targetParameterIndex];
       const label = `${relation.source.moduleSpecifier}:${relation.source.signatureId}:${source.name}`;
-      assert.equal(parameter.argumentAdapter, undefined, label);
+      assert.equal(Object.hasOwn(parameter, "argumentAdapter"), false, label);
       const native = getCsharpNullableElementTargetType(target.type) ?? target.type;
       if (source.type.kind === "source-primitive" && native.kind === "source-primitive") {
         assert.equal(source.type.name, native.name, label);
@@ -492,7 +492,7 @@ test("Node native primitive parameters have exact widths and no floating convers
     assert.equal(parameter.targetParameterIndex, 2, label);
     assert.equal(parameter.sourceAcceptsOmission, true, label);
     assert.equal(parameter.targetAcceptsOmission, true, label);
-    assert.equal(parameter.argumentAdapter, undefined, label);
+    assert.equal(Object.hasOwn(parameter, "argumentAdapter"), false, label);
   }
 });
 

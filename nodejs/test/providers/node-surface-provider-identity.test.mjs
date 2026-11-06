@@ -60,35 +60,29 @@ test("process.kill groups three exact typed overloads without a boxed signal", (
     relation.source.exportName === "kill");
   assert.equal(killRelations.length, 3, "one native relation per source overload");
   assert.deepEqual(killRelations.map(relation => relation.source.signatureId).sort(), [
-    "node:process.kill(TPid,System.Nullable`1)",
-    "node:process.kill(TPid,System.String)",
-    "node:process.kill(TPid,TSignal)",
+    "node:process.kill(System.Int32,System.Int32)",
+    "node:process.kill(System.Int32,System.Nullable`1)",
+    "node:process.kill(System.Int32,System.String)",
   ], "exact typed process.kill source signatures");
-  for (const [targetName, arity, genericArity] of [["kill", 2, 1], ["killNamed", 2, 1], ["killNumber", 2, 2]]) {
+  for (const targetName of ["kill", "killNamed", "killNumber"]) {
     const matches = killRelations.filter(relation => relation.targetMember.targetName === targetName);
     assert.equal(matches.length, 1, targetName);
     const relation = matches[0];
-    assert.equal(relation.targetMember.parameters.length, arity, `${targetName} exact parameters`);
-    assert.equal(relation.selectedTypeParameterCount, genericArity, `${targetName} source generic inputs`);
-    assert.equal(relation.targetMember.typeParameters.length, genericArity, `${targetName} native generic inputs`);
-    assert.equal(relation.targetMember.parameters[0].type.kind, "type-parameter", `${targetName} exact PID input`);
-    for (const parameter of relation.targetMember.typeParameters) {
-      assert.equal(parameter.csharpAllowsRefLike, false, `${targetName} numeric constraint`);
-      assert.equal(parameter.constraints.length, 1);
-      assert.equal(parameter.constraints[0].kind, "implements");
-      const contract = parameter.constraints[0].contract;
-      assert.equal(contract.kind, "target-named");
-      assert.equal(contract.id, "System.Numerics.INumberBase`1");
-      assert.equal(contract.typeArguments[0].identity, parameter.identity);
-      assert.deepEqual(contract.csharpAllowsRefLikeTypeArguments, [false]);
-      assert.deepEqual(contract.csharpRender, { kind: "named", namespace: ["System", "Numerics"], name: "INumberBase" });
-    }
+    assert.equal(relation.targetMember.parameters.length, 2, `${targetName} exact parameters`);
+    assert.equal(relation.selectedTypeParameterCount, 0, `${targetName} has no source numeric generic input`);
+    assert.deepEqual(relation.targetMember.typeParameters ?? [], [], `${targetName} has no native numeric generic input`);
+    assert.deepEqual(relation.targetMember.parameters[0].type, { kind: "source-primitive", name: "int32" }, `${targetName} exact PID input`);
+    const source = exports[0].signatures.find(signature => signature.id === relation.source.signatureId);
+    assert.equal(source !== undefined, true, `${targetName} actual source overload`);
+    assert.deepEqual(source.typeParameters ?? [], [], `${targetName} source signature is not generic`);
+    assert.deepEqual(source.parameters[0].type, { kind: "source-primitive", name: "int32" }, `${targetName} native PID publication`);
     if (targetName === "killNamed")
       assert.equal(relation.targetMember.parameters[1].type.id, "System.String");
-    if (targetName === "killNumber")
-      assert.equal(relation.targetMember.parameters[1].type.kind, "type-parameter");
+    if (targetName === "killNumber") {
+      assert.deepEqual(relation.targetMember.parameters[1].type, { kind: "source-primitive", name: "int32" });
+      assert.deepEqual(source.parameters[1].type, { kind: "source-primitive", name: "int32" });
+    }
     if (targetName === "kill") {
-      const source = exports[0].signatures.find(signature => signature.id === relation.source.signatureId);
       assert.equal(source !== undefined, true, "actual default/absence source overload");
       assert.equal(source.parameters[1].type.kind, "undefined", "explicit source undefined retains the default overload");
       assert.equal(source.parameters[1].optional, true, "source omission remains supported");

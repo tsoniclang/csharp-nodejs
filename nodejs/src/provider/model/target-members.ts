@@ -1,6 +1,6 @@
 import type { ProviderParameterDeclaration, ProviderTypeExpression, ProviderTypeParameterDeclaration } from "@tsonic/tsts";
 import type { CsharpTargetMember, TargetParameter, TargetTypeRef } from "@tsonic/target-csharp/provider";
-import type { NodejsClassCallTargetMember, NodejsCallArgumentAdapters, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember } from "./members.js";
+import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember } from "./members.js";
 
 export type CsharpTargetInvocation = NonNullable<
   CsharpTargetMember["csharpInvocation"]
@@ -39,7 +39,7 @@ export interface NodejsClassPropertyTargetMetadata extends NodejsClassPropertyTa
   readonly optional?: true;
 }
 
-export interface NodejsModuleCallTargetMetadataRow extends NodejsCallArgumentAdapters {
+export interface NodejsModuleCallTargetMetadataRow {
   readonly exportName: string;
   readonly signatureId: string;
   readonly targetMemberId: string;
@@ -64,7 +64,7 @@ export interface NodejsModulePropertyTargetMetadataRow {
   readonly declaringType: TargetTypeRef;
 }
 
-interface NodejsClassCallTargetMetadataRowBase extends NodejsCallArgumentAdapters {
+interface NodejsClassCallTargetMetadataRowBase {
   readonly exportName: string;
   readonly memberName: string;
   readonly memberId: string;

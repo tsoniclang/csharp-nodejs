@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Numerics;
 using System.Runtime.InteropServices;
-using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
@@ -30,32 +28,13 @@ public static partial class process
         throw new Win32Exception(error, $"kill {code}: {new Win32Exception(error).Message}; pid {pid}, signal {signalNumber}.");
     }
 
-    /// <summary>Sends the default signal after an exact native process-ID conversion.</summary>
-    public static bool kill<TPid>(TPid pid, int? signal = null) where TPid : INumberBase<TPid>
-        => kill(processSignalInteger(pid, nameof(pid)), signal);
+    /// <summary>Sends a named native signal.</summary>
+    public static bool killNamed(int pid, string signal)
+        => kill(pid, processSignalNumber(signal));
 
-    /// <summary>Sends a named native signal after an exact process-ID conversion.</summary>
-    public static bool killNamed<TPid>(TPid pid, string signal) where TPid : INumberBase<TPid>
-        => kill(processSignalInteger(pid, nameof(pid)), processSignalNumber(signal));
-
-    /// <summary>Sends a numeric native signal after exact process-ID and signal conversions.</summary>
-    public static bool killNumber<TPid, TSignal>(TPid pid, TSignal signal)
-        where TPid : INumberBase<TPid>
-        where TSignal : INumberBase<TSignal>
-        => kill(processSignalInteger(pid, nameof(pid)), processSignalInteger(signal, nameof(signal)));
-
-    private static int processSignalInteger<TNumber>(TNumber value, string parameterName)
-        where TNumber : INumberBase<TNumber>
-    {
-        try
-        {
-            return IntegerConversions.Checked<TNumber, int>(value);
-        }
-        catch (OverflowException exception)
-        {
-            throw new ArgumentException($"ERR_INVALID_ARG_TYPE: {parameterName} must be a finite signed 32-bit integer.", parameterName, exception);
-        }
-    }
+    /// <summary>Sends a numeric native signal.</summary>
+    public static bool killNumber(int pid, int signal)
+        => kill(pid, signal);
 
     internal static int processSignalNumber(string signal)
     {

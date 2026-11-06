@@ -12,7 +12,6 @@ export function nodejsModuleCallTargetMetadata(
     providerParameters: row.providerParameters,
     providerReturnType: row.providerReturnType,
     ...(row.providerTypeParameters === undefined ? {} : { providerTypeParameters: row.providerTypeParameters }),
-    ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     member: nodejsTargetMember({
       targetMemberId: row.targetMemberId,
       sourceName: row.sourceName,
@@ -59,7 +58,6 @@ export function nodejsClassCallTargetMetadata(
     targetMemberId: row.targetMemberId,
     targetName: row.targetName,
     memberKind: row.memberKind,
-    ...(row.argumentAdapters === undefined ? {} : { argumentAdapters: row.argumentAdapters }),
     providerParameters: row.providerParameters,
     ...(row.providerReturnType !== undefined ? { providerReturnType: row.providerReturnType } : {}),
     ...(row.providerTypeParameters === undefined ? {} : { providerTypeParameters: row.providerTypeParameters }),

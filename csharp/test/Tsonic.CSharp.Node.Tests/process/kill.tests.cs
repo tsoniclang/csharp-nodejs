@@ -65,9 +65,9 @@ public class killTests
         using var child = startSignalChild("USR1", 37);
         try
         {
-            Assert.True(process.killNumber((double)child.Id, 0D));
+            Assert.True(process.killNumber(child.Id, 0));
             Assert.False(child.HasExited);
-            Assert.True(process.killNamed((long)child.Id, "SIGUSR1"));
+            Assert.True(process.killNamed(child.Id, "SIGUSR1"));
             Assert.True(child.WaitForExit(5000));
             Assert.Equal(37, child.ExitCode);
         }
@@ -88,30 +88,10 @@ public class killTests
             foreach (var signal in new[] { "BOGUS", "sigterm", "0", "SIGNULL" })
                 Assert.Contains("ERR_UNKNOWN_SIGNAL", Assert.Throws<ArgumentException>(
                     () => process.killNamed(child.Id, signal)).Message);
-            foreach (var signal in new[] { 0.5, double.NaN, double.PositiveInfinity, double.NegativeInfinity, (double)int.MaxValue + 1 })
-            {
-                var exception = Assert.Throws<ArgumentException>(() => process.killNumber(child.Id, signal));
-                Assert.Contains("ERR_INVALID_ARG_TYPE", exception.Message);
-                Assert.Equal("signal", exception.ParamName);
-                Assert.IsType<OverflowException>(exception.InnerException);
-            }
             foreach (var signal in new[] { -1, int.MaxValue })
                 Assert.Contains("ERR_UNKNOWN_SIGNAL", Assert.Throws<ArgumentException>(
                     () => process.killNumber(child.Id, signal)).Message);
-            foreach (var pid in new[] { (long)int.MaxValue + 1, long.MaxValue, long.MinValue, 9007199254740993L })
-            {
-                var exception = Assert.Throws<ArgumentException>(() => process.killNumber(pid, 0));
-                Assert.Contains("ERR_INVALID_ARG_TYPE", exception.Message);
-                Assert.Equal("pid", exception.ParamName);
-                Assert.IsType<OverflowException>(exception.InnerException);
-            }
-            foreach (var pid in new[] { double.NaN, double.PositiveInfinity, child.Id + 0.5 })
-                Assert.Contains("ERR_INVALID_ARG_TYPE", Assert.Throws<ArgumentException>(
-                    () => process.killNumber(pid, 0)).Message);
-            var wideSignal = Assert.Throws<ArgumentException>(() => process.killNumber(child.Id, ulong.MaxValue));
-            Assert.Equal("signal", wideSignal.ParamName);
-            Assert.Contains("ERR_INVALID_ARG_TYPE", wideSignal.Message);
-            Assert.True(process.killNumber((long)child.Id, 0M));
+            Assert.True(process.killNumber(child.Id, 0));
             Assert.False(child.HasExited);
         }
         finally
@@ -127,6 +107,19 @@ public class killTests
         var native = typeof(process).GetMethod("kill", new[] { typeof(int), typeof(int?) });
         Assert.NotNull(native);
         Assert.Equal(typeof(bool), native.ReturnType);
+        var entries = typeof(process).GetMethods()
+            .Where(method => method.Name is "kill" or "killNamed" or "killNumber").ToArray();
+        Assert.Equal(3, entries.Length);
+        Assert.All(entries, entry =>
+        {
+            Assert.False(entry.IsGenericMethod);
+            Assert.Equal(typeof(bool), entry.ReturnType);
+            var parameters = entry.GetParameters();
+            Assert.Equal(2, parameters.Length);
+            Assert.Equal(typeof(int), parameters[0].ParameterType);
+            Assert.Equal(entry.Name == "kill" ? typeof(int?) : entry.Name == "killNamed" ? typeof(string) : typeof(int),
+                parameters[1].ParameterType);
+        });
         if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
             return;
         var currentPid = process.pid;

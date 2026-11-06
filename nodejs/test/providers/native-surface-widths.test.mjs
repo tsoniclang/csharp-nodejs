@@ -378,6 +378,32 @@ for (const surface of ["csharp", "js"]) {
   });
 }
 
+for (const surface of ["csharp", "js"]) {
+  test(`C2380 process.kill uses native int32 inputs on ${surface}`, () => {
+    const compiled = compileCsharpSource({
+      surface,
+      capabilities: [createTsonicPlugin()],
+      sourceText: `
+        import { kill } from "node:process";
+        import type { int32 } from "@tsonic/core/types.js";
+
+        export function omitted(pid: int32): boolean { return kill(pid); }
+        export function absent(pid: int32): boolean { return kill(pid, undefined); }
+        export function numeric(pid: int32, signal: int32): boolean { return kill(pid, signal); }
+        export function named(pid: int32): boolean { return kill(pid, "SIGUSR1"); }
+        export function exists(pid: int32): boolean { return kill(pid, 0); }
+      `,
+    });
+    assertCsharpCompilationSucceeded(compiled);
+    const source = compiled.artifacts.get("src/Index.cs");
+    assert.match(source, /bool omitted\(int pid\)/u);
+    assert.match(source, /bool numeric\(int pid, int signal\)/u);
+    assert.match(source, /process\.killNumber\(pid, signal\)/u);
+    assert.match(source, /process\.killNamed\(pid, "SIGUSR1"\)/u);
+    assert.doesNotMatch(source, /kill(?:Named|Number)?<|IntegerConversions|processSignalInteger/u);
+  });
+}
+
 function publishedCell(moduleSpecifier, memberPath, signatureId, position, includeJsSurfaceMembers) {
   const [exportName, memberName] = memberPath.split(".");
   const declarations = nodejsCanonicalProviderExports(moduleSpecifier, includeJsSurfaceMembers);

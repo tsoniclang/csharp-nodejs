@@ -113,7 +113,6 @@ function moduleCallRecords(
   entries: readonly NodejsModuleCallTargetMember[],
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
-    ...(entry.argumentAdapters === undefined ? {} : { argumentAdapters: entry.argumentAdapters }),
     declarationIdentities: [
       nodejsExportSignatureDeclarationIdentity(moduleSpecifier, entry.exportName, entry.signatureId),
       ...nodejsDefaultModuleMemberDeclarationIdentities(
@@ -144,7 +143,6 @@ function classCallRecords(
   entries: readonly NodejsClassCallTargetMember[],
 ): readonly NodejsTargetMemberMetadataRecord[] {
   return entries.map((entry) => ({
-    ...(entry.argumentAdapters === undefined ? {} : { argumentAdapters: entry.argumentAdapters }),
     declarationIdentities: [
       nodejsExportMemberSignatureDeclarationIdentity(
         moduleSpecifier,
