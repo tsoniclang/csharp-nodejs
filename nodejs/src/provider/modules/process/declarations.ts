@@ -26,7 +26,7 @@ import {
   nodejsDefaultModuleObjectExports,
 } from "../../declarations/defaults.js";
 import { nodejsCapabilityModuleExports } from "../../declarations/exports.js";
-import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow, NodejsModulePropertyTargetMetadata, NodejsModulePropertyTargetMetadataRow } from "../../model/target-members.js";
+import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow, NodejsModulePropertyTargetMetadata, NodejsModulePropertyTargetMetadataRow } from "../../model/target-members.js";
 import type { NodejsClassPropertyTargetMember } from "../../model/members.js";
 
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
@@ -280,11 +280,11 @@ function nodeProcessEnvClassPropertyTargetMembers(): readonly NodejsClassPropert
   ];
 }
 
-function nodeProcessMemoryUsageClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMember[] {
+function nodeProcessMemoryUsageClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return nodeProcessMemoryUsageClassPropertyTargetMetadataRows.map(nodejsClassPropertyTargetMetadata);
 }
 
-function nodeProcessCpuUsageClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMember[] {
+function nodeProcessCpuUsageClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return ["user", "system"].map(name => nodejsClassPropertyTargetMetadata({
     exportName: "CpuUsage", memberName: name, memberId: `Tsonic.CSharp.Node.CpuUsage.${name}`,
     targetMemberId: `Tsonic.CSharp.Node.CpuUsage.${name}`, sourceName: name, targetName: name,
