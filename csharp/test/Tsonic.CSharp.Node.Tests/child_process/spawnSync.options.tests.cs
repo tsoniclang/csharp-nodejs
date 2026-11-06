@@ -10,7 +10,7 @@ public class ChildProcessSpawnOptionsTests
     [Fact]
     public void BinaryInputRetainsViewAndStdioAliases()
     {
-        var backing = new Uint8Array(new double[] { 9, 0, 255, 42, 9 });
+        var backing = new Uint8Array(new byte[] { 9, 0, 255, 42, 9 });
         var view = new Uint8Array(backing.buffer, 1, 3);
         var descriptors = new JSArray<Union<double, string>?>(new Union<double, string>?[] { "pipe", "ignore", "pipe" });
         var options = new SpawnSyncOptions { encoding = "buffer", input = view, stdio = descriptors, maxBuffer = 4096 };

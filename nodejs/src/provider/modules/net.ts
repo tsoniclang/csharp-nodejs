@@ -16,7 +16,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, int32ProviderType, int64ProviderType, undefinedProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
@@ -71,7 +71,7 @@ export function nodeNetExports(): readonly ProviderExportDeclaration[] {
 
 export function nodeNetCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
   return Object.freeze([
-    moduleCall("createConnection", [numberParameter("port"), optionalString("host"), optionalAction("connectionListener")], providerClass("Socket"), [
+    moduleCall("createConnection", [int32Parameter("port"), optionalString("host"), optionalAction("connectionListener")], providerClass("Socket"), [
       targetParameter("port", intTargetType),
       targetParameter("host", nullableStringTargetType, { optional: true }),
       targetParameter("connectionListener", actionTargetType, { optional: true }),
@@ -87,7 +87,7 @@ export function nodeNetCallTargetMembers(): readonly NodejsModuleCallTargetMetad
       targetParameter("options", targetTypes.ServerOptions),
       targetParameter("connectionListener", socketListenerTargetType, { optional: true }),
     ], targetTypes.Server),
-    moduleCall("isIP", [stringParameter("input")], numberProviderType, [targetParameter("input", stringTargetType)], intTargetType),
+    moduleCall("isIP", [stringParameter("input")], int32ProviderType, [targetParameter("input", stringTargetType)], intTargetType),
     moduleCall("isIPv4", [stringParameter("input")], booleanProviderType, [targetParameter("input", stringTargetType)], boolTargetType),
     moduleCall("isIPv6", [stringParameter("input")], booleanProviderType, [targetParameter("input", stringTargetType)], boolTargetType),
   ]);
@@ -97,7 +97,7 @@ export function nodeNetClassCallTargetMembers(): readonly NodejsClassCallTargetM
   const calls: NodejsClassCallTargetMetadata[] = [
     constructor("Socket", [], []),
     constructor("Server", [], []),
-    classCall("Socket", "connect", [numberParameter("port"), optionalString("host"), optionalAction("connectionListener")], providerClass("Socket"), [
+    classCall("Socket", "connect", [int32Parameter("port"), optionalString("host"), optionalAction("connectionListener")], providerClass("Socket"), [
       targetParameter("port", intTargetType),
       targetParameter("host", nullableStringTargetType, { optional: true }),
       targetParameter("connectionListener", actionTargetType, { optional: true }),
@@ -119,7 +119,7 @@ export function nodeNetClassCallTargetMembers(): readonly NodejsClassCallTargetM
     classCall("Socket", "pause", [], providerClass("Socket"), [], targetTypes.Socket),
     classCall("Socket", "resume", [], providerClass("Socket"), [], targetTypes.Socket),
     classCall("Socket", "destroy", [], providerClass("Socket"), [], targetTypes.Socket),
-    classCall("Server", "listen", [numberParameter("port"), optionalString("hostname"), optionalAction("callback")], providerClass("Server"), [
+    classCall("Server", "listen", [int32Parameter("port"), optionalString("hostname"), optionalAction("callback")], providerClass("Server"), [
       targetParameter("port", intTargetType),
       targetParameter("hostname", stringTargetType, { optional: true }),
       targetParameter("callback", actionTargetType, { optional: true }),
@@ -139,21 +139,21 @@ export function nodeNetClassCallTargetMembers(): readonly NodejsClassCallTargetM
 
 export function nodeNetClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return Object.freeze([
-    optionProperty("ConnectOptions", "port", numberProviderType, intTargetType, false),
+    optionProperty("ConnectOptions", "port", int32ProviderType, intTargetType, false),
     optionProperty("ConnectOptions", "host", stringProviderType, nullableStringTargetType),
-    optionProperty("ListenOptions", "port", numberProviderType, nullableIntTargetType),
+    optionProperty("ListenOptions", "port", int32ProviderType, nullableIntTargetType),
     optionProperty("ListenOptions", "host", stringProviderType, nullableStringTargetType),
-    optionProperty("ListenOptions", "backlog", numberProviderType, nullableIntTargetType),
+    optionProperty("ListenOptions", "backlog", int32ProviderType, nullableIntTargetType),
     optionProperty("ServerOptions", "allowHalfOpen", booleanProviderType, nullableBoolTargetType),
     optionProperty("ServerOptions", "pauseOnConnect", booleanProviderType, nullableBoolTargetType),
     readonlyProperty("Socket", "connecting", booleanProviderType, boolTargetType),
     readonlyProperty("Socket", "destroyed", booleanProviderType, boolTargetType),
-    readonlyProperty("Socket", "bytesRead", numberProviderType, longTargetType),
-    readonlyProperty("Socket", "bytesWritten", numberProviderType, longTargetType),
+    readonlyProperty("Socket", "bytesRead", int64ProviderType, longTargetType),
+    readonlyProperty("Socket", "bytesWritten", int64ProviderType, longTargetType),
     readonlyProperty("Socket", "remoteAddress", stringProviderType, nullableStringTargetType),
-    readonlyProperty("Socket", "remotePort", numberProviderType, nullableIntTargetType),
+    readonlyProperty("Socket", "remotePort", { kind: "union", types: [int32ProviderType, undefinedProviderType] }, nullableIntTargetType),
     readonlyProperty("Socket", "localAddress", stringProviderType, nullableStringTargetType),
-    readonlyProperty("Socket", "localPort", numberProviderType, nullableIntTargetType),
+    readonlyProperty("Socket", "localPort", { kind: "union", types: [int32ProviderType, undefinedProviderType] }, nullableIntTargetType),
     readonlyProperty("Server", "listening", booleanProviderType, boolTargetType),
   ]);
 }
@@ -286,8 +286,8 @@ function stringParameter(name: string): ProviderParameterDeclaration {
   return { name, type: stringProviderType };
 }
 
-function numberParameter(name: string): ProviderParameterDeclaration {
-  return { name, type: numberProviderType };
+function int32Parameter(name: string): ProviderParameterDeclaration {
+  return { name, type: int32ProviderType };
 }
 
 function optionalString(name: string): ProviderParameterDeclaration {

@@ -51,7 +51,7 @@ public static partial class fs
     /// <param name="length">The number of bytes to read.</param>
     /// <param name="position">The position in the file to start reading from. If null, reads from current position.</param>
     /// <returns>The number of bytes read.</returns>
-    public static int readSync(int fd, Buffer buffer, int offset, int length, long? position)
+    public static int readSync(int fd, Buffer buffer, int offset, int length, long? position = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));

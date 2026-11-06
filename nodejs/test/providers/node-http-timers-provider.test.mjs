@@ -122,7 +122,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
       import type { IncomingMessage, ServerResponse } from "node:http";
       import * as timers from "node:timers";
 
-      export function start(port: number): void {
+      export function start(port: int32): void {
         const server = http.createServer(
           (request: IncomingMessage, response: ServerResponse) => {
             response.statusCode = 200;
@@ -148,7 +148,7 @@ test("Node HTTP and timer source operations compile through exact provider relat
     source,
     /Tsonic\.CSharp\.Node\.Http\.http\.createServer/u,
   );
-  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), \(\) =>\s*\{\s*\}\);/u);
+  assert.match(source, /server\.listen\(port, \(\) =>\s*\{\s*\}\);/u);
   assert.match(
     source,
     /Tsonic\.CSharp\.Node\.timers\.setInterval/u,

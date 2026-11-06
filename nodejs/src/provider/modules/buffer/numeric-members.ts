@@ -1,6 +1,7 @@
 import type {
   ProviderMemberDeclaration,
   ProviderParameterDeclaration,
+  ProviderTypeExpression,
 } from "@tsonic/tsts";
 import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
 import type {
@@ -22,9 +23,6 @@ import {
   nodeBufferUintTargetType,
   nodeBufferUshortTargetType,
 } from "./target-types.js";
-import {
-  nodeBufferNumberProviderType,
-} from "./provider-types.js";
 
 interface NodeBufferNumericParameterDescriptor {
   readonly name: string;
@@ -75,8 +73,8 @@ export function nodeBufferNumericInstanceMemberDeclarations(): readonly Provider
     kind: "method",
     signatures: [{
       id: nodeBufferNumericSignatureId(member),
-      parameters: member.parameters.map(providerNumberParameter),
-      returnType: nodeBufferNumberProviderType,
+      parameters: member.parameters.map(providerNumericParameter),
+      returnType: numericProviderType(member.targetReturnType),
     }],
   }));
 }
@@ -116,12 +114,19 @@ function writeMember(
   };
 }
 
-function providerNumberParameter(parameter: NodeBufferNumericParameterDescriptor): ProviderParameterDeclaration {
+function providerNumericParameter(parameter: NodeBufferNumericParameterDescriptor): ProviderParameterDeclaration {
   return {
     name: parameter.name,
-    type: nodeBufferNumberProviderType,
+    type: numericProviderType(parameter.targetType),
     optional: parameter.name === "offset" ? true : undefined,
   };
+}
+
+function numericProviderType(type: TargetTypeRef): ProviderTypeExpression {
+  if (type.kind !== "source-primitive") {
+    throw new Error("A Buffer numeric declaration requires its exact primitive member type.");
+  }
+  return { kind: "source-primitive", name: type.name };
 }
 
 function nodeBufferNumericTargetMember(member: NodeBufferNumericMemberDescriptor): CsharpTargetMember {

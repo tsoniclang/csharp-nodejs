@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../../model/source-types.js";
 import { csharpDelegateTargetType, csharpNullableTargetType, targetParameter } from "@tsonic/target-csharp/provider";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../../model/target-members.js";
 import {
@@ -5,7 +6,6 @@ import {
   nodeHttpAddressInfoExportName,
   nodeHttpServerAddressExportName,
   stringProviderType,
-  numberProviderType,
   voidProviderType,
   boolProviderType,
   undefinedProviderType,
@@ -13,7 +13,6 @@ import {
   stringTargetType,
   nullableStringTargetType,
   intTargetType,
-  integerInputAdapter,
   boolTargetType,
   nullableIntTargetType,
   serverTargetType,
@@ -29,7 +28,7 @@ import {
   voidCallbackTargetType,
   callbackProviderType,
   stringParameter,
-  numberParameter,
+  int32Parameter,
 } from "./types.js";
 import { typedEventRows, readonlyProperty, nodeHttpClassCall } from "./members.js";
 
@@ -44,9 +43,8 @@ export function serverCallTargetMembers(): readonly NodejsClassCallTargetMetadat
       sourceName: "listen",
       targetName: "listen",
       memberKind: "method",
-      providerParameters: [numberParameter("port"), { name: "callback", type: voidCallbackProviderType, optional: true }],
+      providerParameters: [int32Parameter("port"), { name: "callback", type: voidCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
-      argumentAdapters: [integerInputAdapter, undefined],
       targetParameters: [targetParameter("port", intTargetType), targetParameter("callback", csharpNullableTargetType(voidCallbackTargetType), { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,
@@ -61,13 +59,12 @@ export function serverCallTargetMembers(): readonly NodejsClassCallTargetMetadat
       targetName: "listen",
       memberKind: "method",
       providerParameters: [
-        numberParameter("port"),
+        int32Parameter("port"),
         stringParameter("hostname"),
-        numberParameter("backlog"),
+        { name: "backlog", type: { kind: "union", types: [int32ProviderType, undefinedProviderType] } },
         { name: "callback", type: voidListenHostnameCallbackProviderType, optional: true },
       ],
       providerReturnType: serverProviderType,
-      argumentAdapters: [integerInputAdapter, undefined, integerInputAdapter, undefined],
       targetParameters: [
         targetParameter("port", intTargetType),
         targetParameter("hostname", stringTargetType),
@@ -86,9 +83,8 @@ export function serverCallTargetMembers(): readonly NodejsClassCallTargetMetadat
       sourceName: "listen",
       targetName: "listen",
       memberKind: "method",
-      providerParameters: [numberParameter("port"), stringParameter("hostname"), { name: "callback", type: voidListenHostnameCallbackProviderType, optional: true }],
+      providerParameters: [int32Parameter("port"), stringParameter("hostname"), { name: "callback", type: voidListenHostnameCallbackProviderType, optional: true }],
       providerReturnType: serverProviderType,
-      argumentAdapters: [integerInputAdapter, undefined, undefined],
       targetParameters: [targetParameter("port", intTargetType), targetParameter("hostname", stringTargetType), targetParameter("callback", csharpNullableTargetType(voidCallbackTargetType), { optional: true })],
       targetReturnType: serverTargetType,
       declaringType: serverTargetType,
@@ -196,7 +192,7 @@ export function addressInfoPropertyTargetMembers(): readonly NodejsClassProperty
   return [
     readonlyProperty(nodeHttpAddressInfoExportName, "address", stringProviderType, stringTargetType, addressInfoTargetType),
     readonlyProperty(nodeHttpAddressInfoExportName, "family", stringProviderType, stringTargetType, addressInfoTargetType),
-    readonlyProperty(nodeHttpAddressInfoExportName, "port", numberProviderType, intTargetType, addressInfoTargetType),
+    readonlyProperty(nodeHttpAddressInfoExportName, "port", int32ProviderType, intTargetType, addressInfoTargetType),
   ];
 }
 
@@ -204,6 +200,6 @@ export function serverAddressPropertyTargetMembers(): readonly NodejsClassProper
   return [
     readonlyProperty(nodeHttpServerAddressExportName, "address", { kind: "union", types: [addressInfoProviderType, undefinedProviderType] }, csharpNullableTargetType(addressInfoTargetType), serverAddressTargetType),
     readonlyProperty(nodeHttpServerAddressExportName, "path", stringOrUndefinedProviderType, nullableStringTargetType, serverAddressTargetType),
-    readonlyProperty(nodeHttpServerAddressExportName, "port", { kind: "union", types: [numberProviderType, undefinedProviderType] }, nullableIntTargetType, serverAddressTargetType),
+    readonlyProperty(nodeHttpServerAddressExportName, "port", { kind: "union", types: [int32ProviderType, undefinedProviderType] }, nullableIntTargetType, serverAddressTargetType),
   ];
 }

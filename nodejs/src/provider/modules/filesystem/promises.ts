@@ -1,3 +1,4 @@
+import { int32ProviderType, int64ProviderType } from "../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
@@ -25,7 +26,6 @@ import {
   longTargetType,
   makeDirectoryOptionsProviderType,
   makeDirectoryOptionsTargetType,
-  numberProviderType,
   promiseProviderType,
   rmOptionsProviderType,
   rmOptionsTargetType,
@@ -75,11 +75,12 @@ export function nodeFsPromisesExportDeclarations(): readonly ProviderExportDecla
 export function nodeFsPromisesCallTargetMembers(): readonly NodeFsCallTargetMember[] {
   const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
   const optionalStringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType, optional: true });
-  const numberParameter = (name: string): ProviderParameterDeclaration => ({ name, type: numberProviderType });
-  const optionalNumberParameter = (name: string): ProviderParameterDeclaration => ({ name, type: numberProviderType, optional: true });
+  const int32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType });
+  const optionalInt32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType, optional: true });
+  const optionalInt64Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int64ProviderType, optional: true });
   const optionalBoolParameter = (name: string): ProviderParameterDeclaration => ({ name, type: boolProviderType, optional: true });
   return [
-    fsPromiseCall({ exportName: "access", signatureId: "node:fs/promises.access(System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.access(System.String,System.Int32)", sourceName: "access", targetName: "access", providerParameters: [stringParameter("path"), optionalNumberParameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
+    fsPromiseCall({ exportName: "access", signatureId: "node:fs/promises.access(System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.access(System.String,System.Int32)", sourceName: "access", targetName: "access", providerParameters: [stringParameter("path"), optionalInt32Parameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
       targetParameter("path", stringTargetType),
       targetParameter("mode", intTargetType, { optional: true }),
     ], targetReturnType: taskTargetType(voidTargetType) }),
@@ -92,11 +93,11 @@ export function nodeFsPromisesCallTargetMembers(): readonly NodeFsCallTargetMemb
       targetParameter("path", stringTargetType),
       targetParameter("data", bufferTargetType),
     ], targetReturnType: taskTargetType(voidTargetType) }),
-    fsPromiseCall({ exportName: "chmod", signatureId: "node:fs/promises.chmod(System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.chmod(System.String,System.Int32)", sourceName: "chmod", targetName: "chmod", providerParameters: [stringParameter("path"), numberParameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
+    fsPromiseCall({ exportName: "chmod", signatureId: "node:fs/promises.chmod(System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.chmod(System.String,System.Int32)", sourceName: "chmod", targetName: "chmod", providerParameters: [stringParameter("path"), int32Parameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
       targetParameter("path", stringTargetType),
       targetParameter("mode", intTargetType),
     ], targetReturnType: taskTargetType(voidTargetType) }),
-    fsPromiseCall({ exportName: "copyFile", signatureId: "node:fs/promises.copyFile(System.String,System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.copyFile(System.String,System.String,System.Int32)", sourceName: "copyFile", targetName: "copyFile", providerParameters: [stringParameter("src"), stringParameter("dest"), optionalNumberParameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
+    fsPromiseCall({ exportName: "copyFile", signatureId: "node:fs/promises.copyFile(System.String,System.String,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.copyFile(System.String,System.String,System.Int32)", sourceName: "copyFile", targetName: "copyFile", providerParameters: [stringParameter("src"), stringParameter("dest"), optionalInt32Parameter("mode")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
       targetParameter("src", stringTargetType),
       targetParameter("dest", stringTargetType),
       targetParameter("mode", intTargetType, { optional: true }),
@@ -155,7 +156,7 @@ export function nodeFsPromisesCallTargetMembers(): readonly NodeFsCallTargetMemb
       targetParameter("path", stringTargetType),
       targetParameter("type", stringTargetType, { optional: true }),
     ], targetReturnType: taskTargetType(voidTargetType) }),
-    fsPromiseCall({ exportName: "truncate", signatureId: "node:fs/promises.truncate(System.String,System.Int64)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.truncate(System.String,System.Int64)", sourceName: "truncate", targetName: "truncate", providerParameters: [stringParameter("path"), optionalNumberParameter("len")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
+    fsPromiseCall({ exportName: "truncate", signatureId: "node:fs/promises.truncate(System.String,System.Int64)", targetMemberId: "Tsonic.CSharp.Node.fs_promises.truncate(System.String,System.Int64)", sourceName: "truncate", targetName: "truncate", providerParameters: [stringParameter("path"), optionalInt64Parameter("len")], providerReturnType: promiseProviderType(voidProviderType), targetParameters: [
       targetParameter("path", stringTargetType),
       targetParameter("len", longTargetType, { optional: true }),
     ], targetReturnType: taskTargetType(voidTargetType) }),

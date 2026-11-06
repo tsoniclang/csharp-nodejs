@@ -16,7 +16,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../../model/source-types.js";
+import { booleanProviderType, int32ProviderType, int64ProviderType, stringProviderType, voidProviderType } from "../../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../../model/target-members.js";
 import {
@@ -177,21 +177,21 @@ export function nodeFsStreamClassPropertyTargetMembers(): readonly NodejsClassPr
     optionProperty("WatchOptions", "recursive", booleanProviderType, nullableBoolTargetType),
     optionProperty("ReadStreamOptions", "flags", readStreamFlagProviderType, nullableStringTargetType),
     optionProperty("ReadStreamOptions", "encoding", stringProviderType, nullableStringTargetType),
-    optionProperty("ReadStreamOptions", "start", numberProviderType, nullableLongTargetType),
-    optionProperty("ReadStreamOptions", "end", numberProviderType, nullableLongTargetType),
-    optionProperty("ReadStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
+    optionProperty("ReadStreamOptions", "start", int64ProviderType, nullableLongTargetType),
+    optionProperty("ReadStreamOptions", "end", int64ProviderType, nullableLongTargetType),
+    optionProperty("ReadStreamOptions", "highWaterMark", int32ProviderType, nullableIntTargetType),
     optionProperty("WriteStreamOptions", "flags", writeStreamFlagProviderType, nullableStringTargetType),
-    optionProperty("WriteStreamOptions", "mode", numberProviderType, nullableIntTargetType),
+    optionProperty("WriteStreamOptions", "mode", int32ProviderType, nullableIntTargetType),
     optionProperty("WriteStreamOptions", "encoding", stringProviderType, nullableStringTargetType),
-    optionProperty("WriteStreamOptions", "start", numberProviderType, nullableLongTargetType),
-    optionProperty("WriteStreamOptions", "highWaterMark", numberProviderType, nullableIntTargetType),
+    optionProperty("WriteStreamOptions", "start", int64ProviderType, nullableLongTargetType),
+    optionProperty("WriteStreamOptions", "highWaterMark", int32ProviderType, nullableIntTargetType),
     optionProperty("WriteStreamOptions", "flush", booleanProviderType, nullableBoolTargetType),
     readonlyProperty("FsWatcher", "closed", booleanProviderType, boolTargetType),
     readonlyProperty("StatWatcher", "closed", booleanProviderType, boolTargetType),
     readonlyProperty("ReadStream", "path", stringProviderType, stringTargetType),
-    readonlyProperty("ReadStream", "bytesRead", numberProviderType, longTargetType),
+    readonlyProperty("ReadStream", "bytesRead", int64ProviderType, longTargetType),
     readonlyProperty("WriteStream", "path", stringProviderType, stringTargetType),
-    readonlyProperty("WriteStream", "bytesWritten", numberProviderType, longTargetType),
+    readonlyProperty("WriteStream", "bytesWritten", int64ProviderType, longTargetType),
   ]);
 }
 

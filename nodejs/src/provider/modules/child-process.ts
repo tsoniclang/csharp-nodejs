@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../model/source-types.js";
 import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import {
   csharpJsArrayTargetType, csharpJsTypedArrayTargetType, csharpNullableTargetType,
@@ -90,17 +91,17 @@ export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembe
       nodeChildProcessSpawnSyncReturnsExportName, resultTarget, name,
       union({ kind: "type-parameter", name: "T" }, nullType), csharpNullableTargetType(nodeBufferTargetType),
     )),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(numberType, nullType), csharpNullableValueTargetType(intTarget)),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", numberType, csharpNullableValueTargetType(intTarget), true),
+    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(int32ProviderType, nullType), csharpNullableValueTargetType(intTarget)),
+    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", int32ProviderType, csharpNullableValueTargetType(intTarget), true),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "signal", union(providerRef("Signals", "node:process"), nullType), csharpNullableTargetType(stringTarget)),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "error", providerRef(errorExportName), csharpNullableTargetType(errorTarget), true),
     ...["message", "code"].map(name => property(errorExportName, errorTarget, name, stringType, stringTarget, false, true)),
     property(optionsExportName, optionsTarget, "encoding", { kind: "literal", value: "buffer" }, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "cwd", stringType, csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "env", providerRef("ProcessEnv", "node:process"), csharpNullableTargetType(nativeType("ProcessEnv")), true),
-    property(optionsExportName, optionsTarget, "maxBuffer", numberType, csharpNullableValueTargetType(intTarget), true),
+    property(optionsExportName, optionsTarget, "maxBuffer", int32ProviderType, csharpNullableValueTargetType(intTarget), true),
     ...["uid", "gid", "timeout"].map(name =>
-      property(optionsExportName, optionsTarget, name, numberType, csharpNullableValueTargetType(intTarget), true)),
+      property(optionsExportName, optionsTarget, name, int32ProviderType, csharpNullableValueTargetType(intTarget), true)),
     property(optionsExportName, optionsTarget, "killSignal", providerRef("Signals", "node:process"), csharpNullableTargetType(stringTarget), true),
     property(optionsExportName, optionsTarget, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),
       csharpNullableTargetType(options.input), true),

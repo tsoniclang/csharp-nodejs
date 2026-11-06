@@ -36,21 +36,21 @@ for (const [moduleSpecifier, typeName, field] of nativeOptionContracts) {
   });
 }
 
-test("HTTP listen validates floating ports and passes native integers directly", () => {
-  for (const native of [false, true]) {
+test("HTTP listen exposes native int32 ports on both surfaces without a numeric shim", () => {
+  for (const surface of ["csharp", "js"]) {
     const compiled = compileCsharpSource({
-      surface: "js", capabilities: [createTsonicPlugin()],
+      surface, capabilities: [createTsonicPlugin()],
       sourceText: `
         import { createServer } from "node:http";
         import type { int32 } from "@tsonic/core/types.js";
-        export function run(port: ${native ? "int32" : "number"}): void {
+        export function run(port: int32): void {
           createServer((request, response) => { response.end(); }).listen(port);
         }
       `,
     });
     assertCsharpCompilationSucceeded(compiled);
     const source = compiled.artifacts.get("src/Index.cs");
-    if (native) assert.doesNotMatch(source, /RequireInteger|Convert\.ToInt32/u);
-    else assert.match(source, /JsNumeric\.RequireInteger\(port\)/u);
+    assert.match(source, /\.listen\(port\)/u);
+    assert.doesNotMatch(source, /RequireInteger|Convert\.ToInt32/u);
   }
 });

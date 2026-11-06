@@ -31,7 +31,7 @@ test("Node provider relations form one contradiction-free exact catalog", () => 
   const relationCatalog = createCsharpProviderRelationCatalog([relations]);
   const rejectionCatalog = createCsharpProviderRejectionCatalog([rejections]);
 
-  assert.equal(relations.length, 2150);
+  assert.equal(relations.length, 2138);
   assert.equal(rejections.length, 166);
   assert.equal(relationCatalog.relations.length, relations.length);
   assert.equal(rejectionCatalog.rejections.length, rejections.length);
@@ -225,9 +225,9 @@ test("standard filesystem option objects lower through exact provider constructi
 
       export function recreate(
         path: string,
-        mode: number,
-        maxRetries: number,
-        retryDelay: number,
+        mode: int32,
+        maxRetries: uint32,
+        retryDelay: int32,
       ): void {
         mkdirSync(path, { recursive: true, mode });
         rmSync(path, { recursive: true, force: true, maxRetries, retryDelay });
@@ -245,11 +245,11 @@ test("standard filesystem option objects lower through exact provider constructi
   const source = compiled.artifacts.get("src/Index.cs");
   assert.match(
     source,
-    /new Tsonic\.CSharp\.Node\.MakeDirectoryOptions\s*\{[\s\S]*recursive = true[\s\S]*mode = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, int>\(mode\)[\s\S]*\}/u,
+    /new Tsonic\.CSharp\.Node\.MakeDirectoryOptions\s*\{[\s\S]*recursive = true[\s\S]*mode = mode[\s\S]*\}/u,
   );
   assert.match(
     source,
-    /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, uint>\(maxRetries\)[\s\S]*retryDelay = Tsonic\.CSharp\.Runtime\.IntegerConversions\.Checked<double, int>\(retryDelay\)[\s\S]*\}/u,
+    /new Tsonic\.CSharp\.Node\.RmOptions\s*\{[\s\S]*recursive = true[\s\S]*force = true[\s\S]*maxRetries = maxRetries[\s\S]*retryDelay = retryDelay[\s\S]*\}/u,
   );
   assert.match(
     source,
@@ -295,11 +295,11 @@ test("filesystem links, child processes, legacy URLs, and text decoding use exac
         return lstatSync(path).isSymbolicLink();
       }
 
-      export function run(command: string, args: string[]): number | null {
+      export function run(command: string, args: string[]): int32 | null {
         return spawnSync(command, args).status;
       }
 
-      export function clearStatus(command: string, args: string[]): number | null {
+      export function clearStatus(command: string, args: string[]): int32 | null {
         const result = spawnSync(command, args);
         result.status = null;
         return result.status;
@@ -389,7 +389,7 @@ test("combined portability provider selection is independent of source ordering"
         return format(parse(value));
       }
 
-      export function run(command: string, args: string[]): number | null {
+      export function run(command: string, args: string[]): int32 | null {
         return spawnSync(command, args).status;
       }
 
@@ -407,14 +407,14 @@ test("combined portability provider selection is independent of source ordering"
   ]);
 });
 
-test("Node numeric API parameters validate floating inputs at native integer boundaries", () => {
+test("Node numeric API parameters retain their native integer declarations", () => {
   const compiled = compileCsharpSource({
     capabilities: [createTsonicPlugin()],
     targetOptions: { outputType: "Exe" },
     sourceText: `
       import * as http from "node:http";
 
-      export function start(port: number): void {
+      export function start(port: int32): void {
         const server = http.createServer((_request, _response) => {});
         server.listen(port, () => {});
       }
@@ -424,7 +424,7 @@ test("Node numeric API parameters validate floating inputs at native integer bou
   assertCsharpCompilationSucceeded(compiled);
   assert.match(
     compiled.artifacts.get("src/Index.cs"),
-    /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), \(\) =>\s*\{\s*\}\);/u,
+    /server\.listen\(port, \(\) =>\s*\{\s*\}\);/u,
   );
 
   const relations = nodejsProviderTargetRelations().filter(
@@ -446,89 +446,29 @@ test("Node numeric API parameters validate floating inputs at native integer bou
   );
 });
 
-test("Node provider relations declare every source-number target adapter exactly", () => {
-  const expectedTargetNames = new Map([
-    ["bool", "ToBoolean"],
-    ["int8", "ToSByte"],
-    ["uint8", "ToByte"],
-    ["int16", "ToInt16"],
-    ["uint16", "ToUInt16"],
-    ["int32", "ToInt32"],
-    ["native-int", "ToInt32"],
-    ["uint32", "ToUInt32"],
-    ["native-uint", "ToUInt32"],
-    ["int64", "ToInt64"],
-    ["uint64", "ToUInt64"],
-    ["float16", "ToSingle"],
-    ["float32", "ToSingle"],
-    ["decimal", "ToDecimal"],
-  ]);
-  let adapterCount = 0;
-
+test("Node native primitive parameters have exact widths and no floating conversion adapters", () => {
+  const records = nodejsTargetMemberMetadataRecords();
+  assert.equal(records.some(record => record.argumentAdapters?.some(adapter => adapter !== undefined)), false);
+  let parameterCount = 0;
   for (const relation of nodejsProviderTargetRelations()) {
     if (relation.kind !== "signature") continue;
-    const sourceSignature = findSourceSignature(relation);
+    const signature = findSourceSignature(relation);
     for (const parameter of relation.parameters) {
-      const sourceParameter = sourceSignature.parameters[
-        parameter.sourceParameterIndex
-      ];
-      const targetParameter = relation.targetMember.parameters[
-        parameter.targetParameterIndex
-      ];
-      assert.ok(sourceParameter);
-      assert.ok(targetParameter);
-      const resultType = getCsharpNullableElementTargetType(
-        targetParameter.type,
-      ) ?? targetParameter.type;
-      const expectedTargetName = sourceParameter.type.kind === "number" &&
-          resultType.kind === "source-primitive"
-        ? expectedTargetNames.get(resultType.name)
-        : undefined;
-      const identity = `${relation.source.moduleSpecifier}:${relation.source.signatureId}:parameter[${parameter.sourceParameterIndex}]`;
-
-      const declaredAdapters = nodejsTargetMemberMetadataRecords().filter(record =>
-        record.member.id === relation.targetMember.id && record.argumentAdapters !== undefined);
-      const explicitAdapter = declaredAdapters[0]?.argumentAdapters[parameter.targetParameterIndex];
-      if (explicitAdapter !== undefined) {
-        for (const record of declaredAdapters) {
-          assert.deepEqual(record.argumentAdapters[parameter.targetParameterIndex], explicitAdapter, identity);
-        }
-        assert.deepEqual(parameter.argumentAdapter, explicitAdapter, identity);
-        adapterCount += 1;
-        continue;
+      const source = signature.parameters[parameter.sourceParameterIndex];
+      const target = relation.targetMember.parameters[parameter.targetParameterIndex];
+      const label = `${relation.source.moduleSpecifier}:${relation.source.signatureId}:${source.name}`;
+      assert.equal(parameter.argumentAdapter, undefined, label);
+      const native = getCsharpNullableElementTargetType(target.type) ?? target.type;
+      if (source.type.kind === "source-primitive" && native.kind === "source-primitive") {
+        assert.equal(source.type.name, native.name, label);
       }
-
-      assert.equal(
-        parameter.argumentAdapter?.targetName,
-        expectedTargetName,
-        identity,
-      );
-      if (expectedTargetName === undefined) continue;
-      adapterCount += 1;
-      assert.deepEqual(parameter.argumentAdapter, {
-        kind: "static-method",
-        id: `System.Convert.${expectedTargetName}(System.Double)`,
-        declaringType: {
-          kind: "target-named",
-          id: "System.Convert",
-          csharpAllowsRefLikeTypeArguments: [],
-          csharpRender: {
-            kind: "named",
-            namespace: ["System"],
-            name: "Convert",
-          },
-        },
-        targetName: expectedTargetName,
-        inputType: { kind: "source-primitive", name: "float64" },
-        resultType,
-        ...(["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"].includes(resultType.name)
-          ? { nativeIntegerConversion: "checked" }
-          : {}),
-      }, identity);
+      if (source.type.kind === "number" && native.kind === "source-primitive") {
+        assert.equal(native.name, "float64", label);
+      }
+      parameterCount += 1;
     }
   }
-
-  assert.equal(adapterCount, 294);
+  assert.ok(parameterCount > 0, "every declared parameter participates");
 
   const bufferToString = nodejsProviderTargetRelations().filter(relation =>
     relation.kind === "signature" &&
@@ -552,20 +492,7 @@ test("Node provider relations declare every source-number target adapter exactly
     assert.equal(parameter.targetParameterIndex, 2, label);
     assert.equal(parameter.sourceAcceptsOmission, true, label);
     assert.equal(parameter.targetAcceptsOmission, true, label);
-    assert.deepEqual(parameter.argumentAdapter, {
-      kind: "static-method",
-      id: "System.Convert.ToInt32(System.Double)",
-      declaringType: {
-        kind: "target-named",
-        id: "System.Convert",
-        csharpAllowsRefLikeTypeArguments: [],
-        csharpRender: { kind: "named", namespace: ["System"], name: "Convert" },
-      },
-      targetName: "ToInt32",
-      inputType: { kind: "source-primitive", name: "float64" },
-      resultType: { kind: "source-primitive", name: "int32" },
-      nativeIntegerConversion: "checked",
-    }, label);
+    assert.equal(parameter.argumentAdapter, undefined, label);
   }
 });
 

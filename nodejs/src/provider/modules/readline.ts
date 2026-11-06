@@ -16,7 +16,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
@@ -111,12 +111,12 @@ export function nodeReadlineClassCallTargetMembers(): readonly NodejsClassCallTa
 export function nodeReadlineClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   const rows: readonly [string, string, ProviderTypeExpression, TargetTypeRef, boolean, boolean][] = [
     ["Interface", "line", stringProviderType, stringTargetType, false, true],
-    ["Interface", "cursor", numberProviderType, intTargetType, false, true],
+    ["Interface", "cursor", int32ProviderType, intTargetType, false, true],
     ["ReadLineOptions", "input", providerRef("node:stream", "Readable"), targetTypes.Readable, false, false],
     ["ReadLineOptions", "output", providerRef("node:stream", "Writable"), csharpNullableTargetType(targetTypes.Writable), true, false],
     ["ReadLineOptions", "terminal", booleanProviderType, nullableBoolTargetType, true, false],
     ["ReadLineOptions", "prompt", stringProviderType, nullableStringTargetType, true, false],
-    ["ReadLineOptions", "historySize", numberProviderType, nullableIntTargetType, true, false],
+    ["ReadLineOptions", "historySize", int32ProviderType, nullableIntTargetType, true, false],
     ["ReadLineOptions", "removeHistoryDuplicates", booleanProviderType, nullableBoolTargetType, true, false],
   ];
   return rows.map(([exportName, memberName, providerType, targetType, optional, readonly]) =>

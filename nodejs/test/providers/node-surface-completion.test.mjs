@@ -66,7 +66,7 @@ test("every canonical Node source operation has exact target policy", () => {
     }
   }
 
-  assert.equal(sourceSignatures.size, 575);
+  assert.equal(sourceSignatures.size, 572);
   assert.equal(sourceProperties.size, 309);
   assert.deepEqual([...policySignatures].sort(), [...sourceSignatures].sort());
   assert.deepEqual([...policyProperties].sort(), [...sourceProperties].sort());
@@ -191,7 +191,7 @@ test("required Node capability families compile together through exact provider 
         bytes: Buffer,
         lines: ReadLineOptions,
         host: string,
-        port: number,
+        port: int32,
       ): Socket {
         const listener = (value: any): void => {
           JSON.stringify(value);
@@ -202,7 +202,7 @@ test("required Node capability families compile together through exact provider 
         readable.pause().resume().pipe(writable);
         writable.write(bytes);
         writable.end("done");
-        lookup(host, (_error: any, address: string, family: number): void => {
+        lookup(host, (_error: any, address: string, family: int32): void => {
           JSON.stringify({ address, family });
         });
         gzipSync(bytes);
@@ -220,7 +220,7 @@ test("required Node capability families compile together through exact provider 
         connection: ConnectionOptions,
         tlsOptions: TlsOptions,
         httpsOptions: HttpsServerOptions,
-        port: number,
+        port: int32,
         host: string,
       ): void {
         const socket = connect(connection, (): void => {});

@@ -170,9 +170,9 @@ test("Tsumo portability APIs expose closed provider declarations", () => {
       ["stderr", { kind: "union", types: [{ kind: "type-parameter", name: "T" }, { kind: "literal", value: null }] }],
       ["status", {
         kind: "union",
-        types: [{ kind: "number" }, { kind: "literal", value: null }],
+        types: [{ kind: "source-primitive", name: "int32" }, { kind: "literal", value: null }],
       }],
-      ["pid", { kind: "number" }],
+      ["pid", { kind: "source-primitive", name: "int32" }],
       ["signal", { kind: "union", types: [{ kind: "provider-ref", moduleSpecifier: "node:process", exportName: "Signals" }, { kind: "literal", value: null }] }],
       ["error", { kind: "provider-ref", moduleSpecifier: "node:child_process", exportName: "SpawnSyncError" }],
     ],

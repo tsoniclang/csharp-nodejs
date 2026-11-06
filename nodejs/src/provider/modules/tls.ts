@@ -16,7 +16,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, unknownProviderType } from "../model/source-types.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, unknownProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 
@@ -65,7 +65,7 @@ export function nodeTlsCallTargetMembers(): readonly NodejsModuleCallTargetMetad
       targetParameter("options", targetTypes.ConnectionOptions),
       targetParameter("secureConnectListener", actionTargetType, { optional: true }),
     ], targetTypes.TLSSocket),
-    moduleCall("connect", [numberParameter("port"), optionalString("host"), optionalProvider("options", providerClass("ConnectionOptions")), optionalAction("secureConnectListener")], providerClass("TLSSocket"), [
+    moduleCall("connect", [int32Parameter("port"), optionalString("host"), optionalProvider("options", providerClass("ConnectionOptions")), optionalAction("secureConnectListener")], providerClass("TLSSocket"), [
       targetParameter("port", intTargetType),
       targetParameter("host", nullableStringTargetType, { optional: true }),
       targetParameter("options", targetTypes.ConnectionOptions, { optional: true }),
@@ -99,13 +99,13 @@ export function nodeTlsClassPropertyTargetMembers(): readonly NodejsClassPropert
   }
   properties.push(
     optionProperty("ConnectionOptions", "host", stringProviderType, nullableStringTargetType),
-    optionProperty("ConnectionOptions", "port", numberProviderType, nullableIntTargetType),
+    optionProperty("ConnectionOptions", "port", int32ProviderType, nullableIntTargetType),
     optionProperty("ConnectionOptions", "servername", stringProviderType, nullableStringTargetType),
     optionProperty("ConnectionOptions", "rejectUnauthorized", booleanProviderType, nullableBoolTargetType),
-    optionProperty("ConnectionOptions", "timeout", numberProviderType, nullableIntTargetType),
+    optionProperty("ConnectionOptions", "timeout", int32ProviderType, nullableIntTargetType),
     optionProperty("TlsOptions", "rejectUnauthorized", booleanProviderType, nullableBoolTargetType),
     optionProperty("TlsOptions", "requestCert", booleanProviderType, nullableBoolTargetType),
-    optionProperty("TlsOptions", "handshakeTimeout", numberProviderType, nullableIntTargetType),
+    optionProperty("TlsOptions", "handshakeTimeout", int32ProviderType, nullableIntTargetType),
     optionProperty("SecureContextOptions", "pfx", unknownProviderType, tsValueTargetType),
     optionProperty("SecureContextOptions", "minVersion", stringProviderType, nullableStringTargetType),
     optionProperty("SecureContextOptions", "maxVersion", stringProviderType, nullableStringTargetType),
@@ -186,8 +186,8 @@ function providerClass(exportName: keyof typeof targetTypes): ProviderTypeExpres
   return providerRef(nodeTlsModuleSpecifier, exportName);
 }
 
-function numberParameter(name: string): ProviderParameterDeclaration {
-  return { name, type: numberProviderType };
+function int32Parameter(name: string): ProviderParameterDeclaration {
+  return { name, type: int32ProviderType };
 }
 
 function optionalString(name: string): ProviderParameterDeclaration {

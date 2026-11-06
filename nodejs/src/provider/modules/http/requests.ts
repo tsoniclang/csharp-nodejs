@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../../model/source-types.js";
 import type { ProviderTypeExpression } from "@tsonic/tsts";
 import { csharpNullableTargetType, targetParameter } from "@tsonic/target-csharp/provider";
 import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
@@ -11,7 +12,6 @@ import {
   nodeHttpClientRequestExportName,
   nodeHttpRequestOptionsExportName,
   stringProviderType,
-  numberProviderType,
   voidProviderType,
   boolProviderType,
   stringOrUndefinedProviderType,
@@ -257,8 +257,8 @@ export function requestOptionsPropertyTargetMembers(): readonly NodejsClassPrope
     ["path", stringProviderType, nullableStringTargetType, true],
     ["method", stringProviderType, stringTargetType, false],
     ["protocol", stringProviderType, stringTargetType, false],
-    ["port", numberProviderType, intTargetType, false],
-    ["timeout", numberProviderType, nullableIntTargetType, true],
+    ["port", int32ProviderType, intTargetType, false],
+    ["timeout", int32ProviderType, nullableIntTargetType, true],
   ];
   return rows.map(([name, providerType, targetType, optional]) => nodeHttpClassProperty({
     exportName: nodeHttpRequestOptionsExportName,

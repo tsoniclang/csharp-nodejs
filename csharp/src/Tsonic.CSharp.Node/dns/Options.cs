@@ -14,7 +14,7 @@ public class LookupOptions
     /// The record family. Must be 4, 6, or 0.
     /// 0 indicates that either an IPv4 or IPv6 address is returned.
     /// </summary>
-    public object? family { get; set; } // Can be number or "IPv4" or "IPv6"
+    public int? family { get; set; }
 
     /// <summary>
     /// One or more supported getaddrinfo flags. Multiple flags may be passed by bitwise OR.

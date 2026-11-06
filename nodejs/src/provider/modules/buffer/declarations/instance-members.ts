@@ -1,3 +1,4 @@
+import { int32ProviderType, uint8ProviderType } from "../../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
 } from "@tsonic/tsts";
@@ -67,7 +68,7 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       name: "length",
       kind: "property",
       readonly: true,
-      type: nodeBufferNumberProviderType,
+      type: int32ProviderType,
     },
     {
       id: nodeBufferCompareInstanceMemberId,
@@ -76,7 +77,7 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       signatures: [{
         id: nodeBufferCompareInstanceSignatureId,
         parameters: [{ name: "target", type: nodeBufferProviderType }],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -87,11 +88,11 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferCopySignatureId,
         parameters: [
           { name: "target", type: nodeBufferProviderType },
-          { name: "targetStart", type: nodeBufferNumberProviderType, optional: true },
-          { name: "sourceStart", type: nodeBufferNumberProviderType, optional: true },
-          { name: "sourceEnd", type: nodeBufferNumberProviderType, optional: true },
+          { name: "targetStart", type: int32ProviderType, optional: true },
+          { name: "sourceStart", type: int32ProviderType, optional: true },
+          { name: "sourceEnd", type: int32ProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -112,7 +113,7 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferIncludesSignatureId,
         parameters: [
           { name: "value", type: bufferSearchValueProviderType },
-          { name: "byteOffset", type: nodeBufferNumberProviderType, optional: true },
+          { name: "byteOffset", type: int32ProviderType, optional: true },
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
         ],
         returnType: nodeBufferBoolProviderType,
@@ -126,10 +127,10 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferIndexOfSignatureId,
         parameters: [
           { name: "value", type: bufferSearchValueProviderType },
-          { name: "byteOffset", type: nodeBufferNumberProviderType, optional: true },
+          { name: "byteOffset", type: int32ProviderType, optional: true },
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -140,10 +141,10 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferLastIndexOfSignatureId,
         parameters: [
           { name: "value", type: bufferSearchValueProviderType },
-          { name: "byteOffset", type: nodeBufferNumberProviderType, optional: true },
+          { name: "byteOffset", type: int32ProviderType, optional: true },
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -153,8 +154,8 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       signatures: [{
         id: nodeBufferSliceSignatureId,
         parameters: [
-          { name: "start", type: nodeBufferNumberProviderType, optional: true },
-          { name: "end", type: nodeBufferNumberProviderType, optional: true },
+          { name: "start", type: int32ProviderType, optional: true },
+          { name: "end", type: int32ProviderType, optional: true },
         ],
         returnType: nodeBufferProviderType,
       }],
@@ -166,8 +167,8 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       signatures: [{
         id: nodeBufferSubarraySignatureId,
         parameters: [
-          { name: "start", type: nodeBufferNumberProviderType, optional: true },
-          { name: "end", type: nodeBufferNumberProviderType, optional: true },
+          { name: "start", type: int32ProviderType, optional: true },
+          { name: "end", type: int32ProviderType, optional: true },
         ],
         returnType: nodeBufferProviderType,
       }],
@@ -180,8 +181,8 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferToStringSignatureId,
         parameters: [
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
-          { name: "start", type: nodeBufferNumberProviderType, optional: true },
-          { name: "end", type: nodeBufferNumberProviderType, optional: true },
+          { name: "start", type: int32ProviderType, optional: true },
+          { name: "end", type: int32ProviderType, optional: true },
         ],
         returnType: nodeBufferStringProviderType,
       }],
@@ -194,11 +195,11 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
         id: nodeBufferWriteSignatureId,
         parameters: [
           { name: "str", type: nodeBufferStringProviderType },
-          { name: "offset", type: nodeBufferNumberProviderType, optional: true },
-          { name: "length", type: nodeBufferNumberProviderType, optional: true },
+          { name: "offset", type: int32ProviderType, optional: true },
+          { name: "length", type: int32ProviderType, optional: true },
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -207,8 +208,8 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       kind: "method",
       signatures: [{
         id: nodeBufferReadUInt8SignatureId,
-        parameters: [{ name: "offset", type: nodeBufferNumberProviderType, optional: true }],
-        returnType: nodeBufferNumberProviderType,
+        parameters: [{ name: "offset", type: int32ProviderType, optional: true }],
+        returnType: uint8ProviderType,
       }],
     },
     {
@@ -218,10 +219,10 @@ export function nodeBufferInstanceMemberDeclarations(): ProviderClassMembers {
       signatures: [{
         id: nodeBufferWriteUInt8SignatureId,
         parameters: [
-          { name: "value", type: nodeBufferNumberProviderType },
-          { name: "offset", type: nodeBufferNumberProviderType, optional: true },
+          { name: "value", type: uint8ProviderType },
+          { name: "offset", type: int32ProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     ...nodeBufferNumericInstanceMemberDeclarations(),

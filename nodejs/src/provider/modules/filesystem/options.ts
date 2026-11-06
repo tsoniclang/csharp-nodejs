@@ -1,3 +1,4 @@
+import { int32ProviderType, uint32ProviderType } from "../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderTypeExpression,
@@ -15,7 +16,6 @@ import {
   boolProviderType,
   boolTargetType,
   intTargetType,
-  numberProviderType,
 } from "./types.js";
 import {
   makeDirectoryOptionsTargetType,
@@ -52,7 +52,7 @@ const optionPropertyRows = [
     makeDirectoryOptionsId,
     makeDirectoryOptionsTargetType,
     "mode",
-    numberProviderType,
+    int32ProviderType,
     csharpNullableValueTargetType(intTargetType),
   ),
   optionProperty(
@@ -76,7 +76,7 @@ const optionPropertyRows = [
     rmOptionsId,
     rmOptionsTargetType,
     "maxRetries",
-    numberProviderType,
+    uint32ProviderType,
     csharpNullableValueTargetType(csharpSourcePrimitiveTargetType("uint32")),
   ),
   optionProperty(
@@ -84,7 +84,7 @@ const optionPropertyRows = [
     rmOptionsId,
     rmOptionsTargetType,
     "retryDelay",
-    numberProviderType,
+    int32ProviderType,
     csharpNullableValueTargetType(intTargetType),
   ),
 ] satisfies readonly NodeFsOptionPropertyRow[];

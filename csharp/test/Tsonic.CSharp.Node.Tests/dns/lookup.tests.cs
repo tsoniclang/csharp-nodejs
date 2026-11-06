@@ -148,36 +148,25 @@ public class lookupTests
         Assert.Equal(4, family);
     }
 
-    [Fact]
-    public void lookup_WithStringFamilyIPv4_WorksAsExpected()
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(7)]
+    public void lookup_InvalidNumericFamily_ReturnsPreciseRangeError(int family)
     {
-        int family = 0;
-
+        Exception? error = null;
         JsEventLoop.Run(() =>
         {
-            dns.lookup("localhost", new LookupOptions { family = "IPv4" }, (err, addr, fam) =>
+            dns.lookup("localhost", new LookupOptions { family = family }, (err, address, actualFamily) =>
             {
-                family = fam;
+                error = err;
+                Assert.Equal(string.Empty, address);
+                Assert.Equal(0, actualFamily);
             });
         });
-
-        Assert.Equal(4, family);
+        var range = Assert.IsType<ArgumentOutOfRangeException>(error);
+        Assert.Equal("family", range.ParamName);
     }
 
-    [Fact]
-    public void lookup_WithStringFamilyIPv6_WorksAsExpected()
-    {
-        int family = 0;
-
-        JsEventLoop.Run(() =>
-        {
-            dns.lookup("localhost", new LookupOptions { family = "IPv6" }, (err, addr, fam) =>
-            {
-                family = fam;
-            });
-        });
-
-        // May not have IPv6 support on all systems
-        Assert.True(family == 0 || family == 6);
-    }
 }

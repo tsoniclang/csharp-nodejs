@@ -10,7 +10,8 @@ import {
   csharpVoidTargetType,
   targetParameter,
 } from "@tsonic/target-csharp/provider";
-import type { TargetTypeRef, CsharpTargetMember, CsharpTargetNamedTypeRef, CsharpProviderArgumentAdapter } from "@tsonic/target-csharp/provider";
+import type { TargetTypeRef, CsharpTargetMember, CsharpTargetNamedTypeRef } from "@tsonic/target-csharp/provider";
+import { int32ProviderType } from "../../model/source-types.js";
 import { nodeErrorProviderType, nodeErrorTargetType } from "../util/node-error.js";
 
 export const nodeHttpModuleSpecifier = "node:http";
@@ -26,7 +27,6 @@ export const nodeHttpAddressInfoExportName = "AddressInfo";
 export const nodeHttpServerAddressExportName = "ServerAddress";
 
 export const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-export const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 export const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 export const undefinedProviderType = { kind: "undefined" } satisfies ProviderTypeExpression;
@@ -41,16 +41,6 @@ export const stringArrayProviderType = {
 export const stringTargetType = csharpStringTargetType();
 export const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
 export const intTargetType = csharpSourcePrimitiveTargetType("int32");
-export const integerInputAdapter: CsharpProviderArgumentAdapter = Object.freeze({
-  kind: "static-method",
-  id: "Tsonic.CSharp.Node.JsNumeric.RequireInteger(System.Double)",
-  declaringType: csharpTargetNamedType("Tsonic.CSharp.Node.JsNumeric", undefined,
-    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "JsNumeric"), { allowsRefLikeTypeArguments: [] }),
-  targetName: "RequireInteger",
-  inputType: csharpSourcePrimitiveTargetType("float64"),
-  resultType: intTargetType,
-  nativeIntegerConversion: "checked",
-});
 export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
 export const voidTargetType = csharpVoidTargetType();
 export const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
@@ -207,6 +197,6 @@ export function optionalStringParameter(name: string): ProviderParameterDeclarat
   return { name, type: stringProviderType, optional: true };
 }
 
-export function numberParameter(name: string): ProviderParameterDeclaration {
-  return { name, type: numberProviderType };
+export function int32Parameter(name: string): ProviderParameterDeclaration {
+  return { name, type: int32ProviderType };
 }

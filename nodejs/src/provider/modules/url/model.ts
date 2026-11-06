@@ -1,3 +1,5 @@
+import { int32ProviderType } from "../../model/source-types.js";
+export { int32ProviderType };
 import type {
   ProviderParameterDeclaration,
   ProviderTypeExpression,
@@ -15,7 +17,6 @@ import {
 
 export const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
 export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
-export const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 export const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 export const objectProviderType = { kind: "object" } satisfies ProviderTypeExpression;
 export const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
@@ -43,7 +44,7 @@ export const optionalNullableBoolProviderType = {
 
 export const stringTargetType = csharpStringTargetType();
 export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-export const numberTargetType = csharpSourcePrimitiveTargetType("int32");
+export const int32TargetType = csharpSourcePrimitiveTargetType("int32");
 export const voidTargetType = csharpVoidTargetType();
 export const objectTargetType = csharpTargetNamedType("System.Object", undefined, { kind: "predefined", name: "object" }, { allowsRefLikeTypeArguments: [] });
 export const urlTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.URL", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "URL"), { allowsRefLikeTypeArguments: [] });

@@ -52,7 +52,7 @@ public static partial class fs
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="position">The position in the file to start writing to. If null, writes at current position.</param>
     /// <returns>The number of bytes written.</returns>
-    public static int writeSync(int fd, Buffer buffer, int offset, int length, long? position)
+    public static int writeSync(int fd, Buffer buffer, int offset, int length, long? position = null)
     {
         if (buffer == null)
             throw new ArgumentNullException(nameof(buffer));

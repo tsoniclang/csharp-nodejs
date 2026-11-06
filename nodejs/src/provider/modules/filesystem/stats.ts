@@ -1,3 +1,4 @@
+import { int64ProviderType } from "../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderTypeExpression,
@@ -80,7 +81,7 @@ const nodeFsStatsPropertyTargetMetadataRows = [
     memberName: "size",
     memberId: nodeFsStatsSizeMemberId,
     sourceSurface: "base",
-    providerType: numberProviderType,
+    providerType: int64ProviderType,
     member: {
       id: "Tsonic.CSharp.Node.Stats.size",
       sourceName: "size",

@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
@@ -26,7 +27,6 @@ import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow 
 
 const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
 const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const stringTargetType = csharpStringTargetType();
@@ -96,20 +96,20 @@ export function nodeUtilUnsupportedTargetIdentities(): readonly NodeUtilUnsuppor
 
 export function nodeUtilCallTargetMembers(): readonly NodeUtilCallTargetMember[] {
   const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
-  const numberParameter = (name: string): ProviderParameterDeclaration => ({ name, type: numberProviderType });
+  const int32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType });
   return [
     utilCall({ exportName: "convertProcessSignalToExitCode", signatureId: "node:util.convertProcessSignalToExitCode(System.String)", targetMemberId: "Tsonic.CSharp.Node.util.convertProcessSignalToExitCode(System.String)", sourceName: "convertProcessSignalToExitCode", targetName: "convertProcessSignalToExitCode", providerParameters: [
       stringParameter("signal"),
-    ], providerReturnType: numberProviderType, targetParameters: [
+    ], providerReturnType: int32ProviderType, targetParameters: [
       targetParameter("signal", stringTargetType),
     ], targetReturnType: intTargetType }),
     utilCall({ exportName: "getSystemErrorMessage", signatureId: "node:util.getSystemErrorMessage(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.util.getSystemErrorMessage(System.Int32)", sourceName: "getSystemErrorMessage", targetName: "getSystemErrorMessage", providerParameters: [
-      numberParameter("err"),
+      int32Parameter("err"),
     ], providerReturnType: stringProviderType, targetParameters: [
       targetParameter("errorNumber", intTargetType),
     ], targetReturnType: stringTargetType }),
     utilCall({ exportName: "getSystemErrorName", signatureId: "node:util.getSystemErrorName(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.util.getSystemErrorName(System.Int32)", sourceName: "getSystemErrorName", targetName: "getSystemErrorName", providerParameters: [
-      numberParameter("err"),
+      int32Parameter("err"),
     ], providerReturnType: stringProviderType, targetParameters: [
       targetParameter("errorNumber", intTargetType),
     ], targetReturnType: stringTargetType }),

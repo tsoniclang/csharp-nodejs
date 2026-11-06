@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../../model/source-types.js";
 import type { ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import { csharpNullableTargetType, targetParameter } from "@tsonic/target-csharp/provider";
 import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
@@ -8,7 +9,6 @@ import { errorProviderType as retainedErrorProviderType } from "../../model/sour
 import {
   nodeHttpServerResponseExportName,
   stringProviderType,
-  numberProviderType,
   voidProviderType,
   boolProviderType,
   stringOrUndefinedProviderType,
@@ -25,7 +25,7 @@ import {
   serverResponseProviderType,
   outgoingHeadersProviderType,
   stringParameter,
-  numberParameter,
+  int32Parameter,
 } from "./types.js";
 import {
   typedEventRows,
@@ -174,18 +174,18 @@ function serverResponseHeaderCallTargetMembers(): readonly NodejsClassCallTarget
     voidTargetType);
   responseMethod("flushHeaders", "", [], voidProviderType, [], voidTargetType);
   responseMethod("writeHead", "System.Int32",
-    [numberParameter("statusCode")],
+    [int32Parameter("statusCode")],
     serverResponseProviderType,
     [targetParameter("statusCode", intTargetType)],
     serverResponseTargetType);
   responseMethod("writeHead", "System.Int32,OutgoingHttpHeaders",
-    [numberParameter("statusCode"), { name: "headers", type: outgoingHeadersProviderType }],
+    [int32Parameter("statusCode"), { name: "headers", type: outgoingHeadersProviderType }],
     serverResponseProviderType,
     [targetParameter("statusCode", intTargetType), targetParameter("headers", outgoingHeadersTargetType)],
     serverResponseTargetType);
   responseMethod("writeHead", "System.Int32,System.String,OutgoingHttpHeaders",
     [
-      numberParameter("statusCode"),
+      int32Parameter("statusCode"),
       stringParameter("statusMessage"),
       { name: "headers", type: outgoingHeadersProviderType, optional: true },
     ],
@@ -219,7 +219,7 @@ export function serverResponseStatusCodePropertyTargetMember(): NodejsClassPrope
       sourceName: "statusCode",
       targetName: "statusCode",
       memberKind: "property",
-      providerType: numberProviderType,
+      providerType: int32ProviderType,
       targetParameters: [],
       targetReturnType: intTargetType,
       declaringType: serverResponseTargetType,

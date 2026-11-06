@@ -77,10 +77,11 @@ test("Server.listen declares the exact hostname overload", () => {
     ],
   );
   const hostnameSignature = listen.signatures[2];
+  assert.deepEqual(hostnameSignature.parameters[0].type, { kind: "source-primitive", name: "int32" });
   assert.deepEqual(
     hostnameSignature.parameters.map((parameter) => [parameter.name, parameter.type.kind, parameter.optional === true]),
     [
-      ["port", "number", false],
+      ["port", "source-primitive", false],
       ["hostname", "string", false],
       ["callback", "function", true],
     ],
@@ -151,7 +152,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
       import { createServer } from "node:http";
       import type { IncomingMessage, ServerResponse } from "node:http";
 
-      export function serve(filePath: string, port: number, host: string, callback: () => void): void {
+      export function serve(filePath: string, port: int32, host: string, callback: () => void): void {
         const server = createServer(
           (request: IncomingMessage, response: ServerResponse) => {
             response.end(readFileSync(filePath));
@@ -172,7 +173,7 @@ test("binary response, hostname binding, and exit code compile to exact C#", () 
     source,
     /response\.end\(Tsonic\.CSharp\.Node\.fs\.readFileSync\(filePath\)\)/u,
   );
-  assert.match(source, /server\.listen\(Tsonic\.CSharp\.Node\.JsNumeric\.RequireInteger\(port\), host, callback\);/u);
+  assert.match(source, /server\.listen\(port, host, callback\);/u);
   assert.match(source, /Tsonic\.CSharp\.Node\.process\.exitCode = 2/u);
   assert.match(
     source,

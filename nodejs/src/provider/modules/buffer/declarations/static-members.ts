@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../../../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderSignatureDeclaration,
@@ -41,7 +42,6 @@ import {
 } from "../identities.js";
 import {
   nodeBufferBoolProviderType,
-  nodeBufferNumberProviderType,
   nodeBufferObjectProviderType,
   nodeBufferProviderType,
   nodeBufferStringProviderType,
@@ -66,7 +66,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
       }, {
         id: nodeBufferFromNumberArraySignatureId,
         parameters: [
-          { name: "array", type: { kind: "array", elementType: nodeBufferNumberProviderType } },
+          { name: "array", type: { kind: "array", elementType: int32ProviderType } },
         ],
         returnType: nodeBufferProviderType,
       }, {
@@ -90,7 +90,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
       static: true,
       signatures: [{
         id: nodeBufferAllocSignatureId,
-        parameters: [{ name: "size", type: nodeBufferNumberProviderType }],
+        parameters: [{ name: "size", type: int32ProviderType }],
         returnType: nodeBufferProviderType,
       }],
     },
@@ -101,7 +101,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
       static: true,
       signatures: [{
         id: nodeBufferAllocUnsafeSignatureId,
-        parameters: [{ name: "size", type: nodeBufferNumberProviderType }],
+        parameters: [{ name: "size", type: int32ProviderType }],
         returnType: nodeBufferProviderType,
       }],
     },
@@ -112,7 +112,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
       static: true,
       signatures: [{
         id: nodeBufferAllocUnsafeSlowSignatureId,
-        parameters: [{ name: "size", type: nodeBufferNumberProviderType }],
+        parameters: [{ name: "size", type: int32ProviderType }],
         returnType: nodeBufferProviderType,
       }],
     },
@@ -127,7 +127,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
           { name: "value", type: nodeBufferStringProviderType },
           { name: "encoding", type: nodeBufferStringProviderType, optional: true },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -141,7 +141,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
           { name: "buf1", type: nodeBufferProviderType },
           { name: "buf2", type: nodeBufferProviderType },
         ],
-        returnType: nodeBufferNumberProviderType,
+        returnType: int32ProviderType,
       }],
     },
     {
@@ -153,7 +153,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
         id: nodeBufferConcatSignatureId,
         parameters: [
           { name: "list", type: { kind: "array", elementType: nodeBufferProviderType } },
-          { name: "totalLength", type: nodeBufferNumberProviderType, optional: true },
+          { name: "totalLength", type: int32ProviderType, optional: true },
         ],
         returnType: nodeBufferProviderType,
       }],
@@ -174,7 +174,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
       name: nodeBufferPoolSizeExportName,
       kind: "property",
       static: true,
-      type: nodeBufferNumberProviderType,
+      type: int32ProviderType,
     },
     {
       id: nodeBufferIsEncodingMemberId,
@@ -196,7 +196,7 @@ export function nodeBufferStaticMemberDeclarations(includeJsSurfaceMembers = tru
         id: nodeBufferOfSignatureId,
         parameters: [{
           name: "items",
-          type: { kind: "array", elementType: nodeBufferNumberProviderType },
+          type: { kind: "array", elementType: int32ProviderType },
           rest: true,
         }],
         returnType: nodeBufferProviderType,

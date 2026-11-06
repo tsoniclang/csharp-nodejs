@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderParameterDeclaration,
@@ -20,7 +21,6 @@ import {
 export const nodeTimersModuleSpecifier = "node:timers";
 export const nodeTimersTimeoutExportName = "Timeout";
 
-const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
 const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
 const timeoutProviderType = {
   kind: "provider-ref",
@@ -107,7 +107,7 @@ function nodeTimersCall(
     targetName: exportName,
     providerParameters: [
       { name: "callback", type: callbackProviderType },
-      { name: "delay", type: numberProviderType, optional: true },
+      { name: "delay", type: int32ProviderType, optional: true },
     ],
     providerReturnType: timeoutProviderType,
     targetParameters: [

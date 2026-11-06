@@ -1,3 +1,4 @@
+import { int32ProviderType } from "../model/source-types.js";
 import type {
   ProviderExportDeclaration,
   ProviderTypeExpression,
@@ -179,14 +180,14 @@ export function nodeEventsClassCallTargetMembers(): readonly NodejsClassCallTarg
     declaringType: eventEmitterTargetType,
   });
   const scalarCalls = [
-    scalarCall("getMaxListeners", [], numberProviderType(), [], intTargetType),
+    scalarCall("getMaxListeners", [], int32ProviderType, [], intTargetType),
     scalarCall("listenerCount", [
       { name: "eventName", type: eventNameProviderType },
-    ], numberProviderType(), [
+    ], int32ProviderType, [
       targetParameter("eventName", tsValueTargetType),
     ], intTargetType),
     scalarCall("setMaxListeners", [
-      { name: "count", type: numberProviderType() },
+      { name: "count", type: int32ProviderType },
     ], providerEventEmitterType(), [
       targetParameter("count", intTargetType),
     ], eventEmitterTargetType),
@@ -224,10 +225,6 @@ function scalarCall(
     targetReturnType,
     declaringType: eventEmitterTargetType,
   });
-}
-
-function numberProviderType(): ProviderTypeExpression {
-  return { kind: "number" };
 }
 
 function providerEventEmitterType(): ProviderTypeExpression {

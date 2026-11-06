@@ -194,26 +194,13 @@ public static partial class dns
 
     // ==================== Helper Methods ====================
 
-    private static int ParseFamily(object? family)
+    private static int ParseFamily(int? family) => family switch
     {
-        if (family == null)
-            return 0;
-
-        if (family is int intFamily && intFamily is 0 or 4 or 6)
-            return intFamily;
-
-        if (family is string strFamily)
-        {
-            return strFamily.ToLowerInvariant() switch
-            {
-                "ipv4" => 4,
-                "ipv6" => 6,
-                _ => throw new ArgumentOutOfRangeException(nameof(family), "DNS family must be 0, 4, 6, 'IPv4', or 'IPv6'.")
-            };
-        }
-
-        throw new ArgumentOutOfRangeException(nameof(family), "DNS family must be 0, 4, 6, 'IPv4', or 'IPv6'.");
-    }
+        null or 0 => 0,
+        4 => 4,
+        6 => 6,
+        _ => throw new ArgumentOutOfRangeException(nameof(family), "DNS family must be 0, 4, or 6.")
+    };
 
     private static LookupAddress[] ApplyAddressOrdering(LookupAddress[] addresses, LookupOptions? options)
     {

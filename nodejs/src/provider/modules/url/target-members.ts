@@ -60,8 +60,8 @@ import {
   nodeUrlOptionalStringParameter,
   nodeUrlStringParameter,
   nodeUrlUrlParameter,
-  numberProviderType,
-  numberTargetType,
+  int32ProviderType,
+  int32TargetType,
   optionalNullableBoolProviderType,
   optionalNullableStringProviderType,
   stringProviderType,
@@ -282,7 +282,7 @@ export function nodeUrlUrlClassPropertyTargetMembers(): readonly NodeUrlClassPro
 
 export function nodeUrlUrlSearchParamsClassPropertyTargetMembers(): readonly NodeUrlClassPropertyTargetMember[] {
   return [
-    urlSearchParamsProperty({ memberName: "size", memberId: nodeUrlUrlSearchParamsSizeMemberId, targetMemberId: "Tsonic.CSharp.Node.URLSearchParams.size", sourceName: "size", targetName: "size", memberKind: "property", providerType: numberProviderType, targetParameters: [], targetReturnType: numberTargetType, readonly: true }),
+    urlSearchParamsProperty({ memberName: "size", memberId: nodeUrlUrlSearchParamsSizeMemberId, targetMemberId: "Tsonic.CSharp.Node.URLSearchParams.size", sourceName: "size", targetName: "size", memberKind: "property", providerType: int32ProviderType, targetParameters: [], targetReturnType: int32TargetType, readonly: true }),
   ];
 }
 

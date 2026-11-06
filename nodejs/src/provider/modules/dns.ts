@@ -18,7 +18,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, numberProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
 import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
@@ -47,7 +47,7 @@ const exceptionTargetType = csharpNullableTargetType(nodeErrorTargetType);
 const lookupCallbackProviderType = callbackProviderType("node:dns.lookup.callback", [
   { name: "error", type: optionalNodeErrorProviderType },
   { name: "address", type: stringProviderType },
-  { name: "family", type: numberProviderType },
+  { name: "family", type: int32ProviderType },
 ]);
 const lookupCallbackTargetType = csharpDelegateTargetType("System.Action", [
   exceptionTargetType,
@@ -145,16 +145,16 @@ export function nodeDnsPropertyTargetMembers(): readonly NodejsModulePropertyTar
 
 export function nodeDnsClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return Object.freeze([
-    optionProperty("LookupOptions", "family", numberProviderType, nullableIntTargetType),
-    optionProperty("LookupOptions", "hints", numberProviderType, nullableIntTargetType),
+    optionProperty("LookupOptions", "family", int32ProviderType, nullableIntTargetType),
+    optionProperty("LookupOptions", "hints", int32ProviderType, nullableIntTargetType),
     optionProperty("LookupOptions", "all", booleanProviderType, nullableBoolTargetType),
     optionProperty("LookupOptions", "order", stringProviderType, nullableStringTargetType),
-    optionProperty("LookupAllOptions", "family", numberProviderType, nullableIntTargetType),
-    optionProperty("LookupAllOptions", "hints", numberProviderType, nullableIntTargetType),
+    optionProperty("LookupAllOptions", "family", int32ProviderType, nullableIntTargetType),
+    optionProperty("LookupAllOptions", "hints", int32ProviderType, nullableIntTargetType),
     optionProperty("LookupAllOptions", "all", { kind: "literal", value: true }, nullableBoolTargetType, false),
     optionProperty("LookupAllOptions", "order", stringProviderType, nullableStringTargetType),
     readonlyProperty("LookupAddress", "address", stringProviderType, stringTargetType),
-    readonlyProperty("LookupAddress", "family", numberProviderType, intTargetType),
+    readonlyProperty("LookupAddress", "family", int32ProviderType, intTargetType),
   ]);
 }
 

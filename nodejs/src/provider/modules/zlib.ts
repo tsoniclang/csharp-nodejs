@@ -15,7 +15,7 @@ import type {
   TargetTypeRef,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
-import { numberProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
+import { int32ProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
@@ -132,7 +132,7 @@ export function nodeZlibClassPropertyTargetMembers(): readonly NodejsClassProper
         sourceName: memberName,
         targetName: memberName,
         memberKind: "property",
-        providerType: numberProviderType,
+        providerType: int32ProviderType,
         targetParameters: [],
         targetReturnType: nullableIntTargetType,
         declaringType: optionsTargetType,
@@ -147,7 +147,7 @@ export function nodeZlibClassPropertyTargetMembers(): readonly NodejsClassProper
       sourceName: memberName,
       targetName: memberName,
       memberKind: "property",
-      providerType: numberProviderType,
+      providerType: int32ProviderType,
       targetParameters: [],
       targetReturnType: nullableIntTargetType,
       declaringType: brotliOptionsTargetType,

@@ -14,7 +14,7 @@ import {
   targetParameter,
 } from "@tsonic/target-csharp/provider";
 import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
-import { booleanProviderType, errorProviderType, numberProviderType, stringProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
+import { booleanProviderType, errorProviderType, int32ProviderType, stringProviderType, undefinedProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../declarations/target-members.js";
 import { nodeBufferProviderType } from "./buffer/provider-types.js";
 import { nodeBufferTargetType } from "./buffer/identities.js";
@@ -76,7 +76,7 @@ export function nodeStreamClassCallTargetMembers(): readonly NodejsClassCallTarg
     classCall("Readable", "from", "from", [{ name: "chunks", type: bufferArrayProviderType }], providerClass("Readable"), [
       targetParameter("chunks", bufferArrayTargetType),
     ], targetTypes.Readable, { targetName: "from", static: true }),
-    classCall("Readable", "read", "read", [optionalNumber("size")], unionProviderType(nodeBufferProviderType, undefinedProviderType), [
+    classCall("Readable", "read", "read", [optionalInt32("size")], unionProviderType(nodeBufferProviderType, undefinedProviderType), [
       targetParameter("size", nullableIntTargetType, { optional: true }),
     ], csharpNullableTargetType(nodeBufferTargetType), { targetName: "readBuffer" }),
     classCall("Readable", "pause", "pause", [], providerClass("Readable"), [], targetTypes.Readable),
@@ -295,6 +295,6 @@ function providerClass(exportName: (typeof classNames)[number]): ProviderTypeExp
   return providerRef(nodeStreamModuleSpecifier, exportName);
 }
 
-function optionalNumber(name: string): ProviderParameterDeclaration {
-  return { name, type: numberProviderType, optional: true };
+function optionalInt32(name: string): ProviderParameterDeclaration {
+  return { name, type: int32ProviderType, optional: true };
 }

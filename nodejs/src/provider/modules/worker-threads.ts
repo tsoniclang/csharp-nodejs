@@ -15,7 +15,7 @@ import {
 } from "@tsonic/target-csharp/provider";
 import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
 import { arrayProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef, unionProviderType } from "../declarations/exports.js";
-import { numberProviderType, stringProviderType, undefinedProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
+import { int32ProviderType, stringProviderType, undefinedProviderType, unknownProviderType, voidProviderType } from "../model/source-types.js";
 import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
 
@@ -126,7 +126,7 @@ export function nodeWorkerThreadsModuleCallTargetMembers(): readonly NodejsModul
 export function nodeWorkerThreadsModulePropertyTargetMembers(): readonly NodejsModulePropertyTargetMetadata[] {
   return Object.freeze([
     moduleProperty("isMainThread", { kind: "boolean" }, boolTargetType),
-    moduleProperty("threadId", numberProviderType, intTargetType),
+    moduleProperty("threadId", int32ProviderType, intTargetType),
     moduleProperty("workerData", unknownProviderType, valueTargetType),
     moduleProperty(
       "parentPort",
@@ -187,7 +187,7 @@ export function nodeWorkerThreadsClassCallTargetMembers(): readonly NodejsClassC
     workerMethod(
       "terminate",
       [],
-      { kind: "source-global", name: "Promise", typeArguments: [numberProviderType] },
+      { kind: "source-global", name: "Promise", typeArguments: [int32ProviderType] },
       [],
       csharpTaskTargetType(intTargetType),
     ),
@@ -210,7 +210,7 @@ export function nodeWorkerThreadsClassCallTargetMembers(): readonly NodejsClassC
 
 export function nodeWorkerThreadsClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return Object.freeze([
-    readonlyProperty("Worker", "threadId", numberProviderType, intTargetType, workerTargetType),
+    readonlyProperty("Worker", "threadId", int32ProviderType, intTargetType, workerTargetType),
     readonlyProperty(
       "MessageChannel",
       "port1",
