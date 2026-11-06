@@ -13,11 +13,17 @@ public class exitTests
     }
 
     [Fact]
-    public void exit_JavaScriptNumberOverloadExists()
+    public void exit_HasOneOptionalNativeIntegerSignature()
     {
-        // Generated Tsonic C# passes TypeScript number values as double?/double.
-        Action<double?> exit = process.exit;
-        Assert.NotNull(exit);
+        var methods = typeof(process).GetMethods().Where(method => method.Name == "exit").ToArray();
+        var method = Assert.Single(methods);
+        Assert.False(method.IsGenericMethod);
+        Assert.Equal(typeof(void), method.ReturnType);
+        var parameter = Assert.Single(method.GetParameters());
+        Assert.Equal(typeof(int?), parameter.ParameterType);
+        Assert.True(parameter.IsOptional);
+        Assert.Null(parameter.DefaultValue);
+        Assert.Null(typeof(process).GetMethod("exit", new[] { typeof(double?) }));
     }
 
     [Fact]
