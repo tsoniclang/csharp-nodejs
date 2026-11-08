@@ -15,7 +15,7 @@ public partial class EventEmitter
 
     /// <inheritdoc cref="prependListener(TsValue, Delegate)" />
     public EventEmitter prependListener(TsValue eventName, Action<TsValue[]> listener) =>
-        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(args.Select(TsValue.from).ToArray()), once: false), prepend: true);
+        addEventListenerCore(EventKey(eventName), CreateEventListener(listener, args => listener(args.Select(TsValue.fromnative).ToArray()), once: false), prepend: true);
 
     /// <inheritdoc cref="prependListener(TsValue, Delegate)" />
     public EventEmitter prependListener<T>(TsValue eventName, Action<T> listener) =>

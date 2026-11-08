@@ -132,7 +132,7 @@ public sealed class LoopDispatchOwnerTests
         {
             timer.refresh().@ref();
             Assert.False(ProcessKeepAlive.HasReferences);
-            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.from(9_007_199_254_740_993L));
+            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.fromnative(9_007_199_254_740_993L));
             Assert.Equal(9_007_199_254_740_993L,
                 Assert.IsType<long>(channel.port2.receiveMessageOnPort().unwrap()));
             timers.setImmediate(static () => { });
@@ -144,7 +144,7 @@ public sealed class LoopDispatchOwnerTests
         {
             channel.port2.on<Tsonic.CSharp.Runtime.TsValue>("message", value =>
                 portCalls += Assert.IsType<int>(value.unwrap()));
-            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.from(3));
+            channel.port1.postMessage(Tsonic.CSharp.Runtime.TsValue.fromnative(3));
         });
         Assert.Equal(3, portCalls);
         channel.port1.close();

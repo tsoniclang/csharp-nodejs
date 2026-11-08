@@ -11,9 +11,9 @@ public class SecureContextOptionsTests
     {
         var opts = new SecureContextOptions
         {
-            ca = TsValue.from("ca-cert"),
-            cert = TsValue.from("cert"),
-            key = TsValue.from("key"),
+            ca = TsValue.fromnative("ca-cert"),
+            cert = TsValue.fromnative("cert"),
+            key = TsValue.fromnative("key"),
             passphrase = "pass",
             ciphers = "HIGH",
             maxVersion = "TLSv1.3",

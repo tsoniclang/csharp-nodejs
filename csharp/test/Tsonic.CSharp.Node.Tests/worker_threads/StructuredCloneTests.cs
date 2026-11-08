@@ -7,6 +7,23 @@ namespace Tsonic.CSharp.Node.Tests;
 
 public class StructuredCloneTests
 {
+    [Fact]
+    public void SameNativeLongRetainsDistinctSourceCategoriesAcrossNestedCloneAndNativeBigInteger()
+    {
+        var source = new TsObject();
+        source.WriteDynamicSlot("number", TsValue.fromsource<long, SourceNumberCategory<long>>(9007199254740994));
+        source.WriteDynamicSlot("integer", TsValue.fromsource<long, SourceBigIntCategory<long>>(9007199254740994));
+        var wide = System.Numerics.BigInteger.One << 300;
+        source.WriteDynamicSlot("wide", TsValue.fromnative(wide));
+        var copied = Decode(Encode(TsValue.fromnative(source)));
+
+        Assert.Equal(SourceValueCategory.Number, copied.ReadDynamicSlot("number").Category);
+        Assert.Equal(SourceValueCategory.BigInt, copied.ReadDynamicSlot("integer").Category);
+        Assert.Equal(9007199254740994L, copied.ReadDynamicSlotAs<long>("number"));
+        Assert.Equal(wide, copied.ReadDynamicSlotAs<System.Numerics.BigInteger>("wide"));
+        Assert.False(TsValue.StrictEqual(copied.ReadDynamicSlot("number"), copied.ReadDynamicSlot("integer")));
+    }
+
     private delegate TsValue DecodeValue(ReadOnlySpan<byte> payload);
 
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
@@ -29,7 +46,7 @@ public class StructuredCloneTests
         var aliases = new TsArray();
         aliases.WriteDynamicElement(0, record);
         aliases.WriteDynamicElement(1, record);
-        var copied = Assert.IsType<TsArray>(Decode(Encode(TsValue.from(aliases))).unwrap());
+        var copied = Assert.IsType<TsArray>(Decode(Encode(TsValue.fromnative(aliases))).unwrap());
         var first = Assert.IsType<TsObject>(copied.ReadDynamicElement(0).unwrap());
         Assert.NotSame(record, first);
         Assert.Same(first, copied.ReadDynamicElement(1).unwrap());
@@ -44,13 +61,13 @@ public class StructuredCloneTests
         foreach (var bits in new[] { 0x8000000000000000UL, 0x7ff8000000000001UL, 0xfff0000000000000UL })
         {
             var value = BitConverter.UInt64BitsToDouble(bits);
-            var actual = Assert.IsType<double>(Decode(Encode(TsValue.from(value))).unwrap());
+            var actual = Assert.IsType<double>(Decode(Encode(TsValue.fromnative(value))).unwrap());
             Assert.Equal(bits, BitConverter.DoubleToUInt64Bits(actual));
         }
         foreach (var bits in new[] { 0x80000000U, 0x7fc00001U, 0xff800000U })
         {
             var value = BitConverter.UInt32BitsToSingle(bits);
-            var actual = Assert.IsType<float>(Decode(Encode(TsValue.from(value))).unwrap());
+            var actual = Assert.IsType<float>(Decode(Encode(TsValue.fromnative(value))).unwrap());
             Assert.Equal(bits, BitConverter.SingleToUInt32Bits(actual));
         }
     }
@@ -64,7 +81,7 @@ public class StructuredCloneTests
         var aliases = new TsArray();
         aliases.WriteDynamicElement(0, Union<int, object>.From2(array));
         aliases.WriteDynamicElement(1, Union<object, string>.From1(array));
-        var copied = Assert.IsType<TsArray>(Decode(Encode(TsValue.from(aliases))).unwrap());
+        var copied = Assert.IsType<TsArray>(Decode(Encode(TsValue.fromnative(aliases))).unwrap());
         var first = copied.ReadDynamicElement(0);
         Assert.True(first.IsArray());
         Assert.Same(first.unwrap(), copied.ReadDynamicElement(1).unwrap());
@@ -81,7 +98,7 @@ public class StructuredCloneTests
             Half.MaxValue, float.Epsilon, double.Epsilon, decimal.MaxValue];
         foreach (var value in values)
         {
-            var payload = Encode(TsValue.from(value));
+            var payload = Encode(TsValue.fromnative(value));
             for (var length = 0; length < payload.Length; length++)
             {
                 var truncated = payload.AsSpan(0, length).ToArray();

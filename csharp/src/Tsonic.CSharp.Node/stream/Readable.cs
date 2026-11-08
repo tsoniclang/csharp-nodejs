@@ -149,7 +149,7 @@ public partial class Readable : Stream
     public TsValue readValue(int? size = null)
     {
         var value = read(size);
-        return value is null ? TsValue.undefined() : TsValue.from(value);
+        return value is null ? TsValue.undefined() : TsValue.fromnative(value);
     }
 
     /// <summary>Reads one binary chunk, or native absence at the current boundary.</summary>

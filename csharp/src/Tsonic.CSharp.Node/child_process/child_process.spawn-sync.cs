@@ -9,62 +9,66 @@ public static partial class child_process
 {
     /// <summary>Runs a child with exact Buffer results and .NET-supported options.</summary>
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public static SpawnSyncResult spawnSyncResult(string command, string[] args, NativeSpawnOptions? options = null) =>
+    public static SpawnSyncReturns<Buffer> spawnSyncResult(string command, string[] args, NativeSpawnOptions? options = null) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
     /// <summary>Runs native arguments with JavaScript-profile option carriers.</summary>
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public static SpawnSyncResult spawnSyncResult(string command, string[] args, JsSpawnOptions options) =>
+    public static SpawnSyncReturns<Buffer> spawnSyncResult(string command, string[] args, JsSpawnOptions options) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
     /// <summary>Runs JavaScript-profile arguments and options without copying their storage.</summary>
-    public static SpawnSyncResult spawnSyncResult(string command, JSArray<string> args, JsSpawnOptions? options = null) =>
+    public static SpawnSyncReturns<Buffer> spawnSyncResult(string command, JSArray<string> args, JsSpawnOptions? options = null) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
     /// <summary>Runs JavaScript arguments with native-profile option carriers.</summary>
-    public static SpawnSyncResult spawnSyncResult(string command, JSArray<string> args, NativeSpawnOptions options) =>
+    public static SpawnSyncReturns<Buffer> spawnSyncResult(string command, JSArray<string> args, NativeSpawnOptions options) =>
         BufferResult(RunSpawnSync(command, args, SpawnSettings.From(options)));
 
-    private static SpawnSyncResult BufferResult(SpawnSyncReturns<byte[]> result)
+    private static SpawnSyncReturns<Buffer> BufferResult(SpawnOutcome result)
     {
-        return new SpawnSyncResult
+        var stdout = result.Stdout is null ? null : Buffer.TakeOwnership(result.Stdout);
+        var stderr = result.Stderr is null ? null : Buffer.TakeOwnership(result.Stderr);
+        return new SpawnSyncReturns<Buffer>
         {
-            stdout = result.stdout is null ? null : Buffer.TakeOwnership(result.stdout),
-            stderr = result.stderr is null ? null : Buffer.TakeOwnership(result.stderr),
-            status = result.status,
-            pid = result.pid,
-            signal = result.signal,
-            error = result.error
+            stdout = stdout, stderr = stderr, output = [null, stdout, stderr],
+            status = result.Status, pid = result.Pid, error = result.Error
         };
     }
 
     /// <summary>Runs a child and returns native captured byte arrays.</summary>
-    public static SpawnSyncReturns<byte[]> spawnSync(string command, string[]? args = null, ExecOptions? options = null) =>
-        RunSpawnSync(command, args ?? [], SpawnSettings.From(options));
+    public static SpawnSyncReturns<byte[]> spawnSync(string command, string[]? args = null, ExecOptions? options = null)
+    {
+        var result = RunSpawnSync(command, args ?? [], SpawnSettings.From(options));
+        return new SpawnSyncReturns<byte[]>
+        {
+            pid = result.Pid, stdout = result.Stdout, stderr = result.Stderr,
+            output = [null, result.Stdout, result.Stderr], status = result.Status, error = result.Error
+        };
+    }
 
     /// <summary>Runs a child and decodes captured output as UTF-8.</summary>
     public static SpawnSyncReturns<string> spawnSyncString(string command, string[]? args = null, ExecOptions? options = null)
     {
-        var result = spawnSync(command, args, options);
-        var stdout = result.stdout is null ? null : Encoding.UTF8.GetString(result.stdout);
-        var stderr = result.stderr is null ? null : Encoding.UTF8.GetString(result.stderr);
+        var result = RunSpawnSync(command, args ?? [], SpawnSettings.From(options));
+        var stdout = result.Stdout is null ? null : Encoding.UTF8.GetString(result.Stdout);
+        var stderr = result.Stderr is null ? null : Encoding.UTF8.GetString(result.Stderr);
         return new SpawnSyncReturns<string>
         {
-            pid = result.pid, stdout = stdout, stderr = stderr,
-            output = [null, stdout, stderr], status = result.status,
-            signal = result.signal, error = result.error
+            pid = result.Pid, stdout = stdout, stderr = stderr,
+            output = [null, stdout, stderr], status = result.Status, error = result.Error
         };
     }
 
     /// <summary>Runs an executable directly; nonzero exits and launch failures throw.</summary>
     public static object? execFileSync(string file, string[]? args = null, ExecOptions? options = null)
     {
-        var result = spawnSync(file, args, options);
-        if (result.error is not null) throw result.error;
-        if (result.status != 0)
-            throw new InvalidOperationException($"Command failed with exit code {result.status}: {file}\n" +
-                $"stderr: {(result.stderr is null ? "" : Encoding.UTF8.GetString(result.stderr))}");
-        return options?.encoding is null or "buffer" || result.stdout is null
-            ? result.stdout : Encoding.UTF8.GetString(result.stdout);
+        var result = RunSpawnSync(file, args ?? [], SpawnSettings.From(options));
+        if (result.Error is not null) throw result.Error;
+        if (result.Status != 0)
+            throw new InvalidOperationException($"Command failed with exit code {result.Status}: {file}\n" +
+                $"stderr: {(result.Stderr is null ? "" : Encoding.UTF8.GetString(result.Stderr))}");
+        return options?.encoding is null or "buffer" || result.Stdout is null
+            ? result.Stdout : Encoding.UTF8.GetString(result.Stdout);
     }
 }

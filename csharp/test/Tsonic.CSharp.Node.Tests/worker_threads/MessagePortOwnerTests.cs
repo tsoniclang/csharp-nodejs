@@ -17,9 +17,9 @@ public sealed class MessagePortOwnerTests
         using var sender = channel.port1;
         using var receiver = channel.port2;
         Assert.Throws<InvalidOperationException>(() => JsEventLoop.Capture());
-        sender.postMessage(TsValue.from(9_007_199_254_740_993L));
+        sender.postMessage(TsValue.fromnative(9_007_199_254_740_993L));
         Assert.Equal(9_007_199_254_740_993L, Assert.IsType<long>(receiver.receiveMessageOnPort().unwrap()));
-        sender.postMessage(TsValue.from((object?)null));
+        sender.postMessage(TsValue.fromnative((object?)null));
         Assert.Null(receiver.receiveMessageOnPort().unwrap());
         Assert.Null(receiver.receiveMessageOnPort().unwrap());
         Assert.Same(receiver, receiver.unref());
@@ -41,7 +41,7 @@ public sealed class MessagePortOwnerTests
         Assert.Equal("No JavaScript event loop is running on this thread.", failure.Message);
         Assert.Equal(0, receiver.listenerCount("message"));
         Assert.Throws<InvalidOperationException>(receiver.start);
-        sender.postMessage(TsValue.from(31));
+        sender.postMessage(TsValue.fromnative(31));
         JsEventLoop.Run();
         Assert.False(called);
         Assert.Equal(31, Assert.IsType<int>(receiver.receiveMessageOnPort().unwrap()));
@@ -66,7 +66,7 @@ public sealed class MessagePortOwnerTests
         var channel = new MessageChannel();
         using var sender = channel.port1;
         using var receiver = channel.port2;
-        sender.postMessage(TsValue.from(ulong.MaxValue));
+        sender.postMessage(TsValue.fromnative(ulong.MaxValue));
         var values = new List<ulong>();
         var owner = Environment.CurrentManagedThreadId;
         JsEventLoop.Run(() =>
@@ -97,7 +97,7 @@ public sealed class MessagePortOwnerTests
         Assert.Empty(calls);
         Assert.Equal(0, receiver.listenerCount("message"));
         Assert.Equal(0, receiver.listenerCount("removeListener"));
-        sender.postMessage(TsValue.from(9_007_199_254_740_993L));
+        sender.postMessage(TsValue.fromnative(9_007_199_254_740_993L));
         Assert.Equal(9_007_199_254_740_993L, Assert.IsType<long>(receiver.receiveMessageOnPort().unwrap()));
         JsEventLoop.Run();
         Assert.Empty(calls);
@@ -114,13 +114,13 @@ public sealed class MessagePortOwnerTests
         var actual = Assert.Throws<InvalidOperationException>(() => JsEventLoop.Run(() =>
         {
             receiver.on<TsValue>("message", _ => oldCalls++);
-            sender.postMessage(TsValue.from(11));
+            sender.postMessage(TsValue.fromnative(11));
             JsEventLoop.Enqueue(() => throw original);
         }));
         Assert.Same(original, actual);
         Assert.Equal(0, oldCalls);
         Assert.Equal(0, receiver.listenerCount("message"));
-        sender.postMessage(TsValue.from(12));
+        sender.postMessage(TsValue.fromnative(12));
         var fresh = new List<int>();
         JsEventLoop.Run(() => receiver.on<TsValue>("message", value =>
             fresh.Add(Assert.IsType<int>(value.unwrap()))));
@@ -135,11 +135,11 @@ public sealed class MessagePortOwnerTests
         using var sender = channel.port1;
         using var receiver = channel.port2;
         for (var index = 0; index < 65536; index++)
-            sender.postMessage(TsValue.from(index));
-        var failure = Assert.Throws<InvalidOperationException>(() => sender.postMessage(TsValue.from(-1)));
+            sender.postMessage(TsValue.fromnative(index));
+        var failure = Assert.Throws<InvalidOperationException>(() => sender.postMessage(TsValue.fromnative(-1)));
         Assert.Equal("MessagePort queue exceeds the finite message limit.", failure.Message);
         Assert.Equal(0, Assert.IsType<int>(receiver.receiveMessageOnPort().unwrap()));
-        sender.postMessage(TsValue.from(65536));
+        sender.postMessage(TsValue.fromnative(65536));
         for (var index = 1; index <= 65536; index++)
             Assert.Equal(index, Assert.IsType<int>(receiver.receiveMessageOnPort().unwrap()));
         Assert.Null(receiver.receiveMessageOnPort().unwrap());
@@ -152,7 +152,7 @@ public sealed class MessagePortOwnerTests
         using var sender = channel.port1;
         using var receiver = channel.port2;
         receiver.close();
-        Assert.Throws<InvalidOperationException>(() => sender.postMessage(TsValue.from(7)));
+        Assert.Throws<InvalidOperationException>(() => sender.postMessage(TsValue.fromnative(7)));
         Assert.Null(receiver.receiveMessageOnPort().unwrap());
         Assert.False(receiver.hasRef());
         receiver.@ref();
@@ -171,9 +171,9 @@ public sealed class MessagePortOwnerTests
         using var peer = new WorkerTransport(peerClient);
         using var port = new MessagePort(transport);
         port.StartTransportReader();
-        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(71L)));
+        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.fromnative(71L)));
         Assert.Equal(71L, Assert.IsType<long>(ReceiveEventually(port).unwrap()));
-        port.postMessage(TsValue.from(72UL));
+        port.postMessage(TsValue.fromnative(72UL));
         var frame = Assert.IsType<WorkerFrame>(peer.Receive());
         Assert.Equal(WorkerFrameKind.Message, frame.Kind);
         Assert.Equal(72UL, Assert.IsType<ulong>(StructuredClone.Decode(frame.Payload).unwrap()));
@@ -186,16 +186,16 @@ public sealed class MessagePortOwnerTests
                 port.unref();
             });
             Assert.True(ProcessKeepAlive.HasReferences);
-            peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(73)));
+            peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.fromnative(73)));
         });
         Assert.Equal(73, seen);
         Assert.Equal(0, port.listenerCount("message"));
         port.@ref();
         Assert.True(port.hasRef());
         Assert.False(ProcessKeepAlive.HasReferences);
-        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(74)));
+        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.fromnative(74)));
         Assert.Equal(74, Assert.IsType<int>(ReceiveEventually(port).unwrap()));
-        port.postMessage(TsValue.from(75));
+        port.postMessage(TsValue.fromnative(75));
         Assert.Equal(75, Assert.IsType<int>(StructuredClone.Decode(Assert.IsType<WorkerFrame>(peer.Receive()).Payload).unwrap()));
     }
 
@@ -214,7 +214,7 @@ public sealed class MessagePortOwnerTests
                 Assert.Equal(owner, Environment.CurrentManagedThreadId);
                 seen = Assert.IsType<int>(value.unwrap());
             });
-            await Task.Run(() => sender.postMessage(TsValue.from(81)));
+            await Task.Run(() => sender.postMessage(TsValue.fromnative(81)));
         });
         Assert.Equal(81, seen);
     }
@@ -233,10 +233,10 @@ public sealed class MessagePortOwnerTests
         {
             firstReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
             secondReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
-            firstSender.postMessage(TsValue.from(1));
+            firstSender.postMessage(TsValue.fromnative(1));
             Assert.Equal(1, Assert.IsType<int>(firstReceiver.receiveMessageOnPort().unwrap()));
-            secondSender.postMessage(TsValue.from(2));
-            firstSender.postMessage(TsValue.from(3));
+            secondSender.postMessage(TsValue.fromnative(2));
+            firstSender.postMessage(TsValue.fromnative(3));
         });
         Assert.Equal(new[] { 2, 3 }, seen);
     }
@@ -255,9 +255,9 @@ public sealed class MessagePortOwnerTests
         {
             firstReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
             secondReceiver.on<TsValue>("message", value => seen.Add(Assert.IsType<int>(value.unwrap())));
-            firstSender.postMessage(TsValue.from(1));
-            firstSender.postMessage(TsValue.from(2));
-            secondSender.postMessage(TsValue.from(3));
+            firstSender.postMessage(TsValue.fromnative(1));
+            firstSender.postMessage(TsValue.fromnative(2));
+            secondSender.postMessage(TsValue.fromnative(3));
         });
         Assert.Equal(new[] { 1, 2, 3 }, seen);
     }
@@ -284,7 +284,7 @@ public sealed class MessagePortOwnerTests
                 Assert.Equal(1, receiver.listenerCount("message"));
                 Assert.Equal(1, metaCalls);
             }));
-            sender.postMessage(TsValue.from(9));
+            sender.postMessage(TsValue.fromnative(9));
         });
         Assert.Equal(1, firstCalls);
         Assert.Equal(0, foreignCalls);
@@ -296,7 +296,7 @@ public sealed class MessagePortOwnerTests
         var channel = new MessageChannel();
         using var sender = channel.port1;
         using var receiver = channel.port2;
-        sender.postMessage(TsValue.from(ulong.MaxValue));
+        sender.postMessage(TsValue.fromnative(ulong.MaxValue));
         JsEventLoop.Run(() =>
         {
             var dispatch = JsEventLoop.Capture();
@@ -321,7 +321,7 @@ public sealed class MessagePortOwnerTests
         using var port = new MessagePort(transport);
         port.StartTransportReader();
         peer.Send(WorkerFrameKind.Error, System.Text.Encoding.UTF8.GetBytes("first"));
-        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(42)));
+        peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.fromnative(42)));
         peer.Send(WorkerFrameKind.Close, []);
         Assert.True(SpinWait.SpinUntil(() => !port.hasRef(), TimeSpan.FromSeconds(5)), "native close deadline");
         var seen = new List<string>();
@@ -392,7 +392,7 @@ public sealed class MessagePortOwnerTests
             });
             port.on("close", () => seen.Add("close"));
             peer.Send(WorkerFrameKind.Error, System.Text.Encoding.UTF8.GetBytes("native error"));
-            peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.from(83)));
+            peer.Send(WorkerFrameKind.Message, StructuredClone.Encode(TsValue.fromnative(83)));
             peer.Send(WorkerFrameKind.Close, []);
             Assert.True(SpinWait.SpinUntil(() => !port.hasRef(), TimeSpan.FromSeconds(5)), "native ordered frames deadline");
             Assert.Empty(seen);

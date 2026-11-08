@@ -13,9 +13,9 @@ public class TLSSocketOptionsTests
         {
             isServer = true,
             servername = "example.com",
-            ca = TsValue.from("ca"),
-            cert = TsValue.from("cert"),
-            key = TsValue.from("key"),
+            ca = TsValue.fromnative("ca"),
+            cert = TsValue.fromnative("cert"),
+            key = TsValue.fromnative("key"),
             passphrase = "pass"
         };
 

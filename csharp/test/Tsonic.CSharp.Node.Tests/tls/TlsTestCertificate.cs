@@ -40,5 +40,5 @@ internal static class TlsTestCertificate
     }
 
     public static TsValue PfxValue(X509Certificate2 certificate) =>
-        TsValue.from(Buffer.from(certificate.Export(X509ContentType.Pfx, string.Empty)));
+        TsValue.fromnative(Buffer.from(certificate.Export(X509ContentType.Pfx, string.Empty)));
 }

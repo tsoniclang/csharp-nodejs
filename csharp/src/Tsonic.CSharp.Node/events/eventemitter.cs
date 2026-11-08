@@ -225,7 +225,8 @@ public partial class EventEmitter
         throw new TypeError("An EventEmitter event name must be a string or Symbol.");
     }
 
-    private static TsValue EventValue(object eventName) => TsValue.from(eventName);
+    private static TsValue EventValue(object eventName) => eventName is Symbol symbol
+        ? TsValue.fromsource<Symbol, SourceSymbolCategory<Symbol>>(symbol) : TsValue.fromnative(eventName);
 
     private static bool IsEvent(object eventName, string name) =>
         eventName is string text && string.Equals(text, name, StringComparison.Ordinal);
