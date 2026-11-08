@@ -420,10 +420,11 @@ internal static partial class Program
 
     private static byte[] EncodeInt64(long value)
     {
-        var payload = new byte[10];
-        payload[0] = 1;
-        payload[1] = 16;
-        BinaryPrimitives.WriteInt64LittleEndian(payload.AsSpan(2), value);
+        var payload = new byte[11];
+        payload[0] = 2;
+        payload[1] = (byte)SourceValueCategory.BigInt;
+        payload[2] = 16;
+        BinaryPrimitives.WriteInt64LittleEndian(payload.AsSpan(3), value);
         return payload;
     }
 

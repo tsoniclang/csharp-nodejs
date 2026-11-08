@@ -6,7 +6,7 @@ using Tsonic.CSharp.Runtime;
 
 namespace Tsonic.CSharp.Node;
 
-internal static class StructuredClone
+internal static partial class StructuredClone
 {
     private const byte FormatVersion = 2;
     private const int MaximumDepth = 256;
@@ -317,30 +317,6 @@ internal static class StructuredClone
         return TsValue.fromsource(value, category);
     }
 
-    private static BigInteger ReadBigInteger(BinaryReader reader, DecodingState state)
-    {
-        var length = reader.ReadInt32();
-        if (length <= 0 || length > WorkerTransport.MaximumFrameBytes)
-            throw DataCloneError("Structured-clone integer length exceeds the finite limit.");
-        Reserve(length, state);
-        var bytes = reader.ReadBytes(length);
-        if (bytes.Length != length) throw new EndOfStreamException("Structured-clone integer is truncated.");
-        return new BigInteger(bytes);
-    }
-
-    private static void WriteWideInteger(BinaryWriter writer, UInt128 value)
-    {
-        writer.Write(unchecked((ulong)value));
-        writer.Write((ulong)(value >> 64));
-    }
-
-    private static UInt128 ReadWideInteger(BinaryReader reader)
-    {
-        var low = reader.ReadUInt64();
-        var high = reader.ReadUInt64();
-        return ((UInt128)high << 64) | low;
-    }
-
     private static TsObject ReadObject(
         BinaryReader reader,
         DecodingState state,
@@ -431,33 +407,6 @@ internal static class StructuredClone
         if (identity != state.Containers.Count || identity >= MaximumEntries)
             throw DataCloneError("Structured-clone container identity is out of order.");
         return identity;
-    }
-
-    private static string ReadString(BinaryReader reader, DecodingState state)
-    {
-        var length = reader.ReadInt32();
-        if (length < 0)
-            throw DataCloneError("Structured-clone string length is negative.");
-        if (length > MaximumStringCodeUnits - state.StringCodeUnits)
-            throw DataCloneError("Structured-clone string budget exceeds the finite limit.");
-        state.StringCodeUnits += length;
-        var characters = new char[length];
-        for (var index = 0; index < length; index++)
-            characters[index] = (char)reader.ReadUInt16();
-        return new string(characters);
-    }
-
-    private static void WriteString(
-        BinaryWriter writer,
-        string value,
-        EncodingState state)
-    {
-        if (value.Length > MaximumStringCodeUnits - state.StringCodeUnits)
-            throw DataCloneError("Structured-clone string budget exceeds the finite limit.");
-        state.StringCodeUnits += value.Length;
-        writer.Write(value.Length);
-        foreach (var character in value)
-            writer.Write((ushort)character);
     }
 
     private static int ReadCount(BinaryReader reader, DecodingState state)
