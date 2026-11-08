@@ -69,7 +69,7 @@ test("process.kill groups three exact typed overloads without a boxed signal", (
     assert.equal(matches.length, 1, targetName);
     const relation = matches[0];
     assert.equal(relation.targetMember.parameters.length, 2, `${targetName} exact parameters`);
-    assert.equal(relation.selectedTypeParameterCount, 0, `${targetName} has no source numeric generic input`);
+    assert.deepEqual(relation.sourceTypeParameterCounts, { class: 0, signature: 0 }, `${targetName} has no source numeric generic input`);
     assert.deepEqual(relation.targetMember.typeParameters ?? [], [], `${targetName} has no native numeric generic input`);
     assert.deepEqual(relation.targetMember.parameters[0].type, { kind: "source-primitive", name: "int32" }, `${targetName} exact PID input`);
     const source = exports[0].signatures.find(signature => signature.id === relation.source.signatureId);

@@ -154,6 +154,7 @@ function nodejsProviderTargetRelation(
     if (sourceTypeParameterCount !== targetTypeParameterCount) {
       throw new Error(`C# NodeJS provider signature '${identity.signatureId}' has mismatched source and target type-parameter arity.`);
     }
+    const bindingTypeParameters = providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers);
     return {
       kind: "signature",
       source,
@@ -165,7 +166,7 @@ function nodejsProviderTargetRelation(
         signature.parameters,
         targetMember,
       ),
-      bindingTypeParameters: providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers),
+      bindingTypeParameters,
       bindingTypeArgumentSource:
         providerBindingTypeArgumentSource(targetMember),
       methodTypeParameters: Array.from({ length: sourceTypeParameterCount }, (_, sourceTypeParameterIndex) => ({
@@ -173,7 +174,10 @@ function nodejsProviderTargetRelation(
         targetTypeParameterIndex: sourceTypeParameterIndex,
       })),
       invocationTypeParameters: [],
-      selectedTypeParameterCount: sourceTypeParameterCount,
+      sourceTypeParameterCounts: {
+        class: bindingTypeParameters.length,
+        signature: sourceTypeParameterCount,
+      },
     };
   }
   if (source.kind === "member") {
@@ -286,7 +290,7 @@ function providerBindingTypeArgumentSource(
   { readonly kind: "member" | "signature" }
 >["bindingTypeArgumentSource"] {
   return member.kind === "constructor"
-    ? "selected-operation-type-arguments"
+    ? "class-type-arguments"
     : member.static === true
       ? "callee"
       : "receiver";

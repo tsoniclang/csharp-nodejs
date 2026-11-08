@@ -21,7 +21,8 @@ test("Readable pipe preserves its destination binding through parameters, result
       { kind: "implements", contract: nativeContract("IWritableStream") },
     ] }]);
     assert.deepEqual(relation.methodTypeParameters, [{ sourceTypeParameterIndex: 0, targetTypeParameterIndex: 0 }]);
-    assert.equal(relation.selectedTypeParameterCount, 1);
+    assert.deepEqual(relation.sourceTypeParameterCounts, { class: 0, signature: 1 });
+    assert.equal("selectedTypeParameterCount" in relation, false);
   }
 });
 
