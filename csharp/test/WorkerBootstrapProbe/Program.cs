@@ -265,7 +265,7 @@ internal static partial class Program
             stream.Write(header);
             stream.Flush();
         }
-        else if (arguments[1] == "native-worker-invalid-clone") WriteFrame(stream, 4, [1]);
+        else if (arguments[1] == "native-worker-invalid-clone") WriteFrame(stream, 4, [2]);
         else
         {
             for (var index = 0; index < 10; index++) WriteFrame(stream, 4, EncodeInt64(index));
