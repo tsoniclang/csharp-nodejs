@@ -308,7 +308,10 @@ internal static class StructuredClone
             2 or 3 => category == SourceValueCategory.Boolean,
             5 => category == SourceValueCategory.String,
             6 or 7 or 8 or 9 => category == SourceValueCategory.Object,
-            _ => category is SourceValueCategory.Number or SourceValueCategory.BigInt,
+            4 or 18 or 19 or 24 => category == SourceValueCategory.Number,
+            10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 20 or 21 or 22 or 23 or 25 =>
+                category is SourceValueCategory.Number or SourceValueCategory.BigInt,
+            _ => false,
         };
         if (!valid) throw DataCloneError("Structured-clone category does not match its value domain.");
         return TsValue.fromsource(value, category);

@@ -37,6 +37,30 @@ public class StructuredCloneTests
         .CreateDelegate<DecodeValue>();
 
     [Fact]
+    public void NumericWireCategoriesRejectBigIntFloatingCarriersButKeepExactIntegerRoles()
+    {
+        object[] values = [0.5d, 0.5f, (Half)0.5, 0.5m, 7d, 7m, double.NaN, double.PositiveInfinity, double.NegativeInfinity];
+        foreach (var value in values)
+        {
+            var payload = Encode(TsValue.fromnative(value));
+            Assert.Equal((byte)SourceValueCategory.Number, payload[1]);
+            var decoded = Decode(payload);
+            Assert.Equal(SourceValueCategory.Number, decoded.Category);
+            Assert.Equal(value, decoded.unwrap());
+            var contradictory = (byte[])payload.Clone();
+            contradictory[1] = (byte)SourceValueCategory.BigInt;
+            Assert.Throws<InvalidOperationException>(() => Decode(contradictory));
+        }
+        foreach (var category in new[] { SourceValueCategory.Number, SourceValueCategory.BigInt })
+            foreach (var value in new[] { long.MinValue, 0L, 9_007_199_254_740_994L, long.MaxValue })
+            {
+                var decoded = Decode(Encode(TsValue.fromsource(value, category)));
+                Assert.Equal(category, decoded.Category);
+                Assert.Equal(value, Assert.IsType<long>(decoded.unwrap()));
+            }
+    }
+
+    [Fact]
     public void NativeNumbersPreserveBitsInsideRepeatedAndCyclicObjects()
     {
         var record = new TsObject();
