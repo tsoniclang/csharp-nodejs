@@ -11,6 +11,41 @@ import {
 } from "../../../dist/provider/target-relations.js";
 import { nodejsProviderSignature } from "../../../dist/provider/declarations/exports.js";
 
+test("spawn results retain the genuine native generic binder and its annotated member ABI", () => {
+  for (const includeJsSurfaceMembers of [false, true]) {
+    const relations = nodejsProviderTargetRelations(includeJsSurfaceMembers);
+    for (const moduleSpecifier of ["child_process", "node:child_process"]) {
+      const original = relations.find(relation => relation.kind === "type" &&
+        relation.source.moduleSpecifier === moduleSpecifier && relation.source.exportName === "SpawnSyncReturns");
+      assert.ok(original);
+      assert.equal(original.targetBinding.id, "Tsonic.CSharp.Node.SpawnSyncReturns`1");
+      assert.deepEqual(original.bindingTypeParameters, [{ sourceTypeParameterIndex: 0, targetTypeParameterIndex: 0 }]);
+      const parameter = original.targetBinding.typeParameters[0];
+      assert.equal(parameter.name, "T");
+      assert.equal(parameter.csharpAllowsRefLike, false);
+      assert.equal(original.targetBinding.csharpType.typeArguments[0].identity, parameter.identity);
+      for (const memberName of ["stdout", "stderr"]) {
+        const member = relations.find(relation => relation.kind === "member" &&
+          relation.source.moduleSpecifier === moduleSpecifier && relation.source.exportName === "SpawnSyncReturns" &&
+          relation.targetMember.targetName === memberName);
+        assert.ok(member);
+        assert.deepEqual(member.bindingTypeParameters, original.bindingTypeParameters);
+        assert.equal(member.targetMember.returnType.kind, "type-parameter");
+        assert.equal(member.targetMember.returnType.identity, parameter.identity);
+        assert.equal(member.targetMember.returnType.csharpNullableReference, true);
+      }
+      const calls = relations.filter(relation => relation.kind === "signature" &&
+        relation.source.moduleSpecifier === moduleSpecifier && relation.source.exportName === "spawnSync");
+      assert.equal(calls.length, 2);
+      for (const call of calls) {
+        assert.equal(call.targetMember.returnType.id, original.targetBinding.id);
+        assert.equal(call.targetMember.returnType.typeArguments[0].id, "Tsonic.CSharp.Node.Buffer");
+      }
+    }
+    assert.equal(relations.some(relation => relation.targetBinding.id === "Tsonic.CSharp.Node.SpawnSyncResult"), false);
+  }
+});
+
 test("signature scoping preserves exact bigint literals inside callbacks and defaults", () => {
   const lower = { kind: "bigint-literal", value: "9007199254740992" };
   const upper = { kind: "bigint-literal", value: "9007199254740993" };

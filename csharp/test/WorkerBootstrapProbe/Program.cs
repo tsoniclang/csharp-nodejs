@@ -67,7 +67,7 @@ internal static partial class Program
             Require(worker_threads.InitializeWorkerProcess(arguments) == "native-worker-tail", "native tail worker entry");
             using var parent = worker_threads.parentPort ?? throw new InvalidOperationException("native tail worker parent port");
             Require(ExactInt64(ReceiveEventually(parent)) == 1, "native tail worker start signal");
-            for (var index = 0; index < 256; index++) parent.postMessage(TsValue.from(index));
+            for (var index = 0; index < 256; index++) parent.postMessage(TsValue.fromnative(index));
             return;
         }
         RequireNoLoop();
@@ -94,7 +94,7 @@ internal static partial class Program
         ]), "native process arguments");
         using var port = worker_threads.parentPort ?? throw new InvalidOperationException("parent port missing");
         RequireNoLoop();
-        port.postMessage(TsValue.from(InitialValue + 2));
+        port.postMessage(TsValue.fromnative(InitialValue + 2));
         Require(ExactInt64(ReceiveEventually(port)) == InitialValue + 3, "pre-loop native receive");
         var owner = Environment.CurrentManagedThreadId;
         var firstCalls = 0;
@@ -105,7 +105,7 @@ internal static partial class Program
                 Require(Environment.CurrentManagedThreadId == owner, "first callback owner");
                 Require(ExactInt64(value) == InitialValue + 4, "first callback exact data");
                 firstCalls++;
-                port.postMessage(TsValue.from(InitialValue + 5));
+                port.postMessage(TsValue.fromnative(InitialValue + 5));
                 port.unref();
             });
             Require(ProcessKeepAlive.HasReferences, "referenced native parent callback owner");
@@ -116,7 +116,7 @@ internal static partial class Program
         RequireNoLoop();
         firstRetirement.SetResult();
         Require(ExactInt64(ReceiveEventually(port)) == InitialValue + 6, "post-retirement native receive");
-        port.postMessage(TsValue.from(InitialValue + 7));
+        port.postMessage(TsValue.fromnative(InitialValue + 7));
         port.@ref();
         Require(port.hasRef() && !ProcessKeepAlive.HasReferences, "native ref does not capture an epoch");
         var secondCalls = 0;
@@ -169,7 +169,7 @@ internal static partial class Program
                         Require(messages.SequenceEqual(Enumerable.Range(0, 256)), "all native tail messages precede exit");
                         exits++;
                     });
-                    worker.postMessage(TsValue.from(1L));
+                    worker.postMessage(TsValue.fromnative(1L));
                 });
                 Require(failures.Count == 0, "orderly native worker EOF creates no synthetic error");
                 Require(exits == 1, "native worker completes exactly once");
@@ -334,7 +334,7 @@ internal static partial class Program
                             var nativeClient = NativeClient(NativeTransport(worker));
                             nativeClient.Client.Shutdown(SocketShutdown.Send);
                         }
-                        for (var index = 0; index < 128; index++) worker.postMessage(TsValue.from(new string('x', 1024)));
+                        for (var index = 0; index < 128; index++) worker.postMessage(TsValue.fromnative(new string('x', 1024)));
                         control.GetStream().WriteByte(1);
                     }
                 });

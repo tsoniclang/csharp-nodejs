@@ -21,7 +21,7 @@ public class WorkerThreadsTests
             System.Half.MaxValue, float.Epsilon, double.Epsilon, decimal.MaxValue, -0.0];
         foreach (var value in values)
         {
-            first.port1.postMessage(TsValue.from(value));
+            first.port1.postMessage(TsValue.fromnative(value));
             var received = first.port2.receiveMessageOnPort().unwrap();
             Assert.IsType(value.GetType(), received);
             Assert.Equal(value, received);
@@ -38,12 +38,12 @@ public class WorkerThreadsTests
         {
             channel.port2.on<TsValue>("message", value =>
                 messages.Add(TsValue.CastDynamic<string>(value)));
-            channel.port1.postMessage(TsValue.from("hello"));
+            channel.port1.postMessage(TsValue.fromnative("hello"));
         });
 
         Assert.Equal(["hello"], messages);
 
-        channel.port1.postMessage(TsValue.from("direct"));
+        channel.port1.postMessage(TsValue.fromnative("direct"));
         Assert.Equal(
             "direct",
             TsValue.CastDynamic<string>(channel.port2.receiveMessageOnPort()));
@@ -62,8 +62,8 @@ public class WorkerThreadsTests
             first.on<TsValue>("message", _ => order.Add(1));
             second.on<TsValue>("message", _ => order.Add(2));
             first.on<TsValue>("message", _ => order.Add(3));
-            channel.port1.postMessage(TsValue.from(1));
-            channel.port1.postMessage(TsValue.from(2));
+            channel.port1.postMessage(TsValue.fromnative(1));
+            channel.port1.postMessage(TsValue.fromnative(2));
         });
         Assert.Equal([1, 2, 3, 1, 2, 3], order);
         Assert.True(channel.port2.receiveMessageOnPort().isUndefined());
@@ -89,8 +89,8 @@ public class WorkerThreadsTests
                 Assert.Equal(1, first.listenerCount("message"));
             });
             second.on("message", canceled);
-            channel.port1.postMessage(TsValue.from(1));
-            channel.port1.postMessage(TsValue.from(2));
+            channel.port1.postMessage(TsValue.fromnative(1));
+            channel.port1.postMessage(TsValue.fromnative(2));
         });
         Assert.Equal([1, 2, 1], order);
         Assert.Equal(0, first.listenerCount("message"));
@@ -116,8 +116,8 @@ public class WorkerThreadsTests
                 throw original;
             });
             capture = RegisterCapturedListener(second, () => calls++);
-            channel.port1.postMessage(TsValue.from(1));
-            channel.port1.postMessage(TsValue.from(2));
+            channel.port1.postMessage(TsValue.fromnative(1));
+            channel.port1.postMessage(TsValue.fromnative(2));
         })));
         Assert.Equal(0, calls);
         Assert.Equal(0, first.listenerCount("message"));
@@ -155,7 +155,7 @@ public class WorkerThreadsTests
     [Fact]
     public void EnvironmentData_UsesProcessEnvironment()
     {
-        worker_threads.setEnvironmentData("TSONIC_NODE_TEST", TsValue.from("ok"));
+        worker_threads.setEnvironmentData("TSONIC_NODE_TEST", TsValue.fromnative("ok"));
 
         Assert.Equal(
             "ok",
@@ -170,7 +170,7 @@ public class WorkerThreadsTests
         channel.port1.close();
 
         Assert.Throws<System.InvalidOperationException>(() =>
-            channel.port1.postMessage(TsValue.from("closed")));
+            channel.port1.postMessage(TsValue.fromnative("closed")));
         JsEventLoop.Run();
     }
 
@@ -185,11 +185,11 @@ public class WorkerThreadsTests
     [Fact]
     public void TransferMarkers_PreserveExactReferenceIdentity()
     {
-        var value = TsValue.from(new JSObject());
+        var value = TsValue.fromnative(new JSObject());
 
         worker_threads.markAsUntransferable(value);
 
         Assert.True(worker_threads.isMarkedAsUntransferable(value));
-        Assert.False(worker_threads.isMarkedAsUntransferable(TsValue.from(new JSObject())));
+        Assert.False(worker_threads.isMarkedAsUntransferable(TsValue.fromnative(new JSObject())));
     }
 }

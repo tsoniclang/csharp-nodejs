@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Globalization;
+using System.Numerics;
 using System.Text;
 using Tsonic.CSharp.Js;
 using Tsonic.CSharp.Runtime;
@@ -8,7 +8,7 @@ namespace Tsonic.CSharp.Node;
 
 internal static class StructuredClone
 {
-    private const byte FormatVersion = 1;
+    private const byte FormatVersion = 2;
     private const int MaximumDepth = 256;
     private const int MaximumEntries = 1 << 20;
     private const int MaximumStringCodeUnits = 1 << 24;
@@ -18,7 +18,7 @@ internal static class StructuredClone
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(FormatVersion);
-        WriteValue(writer, Unwrap(value.unwrap()), new EncodingState(), 0);
+        WriteValue(writer, value, new EncodingState(), 0);
         writer.Flush();
         if (stream.Length > WorkerTransport.MaximumFrameBytes)
             throw DataCloneError("Structured-clone payload exceeds the finite transport limit.");
@@ -34,18 +34,20 @@ internal static class StructuredClone
         var value = ReadValue(reader, new DecodingState(), 0);
         if (stream.Position != stream.Length)
             throw DataCloneError("Structured-clone payload contains trailing data.");
-        return TsValue.from(value);
+        return TsValue.fromnative(value);
     }
 
-    private static void WriteValue(
+    private static void WriteValue<TValue>(
         BinaryWriter writer,
-        object? value,
+        TValue original,
         EncodingState state,
         int depth)
     {
         if (depth > MaximumDepth)
             throw DataCloneError("Structured-clone depth exceeds the finite limit.");
-        value = Unwrap(value);
+        var stored = TsValue.fromnative(original);
+        writer.Write((byte)stored.Category);
+        var value = Unwrap(stored.unwrap());
         switch (value)
         {
             case null:
@@ -121,6 +123,13 @@ internal static class StructuredClone
                 writer.Write((byte)24);
                 writer.Write(BitConverter.HalfToUInt16Bits(number));
                 return;
+            case BigInteger number:
+                var bytes = number.ToByteArray();
+                Reserve(bytes.Length, state);
+                writer.Write((byte)25);
+                writer.Write(bytes.Length);
+                writer.Write(bytes);
+                return;
             case string text:
                 writer.Write((byte)5);
                 WriteString(writer, text, state);
@@ -129,7 +138,7 @@ internal static class StructuredClone
                 WriteBuffer(writer, buffer, state);
                 return;
             case TsObject target:
-                WriteObject(writer, target, target.entries(), state, depth);
+                WriteObject(writer, target, target, state, depth);
                 return;
             case JSObject target:
                 WriteObject(
@@ -151,8 +160,7 @@ internal static class StructuredClone
                     writer,
                     target,
                     target.length,
-                    target.entries().Select(entry =>
-                        (int.Parse(entry.Key, CultureInfo.InvariantCulture), entry.Value)),
+                    StoredArrayEntries(target),
                     state,
                     depth);
                 return;
@@ -161,7 +169,7 @@ internal static class StructuredClone
                     writer,
                     target,
                     target.Length,
-                    DynamicArrayEntries(target),
+                    DynamicArrayEntries(stored, target),
                     state,
                     depth);
                 return;
@@ -171,10 +179,10 @@ internal static class StructuredClone
         }
     }
 
-    private static void WriteObject(
+    private static void WriteObject<TValue>(
         BinaryWriter writer,
         object identity,
-        IEnumerable<KeyValuePair<string, object?>> entries,
+        IEnumerable<KeyValuePair<string, TValue>> entries,
         EncodingState state,
         int depth)
     {
@@ -192,11 +200,11 @@ internal static class StructuredClone
         }
     }
 
-    private static void WriteArray(
+    private static void WriteArray<TValue>(
         BinaryWriter writer,
         object identity,
         int length,
-        IEnumerable<(int Index, object? Value)> entries,
+        IEnumerable<(int Index, TValue Value)> entries,
         EncodingState state,
         int depth)
     {
@@ -254,14 +262,18 @@ internal static class StructuredClone
         return false;
     }
 
-    private static object? ReadValue(
+    private static TsValue ReadValue(
         BinaryReader reader,
         DecodingState state,
         int depth)
     {
         if (depth > MaximumDepth)
             throw DataCloneError("Structured-clone depth exceeds the finite limit.");
-        return reader.ReadByte() switch
+        var category = (SourceValueCategory)reader.ReadByte();
+        if (category > SourceValueCategory.Function)
+            throw DataCloneError("Structured-clone payload contains an unknown value category.");
+        var tag = reader.ReadByte();
+        object? value = tag switch
         {
             1 => null,
             2 => false,
@@ -287,8 +299,33 @@ internal static class StructuredClone
             22 => unchecked((Int128)ReadWideInteger(reader)),
             23 => ReadWideInteger(reader),
             24 => BitConverter.UInt16BitsToHalf(reader.ReadUInt16()),
+            25 => ReadBigInteger(reader, state),
             _ => throw DataCloneError("Structured-clone payload contains an unknown value tag."),
         };
+        var valid = tag switch
+        {
+            1 => category == SourceValueCategory.Absent,
+            2 or 3 => category == SourceValueCategory.Boolean,
+            5 => category == SourceValueCategory.String,
+            6 or 7 or 8 or 9 => category == SourceValueCategory.Object,
+            4 or 18 or 19 or 24 => category == SourceValueCategory.Number,
+            10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 20 or 21 or 22 or 23 or 25 =>
+                category is SourceValueCategory.Number or SourceValueCategory.BigInt,
+            _ => false,
+        };
+        if (!valid) throw DataCloneError("Structured-clone category does not match its value domain.");
+        return TsValue.fromsource(value, category);
+    }
+
+    private static BigInteger ReadBigInteger(BinaryReader reader, DecodingState state)
+    {
+        var length = reader.ReadInt32();
+        if (length <= 0 || length > WorkerTransport.MaximumFrameBytes)
+            throw DataCloneError("Structured-clone integer length exceeds the finite limit.");
+        Reserve(length, state);
+        var bytes = reader.ReadBytes(length);
+        if (bytes.Length != length) throw new EndOfStreamException("Structured-clone integer is truncated.");
+        return new BigInteger(bytes);
     }
 
     private static void WriteWideInteger(BinaryWriter writer, UInt128 value)
@@ -451,12 +488,19 @@ internal static class StructuredClone
         return TsValue.UnwrapClosedValue(value);
     }
 
-    private static IEnumerable<(int Index, object? Value)> DynamicArrayEntries(
-        IDynamicArray target)
+    private static IEnumerable<(int Index, TsValue Value)> DynamicArrayEntries(
+        TsValue source, IDynamicArray target)
     {
         for (var index = 0; index < target.Length; index++)
-            if (target.HasIndex(index) && target.TryGetAt(index, out var value))
-                yield return (index, value);
+            if (target.HasIndex(index))
+                yield return (index, source.ReadDynamicSlot(index.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static IEnumerable<(int Index, TsValue Value)> StoredArrayEntries(TsArray target)
+    {
+        var storage = (IDynamicArray)target;
+        for (var index = 0; index < target.length; index++)
+            if (storage.HasIndex(index)) yield return (index, target.ReadDynamicElement(index));
     }
 
     private static InvalidOperationException DataCloneError(string message) =>

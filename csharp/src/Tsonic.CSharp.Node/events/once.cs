@@ -17,7 +17,7 @@ public partial class EventEmitter
     public EventEmitter once(TsValue eventName, Action<TsValue[]> listener) =>
         addEventListenerCore(
             EventKey(eventName),
-            CreateEventListener(listener, args => listener(args.Select(TsValue.from).ToArray()), once: true),
+            CreateEventListener(listener, args => listener(args.Select(TsValue.fromnative).ToArray()), once: true),
             prepend: false);
 
     /// <inheritdoc cref="once(TsValue, Delegate)" />
@@ -60,7 +60,7 @@ public partial class EventEmitter
             eventName,
             CreateEventListener(
                 listener,
-                args => listener(args.Select(TsValue.from).ToArray()),
+                args => listener(args.Select(TsValue.fromnative).ToArray()),
                 once: true),
             prepend: false);
 

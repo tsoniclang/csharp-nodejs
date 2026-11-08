@@ -110,7 +110,7 @@ function nodejsProviderTypeRelations(includeJsSurfaceMembers: boolean):
           ),
         },
         targetBinding: binding,
-        bindingTypeParameters: [],
+        bindingTypeParameters: providerBindingTypeParameters(row.moduleSpecifier, `${row.moduleSpecifier}.${row.exportName}`, binding, includeJsSurfaceMembers),
         ...(row.objectLiteralConstruction === undefined
           ? {}
           : {
@@ -165,7 +165,7 @@ function nodejsProviderTargetRelation(
         signature.parameters,
         targetMember,
       ),
-      bindingTypeParameters: [],
+      bindingTypeParameters: providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers),
       bindingTypeArgumentSource:
         providerBindingTypeArgumentSource(targetMember),
       methodTypeParameters: Array.from({ length: sourceTypeParameterCount }, (_, sourceTypeParameterIndex) => ({
@@ -183,7 +183,7 @@ function nodejsProviderTargetRelation(
       targetBinding,
       targetMember,
       receiver: targetReceiver(identity, targetMember),
-      bindingTypeParameters: [],
+      bindingTypeParameters: providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers),
       bindingTypeArgumentSource:
         targetMember.static === true ? "callee" : "receiver",
     };
@@ -290,6 +290,27 @@ function providerBindingTypeArgumentSource(
     : member.static === true
       ? "callee"
       : "receiver";
+}
+
+function providerBindingTypeParameters(
+  moduleSpecifier: string,
+  exportId: string,
+  targetBinding: CsharpTargetBindingFact,
+  includeJsSurfaceMembers: boolean,
+): Extract<CsharpProviderTargetRelation, { readonly kind: "type" }>["bindingTypeParameters"] {
+  const declaration = nodejsCanonicalProviderExports(moduleSpecifier, includeJsSurfaceMembers)
+    ?.find(candidate => candidate.id === exportId);
+  if (declaration === undefined) {
+    throw new Error(`C# NodeJS provider binding '${moduleSpecifier}:${exportId}' has no exact source declaration.`);
+  }
+  const sourceCount = declaration.typeParameters?.length ?? 0;
+  const targetCount = targetBinding.typeParameters?.length ?? 0;
+  if (sourceCount !== targetCount) {
+    throw new Error(`C# NodeJS provider binding '${moduleSpecifier}:${exportId}' has mismatched source and target type-parameter arity.`);
+  }
+  return Array.from({ length: sourceCount }, (_, sourceTypeParameterIndex) => ({
+    sourceTypeParameterIndex, targetTypeParameterIndex: sourceTypeParameterIndex,
+  }));
 }
 
 function providerSignature(

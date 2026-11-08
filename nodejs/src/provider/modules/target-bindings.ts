@@ -6,7 +6,7 @@ import type {
   CsharpTargetBindingFact,
   CsharpTargetNamedTypeRef,
 } from "@tsonic/target-csharp/provider";
-import { nodeChildProcessOptionsTarget } from "./child-process.js";
+import { nodeChildProcessOptionsTarget, nodeChildProcessResultTarget, nodeChildProcessResultTypeParameter } from "./child-process.js";
 import { nodeErrorTargetType } from "./util/node-error.js";
 import { nodejsTargetNamedType } from "../declarations/exports.js";
 
@@ -20,6 +20,7 @@ export interface NodejsProviderTargetTypeRow {
   readonly implementedContracts?: CsharpTargetBindingFact["implementedContracts"];
   readonly objectLiteralConstruction?: "object-initializer";
   readonly targetType?: (includeJsSurfaceMembers: boolean) => CsharpTargetNamedTypeRef;
+  readonly typeParameters?: CsharpTargetBindingFact["typeParameters"];
   readonly nativeOwner?: true;
 }
 
@@ -40,6 +41,7 @@ export const nodejsProviderPhysicalTargetBindings: readonly CsharpTargetBindingF
 ]);
 
 export const nodejsProviderTargetTypeRows: readonly NodejsProviderTargetTypeRow[] = Object.freeze([
+  { moduleSpecifier: "node:child_process", exportName: "SpawnSyncReturns", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncReturns", targetType: () => nodeChildProcessResultTarget(), typeParameters: [nodeChildProcessResultTypeParameter] },
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncOptionsWithBufferEncoding", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncOptions", targetType: js => nodeChildProcessOptionsTarget(js).type, objectLiteralConstruction: "object-initializer" },
   { moduleSpecifier: "node:child_process", exportName: "SpawnSyncError", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "SpawnSyncError" },
   { moduleSpecifier: "node:events", exportName: "EventEmitter", kind: "class", namespace: "Tsonic.CSharp.Node", targetName: "EventEmitter" },
@@ -154,6 +156,7 @@ function nativeTargetBinding(
     targetName: targetId,
     target: "csharp" as const,
     kind: row.kind,
+    ...(row.typeParameters === undefined ? {} : { typeParameters: row.typeParameters }),
     ...(row.baseType === undefined ? {} : { csharpBaseType: row.baseType }),
     ...(row.implementedContracts === undefined ? {} : { implementedContracts: row.implementedContracts }),
     csharpType,

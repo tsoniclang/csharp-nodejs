@@ -6,7 +6,9 @@ namespace Tsonic.CSharp.Node;
 
 public static partial class child_process
 {
-    private static SpawnSyncReturns<byte[]> RunSpawnSync(string command, IReadOnlyList<string> arguments, SpawnSettings settings)
+    private readonly record struct SpawnOutcome(int? Pid, byte[]? Stdout, byte[]? Stderr, int? Status, SpawnSyncError? Error);
+
+    private static SpawnOutcome RunSpawnSync(string command, IReadOnlyList<string> arguments, SpawnSettings settings)
     {
         ArgumentException.ThrowIfNullOrEmpty(command);
         ArgumentNullException.ThrowIfNull(arguments);
@@ -37,7 +39,7 @@ public static partial class child_process
         }
         catch (Win32Exception error)
         {
-            return new SpawnSyncReturns<byte[]> { output = [null, null, null], error = SpawnStartError(error) };
+            return new SpawnOutcome(null, null, null, null, SpawnStartError(error));
         }
         var pid = child.Id;
         var capture = new SpawnCapture(child, settings.MaximumBuffer);
@@ -56,11 +58,7 @@ public static partial class child_process
         }
         if (!OperatingSystem.IsWindows() && child.ExitCode >= 128)
             throw new PlatformNotSupportedException(".NET does not distinguish this Unix exit code from signal termination; no signal or status is invented.");
-        return new SpawnSyncReturns<byte[]>
-        {
-            pid = pid, stdout = stdout.Result, stderr = stderr.Result,
-            output = [null, stdout.Result, stderr.Result], status = child.ExitCode
-        };
+        return new SpawnOutcome(pid, stdout.Result, stderr.Result, child.ExitCode, null);
     }
 
     private static SpawnSyncError SpawnStartError(Win32Exception error)

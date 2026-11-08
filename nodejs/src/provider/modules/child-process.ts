@@ -5,7 +5,7 @@ import {
   csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, csharpRuntimeUnionTargetType,
   csharpSourcePrimitiveTargetType, csharpStringTargetType, csharpTargetNamedType, targetParameter,
 } from "@tsonic/target-csharp/provider";
-import type { CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
+import type { CsharpTargetBindingFact, CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
 import { nodeBufferTargetType } from "./buffer/identities.js";
 import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
@@ -34,7 +34,20 @@ const nativeType = (name: string) => csharpTargetNamedType(
 const stringTarget = csharpStringTargetType();
 const intTarget = csharpSourcePrimitiveTargetType("int32");
 const numberTarget = csharpSourcePrimitiveTargetType("float64");
-const resultTarget = nativeType("SpawnSyncResult");
+export const nodeChildProcessResultTypeParameter: NonNullable<CsharpTargetBindingFact["typeParameters"]>[number] = {
+  identity: "Tsonic.CSharp.Node.SpawnSyncReturns`1::0", name: "T", csharpAllowsRefLike: false,
+};
+const resultParameter: TargetTypeRef = {
+  kind: "type-parameter", identity: nodeChildProcessResultTypeParameter.identity, name: "T",
+};
+const nullableResultParameter: TargetTypeRef & { readonly csharpNullableReference: true } = {
+  ...resultParameter, csharpNullableReference: true,
+};
+export function nodeChildProcessResultTarget(typeArgument: TargetTypeRef = resultParameter): CsharpTargetNamedTypeRef {
+  return csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncReturns`1", [typeArgument],
+    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncReturns"), { allowsRefLikeTypeArguments: [false] });
+}
+const resultTarget = nodeChildProcessResultTarget();
 const errorTarget = nativeType("SpawnSyncError");
 const moduleTarget = nativeType("child_process");
 
@@ -88,7 +101,7 @@ export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembe
   return [
     ...["stdout", "stderr"].map(name => property(
       nodeChildProcessSpawnSyncReturnsExportName, resultTarget, name,
-      union({ kind: "type-parameter", name: "T" }, nullType), csharpNullableTargetType(nodeBufferTargetType),
+      union({ kind: "type-parameter", name: "T" }, nullType), nullableResultParameter,
     )),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(int32ProviderType, nullType), csharpNullableValueTargetType(intTarget)),
     property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", int32ProviderType, csharpNullableValueTargetType(intTarget), true),
@@ -145,6 +158,6 @@ export function nodeChildProcessCallTargetMembers(includeJsSurfaceMembers = true
     providerParameters: parameters(options), providerReturnType: resultType,
     targetParameters: [targetParameter("command", stringTarget), targetParameter("args", argument.carrier),
       ...(options ? [targetParameter("options", optionsTarget)] : [])],
-    targetReturnType: resultTarget, declaringType: moduleTarget,
+    targetReturnType: nodeChildProcessResultTarget(nodeBufferTargetType), declaringType: moduleTarget,
   }));
 }
