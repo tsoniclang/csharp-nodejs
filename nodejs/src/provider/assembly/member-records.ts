@@ -121,7 +121,7 @@ function moduleCallRecords(
         entry.signatureId,
       ).filter((identity) => identity.signatureId !== undefined),
     ],
-    member: entry.member,
+    native: entry.native,
   }));
 }
 
@@ -134,7 +134,7 @@ function modulePropertyRecords(
       nodejsExportDeclarationIdentity(moduleSpecifier, entry.exportName),
       ...nodejsDefaultModuleMemberDeclarationIdentities(moduleSpecifier, entry.exportName, undefined),
     ],
-    member: entry.member,
+    native: entry.native,
   }));
 }
 
@@ -153,7 +153,7 @@ function classCallRecords(
         entry.static === true,
       ),
     ],
-    member: entry.member,
+    native: entry.native,
   }));
 }
 
@@ -169,7 +169,7 @@ function classPropertyRecords(
             entry.exportName,
             entry.memberName,
             entry.memberId,
-            entry.member.static === true,
+            entry.static === true,
           )]
         : [nodejsExportMemberSignatureDeclarationIdentity(
             moduleSpecifier,
@@ -177,10 +177,10 @@ function classPropertyRecords(
             entry.memberName,
             entry.memberId,
             entry.signatureId,
-            entry.member.static === true,
+            entry.static === true,
           )]),
     ],
-    member: entry.member,
+    native: entry.native,
   }));
 }
 

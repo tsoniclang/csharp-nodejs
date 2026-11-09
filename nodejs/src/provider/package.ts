@@ -6,7 +6,7 @@ import {
 } from "./model/identity.js";
 import { nodejsProviderModules } from "./assembly/modules.js";
 import { nodejsProviderModuleSpecifiers } from "./declarations/specifiers.js";
-import { nodejsRuntimeContributions } from "./runtime.js";
+import { nodejsRuntimeContributions, nodejsRuntimeSource } from "./runtime.js";
 import { createCsharpNodejsProviderPolicyContribution } from "./target-relations.js";
 
 export function createCsharpNodejsProviderPackage() {
@@ -20,7 +20,20 @@ export function createCsharpNodejsProviderPackage() {
     moduleDiagnostic: nodejsProviderModuleDiagnostic,
     resolutionEvidence: [{ message: "C# NodeJS provider package supplied virtual module." }],
     declarationEvidence: [{ message: "C# NodeJS provider package virtual declaration model." }],
-    createPolicy: selectedSurfaceIds => createCsharpNodejsProviderPolicyContribution(selectedSurfaceIds.includes("js")),
+    policy: {
+      kind: "runtime-project",
+      nativeDomain: Object.freeze({
+        source: nodejsRuntimeSource,
+        namespaces: Object.freeze([
+          "Tsonic.CSharp.Node",
+          "Tsonic.CSharp.Node.Http",
+          "Tsonic.CSharp.Node.Https",
+          "Tsonic.CSharp.Node.Http2",
+        ]),
+      }),
+      create: ({ selectedSurfaceIds, domain }) =>
+        createCsharpNodejsProviderPolicyContribution(domain, selectedSurfaceIds.includes("js")),
+    },
     runtime: nodejsRuntimeContributions(),
   });
 }

@@ -1,488 +1,131 @@
+import { csharpJsEventLoopBinaryExecutionDriver, csharpProviderPolicyContribution } from "@tsonic/target-csharp/provider";
 import type {
-  ProviderParameterDeclaration,
-  ProviderSignatureDeclaration,
-} from "@tsonic/tsts";
-import {
-  csharpJsEventLoopBinaryExecutionDriver,
-  csharpProviderPolicyContribution,
+  CsharpAcquiredRuntimeProviderNativeDomain, CsharpProviderTargetRelation, CsharpProviderTargetRejection,
+  CsharpProviderTypeParameterRelation, CsharpTargetBindingFact,
 } from "@tsonic/target-csharp/provider";
-import type {
-  CsharpProviderParameterRelation,
-  CsharpProviderSourceIdentity,
-  CsharpProviderSourceIdentityBase,
-  CsharpProviderTargetRejectionDiagnostic,
-  CsharpProviderTargetRejection,
-  CsharpProviderTargetRelation,
-  CsharpTargetBindingFact,
-  CsharpTargetMember,
-} from "@tsonic/target-csharp/provider";
-import {
-  csharpNodejsProviderPackageProviderIdentity,
-} from "./model/identity.js";
-import type {
-  NodejsProviderDeclarationIdentity,
-} from "./model/identity.js";
+import { csharpNodejsProviderPackageProviderIdentity, nodejsExportDeclarationIdentity } from "./model/identity.js";
 import { nodejsTargetMemberMetadataRecords, nodejsUnsupportedTargetMetadataRecords } from "./assembly/member-records.js";
-import type { NodejsUnsupportedTargetMetadataRecord } from "./model/member-records.js";
-import {
-  nodejsPublicModuleSpecifiers,
-} from "./declarations/specifiers.js";
-import {
-  nodejsProviderTargetBinding,
-  nodejsProviderPhysicalTargetBindings,
-  nodejsProviderTargetTypeRows,
-} from "./modules/target-bindings.js";
-import {
-  nodejsCanonicalProviderExports,
-} from "./assembly/modules.js";
+import { nodejsPublicModuleSpecifiers } from "./declarations/specifiers.js";
+import { nodejsProviderSourceIdentity, nodejsProviderSourceIdentityBase, nodejsSourceRelationIndex } from "./declarations/relation-source.js";
+import { nodejsNativeClassMappings } from "./modules/class-mappings.js";
+import { nodejsNativeClassApplication } from "./native/applications.js";
+import { createNodejsNativeSelection, rejected, resolved } from "./native/selection.js";
+import type { NodejsNativeResolution } from "./native/selection.js";
+import { nodejsParameterRelations, nodejsTypeParameterRelationsAreComplete } from "./native/parameter-relations.js";
 
-export function createCsharpNodejsProviderPolicyContribution(includeJsSurfaceMembers = true) {
-  const relations = nodejsProviderTargetRelations(includeJsSurfaceMembers);
-  const nativeOwned = new Set(nodejsProviderTargetTypeRows.filter(row => row.nativeOwner === true)
-    .flatMap(row => {
-      const binding = nodejsProviderTargetBinding(row.moduleSpecifier, row.exportName, includeJsSurfaceMembers);
-      return binding === undefined ? [] : [binding.id];
-    }));
-  const physical = [...nodejsProviderPhysicalTargetBindings,
-    ...relations.filter(relation => !nativeOwned.has(relation.targetBinding.id)).map(relation => relation.targetBinding)];
+interface NodejsClassBinding {
+  readonly binding: CsharpTargetBindingFact;
+  readonly parameters: readonly CsharpProviderTypeParameterRelation[];
+  readonly sourceParameterCount: number;
+}
+
+export function createCsharpNodejsProviderPolicyContribution(
+  domain: CsharpAcquiredRuntimeProviderNativeDomain,
+  includeJsSurfaceMembers = true,
+) {
+  const selection = createNodejsNativeSelection(domain);
+  const sources = nodejsSourceRelationIndex(includeJsSurfaceMembers);
+  const bindings = new Map<string, NodejsNativeResolution<NodejsClassBinding>>();
+  const relations: CsharpProviderTargetRelation[] = [];
+  const rejections: CsharpProviderTargetRejection[] = [...nodejsProviderTargetRejections()];
+  for (const mapping of nodejsNativeClassMappings) {
+    const identity = nodejsExportDeclarationIdentity(mapping.moduleSpecifier, mapping.exportName);
+    const declaration = sources.declaration(mapping.moduleSpecifier, `${mapping.moduleSpecifier}.${mapping.exportName}`);
+    const recipe = mapping.application(includeJsSurfaceMembers);
+    const application = nodejsNativeClassApplication(selection, recipe);
+    const parameters = recipe.kind === "source-class" ? recipe.parameters : [];
+    const sourceParameterCount = declaration?.typeParameters?.length ?? 0;
+    const result: NodejsNativeResolution<NodejsClassBinding> = declaration === undefined
+      ? rejected("A Node type mapping requires its original authored Source declaration.", mapping.exportName)
+      : application.kind === "rejected" ? application
+      : !nodejsTypeParameterRelationsAreComplete(parameters, sourceParameterCount, application.value.typeParameters?.length ?? 0)
+        ? rejected("Node class binder roles cover the complete original Source vector and actual Native binder positions.", mapping.exportName)
+        : resolved({ binding: application.value, parameters, sourceParameterCount });
+    const key = bindingKey(mapping.moduleSpecifier, mapping.exportName);
+    if (bindings.has(key)) throw new TypeError(`Duplicate Node class mapping '${key}'.`);
+    bindings.set(key, result);
+    for (const moduleSpecifier of nodejsPublicModuleSpecifiers(mapping.moduleSpecifier)) {
+      const source = { kind: "type" as const, ...nodejsProviderSourceIdentityBase(identity, moduleSpecifier) };
+      if (result.kind === "rejected") rejections.push({ source, diagnostic: result.diagnostic });
+      else relations.push({ kind: "type", source, targetBinding: result.value.binding, bindingTypeParameters: result.value.parameters,
+        ...(mapping.objectLiteralConstruction === undefined ? {} : { objectLiteralConstruction: { kind: mapping.objectLiteralConstruction } }) });
+    }
+  }
+  for (const record of nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers)) {
+    const selected = selection.member(record.native.selected);
+    for (const identity of record.declarationIdentities) {
+      const classBinding = identity.exportName === undefined ? undefined : bindings.get(bindingKey(identity.providerModuleId, identity.exportName));
+      for (const moduleSpecifier of nodejsPublicModuleSpecifiers(identity.providerModuleId)) {
+        const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
+        if (selected.kind === "rejected") {
+          rejections.push({ source, diagnostic: selected.diagnostic });
+          continue;
+        }
+        if (classBinding?.kind === "rejected") {
+          rejections.push({ source, diagnostic: classBinding.diagnostic });
+          continue;
+        }
+        const targetBinding = classBinding?.value.binding ?? selected.value.declaration.binding;
+        const bindingTypeParameters = classBinding?.value.parameters ?? [];
+        const bindingTypeArgumentSource = selected.value.member.static === true ? "callee" as const : "receiver" as const;
+        if (source.kind === "value") {
+          if (selected.value.member.static !== true) {
+            rejections.push({ source, diagnostic: rejected("A Node exported value requires its actual static Native slot.", selected.value.member.id).diagnostic });
+          } else relations.push({ kind: "value", source, targetBinding, targetMember: selected.value.member });
+          continue;
+        }
+        if (source.kind === "member") {
+          relations.push({ kind: "member", source, targetBinding, targetMember: selected.value.member,
+            receiver: record.native.receiver, bindingTypeParameters, bindingTypeArgumentSource });
+          continue;
+        }
+        const signature = sources.signature(identity);
+        if (signature === undefined || !("parameters" in record.native)) {
+          rejections.push({ source, diagnostic: rejected("A Node callable mapping requires its exact authored Source head and Native callable locator.", source.signatureId).diagnostic });
+          continue;
+        }
+        const parameterRelations = nodejsParameterRelations(signature, selected.value, record.native);
+        if (parameterRelations.kind === "rejected") {
+          rejections.push({ source, diagnostic: parameterRelations.diagnostic });
+          continue;
+        }
+        const sourceSignatureCount = signature.typeParameters?.length ?? 0;
+        const methodRelations = [...record.native.methodTypeParameters, ...record.native.invocationTypeParameters];
+        if (!nodejsTypeParameterRelationsAreComplete(methodRelations, sourceSignatureCount, selected.value.member.typeParameters?.length ?? 0)) {
+          rejections.push({ source, diagnostic: rejected("Node callable binder roles retain the complete original Source and actual Native method vectors.", source.signatureId).diagnostic });
+          continue;
+        }
+        relations.push({ kind: "signature", source, targetBinding, targetMember: selected.value.member,
+          receiver: record.native.receiver, parameters: parameterRelations.value, bindingTypeParameters,
+          bindingTypeArgumentSource: selected.value.member.kind === "constructor" ? "class-type-arguments" : bindingTypeArgumentSource,
+          methodTypeParameters: record.native.methodTypeParameters, invocationTypeParameters: record.native.invocationTypeParameters,
+          sourceTypeParameterCounts: { class: classBinding?.value.sourceParameterCount ?? 0, signature: sourceSignatureCount } });
+      }
+    }
+  }
   return csharpProviderPolicyContribution({
     providerId: csharpNodejsProviderPackageProviderIdentity.id,
     providerVersion: csharpNodejsProviderPackageProviderIdentity.version,
-    targetBindings: Object.freeze(physical),
-    relations,
-    rejections: nodejsProviderTargetRejections(),
+    targetBindings: Object.freeze(domain.declarations.map(declaration => declaration.binding)),
+    nativeDeclarations: Object.freeze(domain.declarations.map(declaration => declaration.definition)),
+    relations: Object.freeze(relations), rejections: Object.freeze(rejections),
     binaryExecutionDriver: csharpJsEventLoopBinaryExecutionDriver,
   });
 }
 
-export function nodejsProviderTargetRelations(includeJsSurfaceMembers = true):
-  readonly CsharpProviderTargetRelation[] {
-  return Object.freeze([
-    ...nodejsProviderTypeRelations(includeJsSurfaceMembers),
-    ...nodejsProviderMemberRelations(includeJsSurfaceMembers),
-  ]);
-}
-
-export function nodejsProviderTargetRejections():
-  readonly CsharpProviderTargetRejection[] {
-  return Object.freeze(
-    nodejsUnsupportedTargetMetadataRecords().flatMap((record) =>
-      record.declarationIdentities.flatMap((identity) =>
-        nodejsPublicModuleSpecifiers(identity.providerModuleId).map(
-          (moduleSpecifier) =>
-            nodejsProviderTargetRejection(record, identity, moduleSpecifier),
-        ),
-      )
-    ),
-  );
-}
-
-function nodejsProviderTypeRelations(includeJsSurfaceMembers: boolean):
-  readonly CsharpProviderTargetRelation[] {
-  return nodejsProviderTargetTypeRows.flatMap((row) => {
-    const binding = nodejsProviderTargetBinding(
-      row.moduleSpecifier,
-      row.exportName,
-      includeJsSurfaceMembers,
-    );
-    if (binding === undefined) {
-      throw new Error(
-        `Missing C# NodeJS target binding for '${row.moduleSpecifier}' export '${row.exportName}'.`,
-      );
-    }
-    return nodejsPublicModuleSpecifiers(row.moduleSpecifier).map(
-      (moduleSpecifier): CsharpProviderTargetRelation => ({
-        kind: "type",
-        source: {
-          kind: "type",
-          ...providerSourceIdentityBase(
-            {
-              providerId: csharpNodejsProviderPackageProviderIdentity.id,
-              providerVersion:
-                csharpNodejsProviderPackageProviderIdentity.version,
-              providerModuleId: row.moduleSpecifier,
-              moduleSpecifier: row.moduleSpecifier,
-              artifactFileName: "",
-              exportId: `${row.moduleSpecifier}.${row.exportName}`,
-              exportName: row.exportName,
-            },
-            moduleSpecifier,
-          ),
-        },
-        targetBinding: binding,
-        bindingTypeParameters: providerBindingTypeParameters(row.moduleSpecifier, `${row.moduleSpecifier}.${row.exportName}`, binding, includeJsSurfaceMembers),
-        ...(row.objectLiteralConstruction === undefined
-          ? {}
-          : {
-              objectLiteralConstruction: {
-                kind: row.objectLiteralConstruction,
-              },
-            }),
-      }),
-    );
-  });
-}
-
-function nodejsProviderMemberRelations(includeJsSurfaceMembers: boolean):
-  readonly CsharpProviderTargetRelation[] {
-  return nodejsTargetMemberMetadataRecords(includeJsSurfaceMembers).flatMap((record) =>
-    record.declarationIdentities.flatMap((identity) =>
-      nodejsPublicModuleSpecifiers(identity.providerModuleId).map(
-        (moduleSpecifier) =>
-          nodejsProviderTargetRelation(
-            identity,
-            moduleSpecifier,
-            record.member,
-            includeJsSurfaceMembers,
-          ),
-      ),
-    ));
-}
-
-function nodejsProviderTargetRelation(
-  identity: NodejsProviderDeclarationIdentity,
-  moduleSpecifier: string,
-  targetMember: CsharpTargetMember,
-  includeJsSurfaceMembers: boolean,
-): CsharpProviderTargetRelation {
-  const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
-  const targetBinding = targetBindingForMember(identity, targetMember, includeJsSurfaceMembers);
-  if (source.kind === "signature") {
-    const signature = providerSignature(identity, includeJsSurfaceMembers);
-    const sourceTypeParameterCount = signature.typeParameters?.length ?? 0;
-    const targetTypeParameterCount = targetMember.typeParameters?.length ?? 0;
-    if (sourceTypeParameterCount !== targetTypeParameterCount) {
-      throw new Error(`C# NodeJS provider signature '${identity.signatureId}' has mismatched source and target type-parameter arity.`);
-    }
-    const bindingTypeParameters = providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers);
-    return {
-      kind: "signature",
-      source,
-      targetBinding,
-      targetMember,
-      receiver: targetReceiver(identity, targetMember),
-      parameters: providerParameterRelations(
-        identity,
-        signature.parameters,
-        targetMember,
-      ),
-      bindingTypeParameters,
-      bindingTypeArgumentSource:
-        providerBindingTypeArgumentSource(targetMember),
-      methodTypeParameters: Array.from({ length: sourceTypeParameterCount }, (_, sourceTypeParameterIndex) => ({
-        sourceTypeParameterIndex,
-        targetTypeParameterIndex: sourceTypeParameterIndex,
-      })),
-      invocationTypeParameters: [],
-      sourceTypeParameterCounts: {
-        class: bindingTypeParameters.length,
-        signature: sourceTypeParameterCount,
+export function nodejsProviderTargetRejections(): readonly CsharpProviderTargetRejection[] {
+  return Object.freeze(nodejsUnsupportedTargetMetadataRecords().flatMap(record => record.declarationIdentities.flatMap(identity =>
+    nodejsPublicModuleSpecifiers(identity.providerModuleId).map(moduleSpecifier => ({
+      source: nodejsProviderSourceIdentity(identity, moduleSpecifier),
+      diagnostic: {
+        extensionId: csharpNodejsProviderPackageProviderIdentity.id,
+        extensionCode: "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED", numericCode: 9100203, category: "error" as const,
+        message: `C# NodeJS provider package hard-rejected selected operation '${moduleSpecifier}' export '${identity.exportName}' signature '${identity.signatureId ?? "<none>"}': ${record.identity.displayName} has no closed target/runtime operation metadata.`,
+        evidence: [{ message: `Selected provider target policy rejection '${record.identity.targetIdentityId}'.` }],
       },
-    };
-  }
-  if (source.kind === "member") {
-    return {
-      kind: "member",
-      source,
-      targetBinding,
-      targetMember,
-      receiver: targetReceiver(identity, targetMember),
-      bindingTypeParameters: providerBindingTypeParameters(identity.providerModuleId, source.exportId, targetBinding, includeJsSurfaceMembers),
-      bindingTypeArgumentSource:
-        targetMember.static === true ? "callee" : "receiver",
-    };
-  }
-  if (targetMember.static !== true) {
-    throw new Error(
-      `C# NodeJS provider export value '${identity.providerModuleId}:${identity.exportName ?? "<export>"}' must relate to a static target member.`,
-    );
-  }
-  return {
-    kind: "value",
-    source,
-    targetBinding,
-    targetMember,
-  };
+    })))));
 }
 
-function nodejsProviderTargetRejection(
-  record: NodejsUnsupportedTargetMetadataRecord,
-  identity: NodejsProviderDeclarationIdentity,
-  moduleSpecifier: string,
-): CsharpProviderTargetRejection {
-  const source = nodejsProviderSourceIdentity(identity, moduleSpecifier);
-  return {
-    source,
-    diagnostic: {
-      extensionId: csharpNodejsProviderPackageProviderIdentity.id,
-      extensionCode: "CSHARP_NODEJS_PROVIDER_PACKAGE_OPERATION_UNSUPPORTED",
-      numericCode: 9100203,
-      category: "error",
-      message:
-        `C# NodeJS provider package hard-rejected selected ${sourceOperationKind(source)} ${formatProviderSourceIdentity(source)}: ${record.identity.displayName} has no closed target/runtime operation metadata.`,
-      evidence: [{
-        message:
-          `Selected provider target policy rejection '${record.identity.targetIdentityId}'.`,
-      }],
-    } satisfies CsharpProviderTargetRejectionDiagnostic,
-  };
-}
-
-function nodejsProviderSourceIdentity(
-  identity: NodejsProviderDeclarationIdentity,
-  moduleSpecifier: string,
-): Exclude<CsharpProviderSourceIdentity, { readonly kind: "type" }> {
-  const base = providerSourceIdentityBase(identity, moduleSpecifier);
-  if (identity.signatureId !== undefined) {
-    return {
-      kind: "signature",
-      ...base,
-      ...providerMemberIdentity(identity),
-      signatureId: identity.signatureId,
-    };
-  }
-  if (identity.memberId !== undefined) {
-    const member = providerMemberIdentity(identity);
-    if (
-      member.memberId === undefined ||
-      member.memberStatic === undefined ||
-      member.memberKey === undefined
-    ) {
-      throw new Error(
-        `Incomplete C# NodeJS provider member identity '${identity.providerModuleId}:${identity.exportName ?? "<export>"}:${identity.memberId}'.`,
-      );
-    }
-    return {
-      kind: "member",
-      ...base,
-      memberId: member.memberId,
-      memberStatic: member.memberStatic,
-      memberKey: member.memberKey,
-    };
-  }
-  return { kind: "value", ...base };
-}
-
-function sourceOperationKind(source: CsharpProviderSourceIdentity): string {
-  return source.kind === "member" || source.kind === "value"
-    ? "property"
-    : source.kind === "signature"
-      ? "call"
-      : "type";
-}
-
-function formatProviderSourceIdentity(
-  source: CsharpProviderSourceIdentity,
-): string {
-  const member = source.kind === "member" || source.kind === "signature"
-    ? ` member '${source.memberId ?? "<export>"}'`
-    : "";
-  const signature = source.kind === "signature"
-    ? ` signature '${source.signatureId}'`
-    : "";
-  return `'${source.moduleSpecifier}' export '${source.exportName}'${member}${signature}`;
-}
-
-function providerBindingTypeArgumentSource(
-  member: CsharpTargetMember,
-): Extract<
-  CsharpProviderTargetRelation,
-  { readonly kind: "member" | "signature" }
->["bindingTypeArgumentSource"] {
-  return member.kind === "constructor"
-    ? "class-type-arguments"
-    : member.static === true
-      ? "callee"
-      : "receiver";
-}
-
-function providerBindingTypeParameters(
-  moduleSpecifier: string,
-  exportId: string,
-  targetBinding: CsharpTargetBindingFact,
-  includeJsSurfaceMembers: boolean,
-): Extract<CsharpProviderTargetRelation, { readonly kind: "type" }>["bindingTypeParameters"] {
-  const declaration = nodejsCanonicalProviderExports(moduleSpecifier, includeJsSurfaceMembers)
-    ?.find(candidate => candidate.id === exportId);
-  if (declaration === undefined) {
-    throw new Error(`C# NodeJS provider binding '${moduleSpecifier}:${exportId}' has no exact source declaration.`);
-  }
-  const sourceCount = declaration.typeParameters?.length ?? 0;
-  const targetCount = targetBinding.typeParameters?.length ?? 0;
-  if (sourceCount !== targetCount) {
-    throw new Error(`C# NodeJS provider binding '${moduleSpecifier}:${exportId}' has mismatched source and target type-parameter arity.`);
-  }
-  return Array.from({ length: sourceCount }, (_, sourceTypeParameterIndex) => ({
-    sourceTypeParameterIndex, targetTypeParameterIndex: sourceTypeParameterIndex,
-  }));
-}
-
-function providerSignature(
-  identity: NodejsProviderDeclarationIdentity,
-  includeJsSurfaceMembers: boolean,
-): ProviderSignatureDeclaration {
-  const exports = nodejsCanonicalProviderExports(identity.providerModuleId, includeJsSurfaceMembers);
-  const declaration = exports?.find((candidate) =>
-    candidate.id === identity.exportId);
-  const signature = identity.memberId === undefined
-    ? declaration?.signatures?.find((candidate) =>
-        candidate.id === identity.signatureId)
-    : declaration?.members
-        ?.find((candidate) => candidate.id === identity.memberId)
-        ?.signatures?.find((candidate) =>
-          candidate.id === identity.signatureId);
-  if (signature === undefined) {
-    throw new Error(
-      `C# NodeJS provider relation '${formatProviderIdentity(identity)}' does not identify an exact source signature.`,
-    );
-  }
-  return signature;
-}
-
-function providerSourceIdentityBase(
-  identity: NodejsProviderDeclarationIdentity,
-  moduleSpecifier: string,
-): CsharpProviderSourceIdentityBase {
-  if (
-    identity.exportId === undefined ||
-    identity.exportName === undefined
-  ) {
-    throw new Error(
-      `Incomplete C# NodeJS provider export identity '${identity.providerModuleId}:${identity.exportName ?? "<export>"}'.`,
-    );
-  }
-  return {
-    providerId: identity.providerId,
-    providerVersion: identity.providerVersion,
-    providerModuleId: identity.providerModuleId,
-    moduleSpecifier,
-    exportId: identity.exportId,
-    exportName: identity.exportName,
-  };
-}
-
-function providerMemberIdentity(
-  identity: NodejsProviderDeclarationIdentity,
-): Pick<
-  Extract<
-    CsharpProviderTargetRelation,
-    { readonly kind: "member" | "signature" }
-  >["source"],
-  "memberId" | "memberStatic" | "memberKey"
-> {
-  const present = identity.memberId !== undefined ||
-    identity.memberStatic !== undefined ||
-    identity.memberKey !== undefined;
-  if (!present) {
-    return {};
-  }
-  if (
-    identity.memberId === undefined ||
-    identity.memberStatic === undefined ||
-    identity.memberKey === undefined
-  ) {
-    throw new Error(
-      `Incomplete C# NodeJS provider member identity '${identity.providerModuleId}:${identity.exportName ?? "<export>"}'.`,
-    );
-  }
-  return {
-    memberId: identity.memberId,
-    memberStatic: identity.memberStatic,
-    memberKey: identity.memberKey,
-  };
-}
-
-function targetBindingForMember(
-  identity: NodejsProviderDeclarationIdentity,
-  member: CsharpTargetMember,
-  includeJsSurfaceMembers: boolean,
-): CsharpTargetBindingFact {
-  const exportedBinding = identity.exportName === undefined
-    ? undefined
-    : nodejsProviderTargetBinding(
-        identity.providerModuleId,
-        identity.exportName,
-        includeJsSurfaceMembers,
-      );
-  if (exportedBinding !== undefined) {
-    return exportedBinding;
-  }
-  const declaringType = member.declaringType;
-  if (declaringType?.kind !== "target-named") {
-    throw new Error(
-      `C# NodeJS target member '${member.id}' has no exact target owner binding.`,
-    );
-  }
-  return Object.freeze({
-    id: declaringType.id,
-    sourceName: declaringType.id,
-    targetName: declaringType.id,
-    target: "csharp",
-    kind: "class",
-    csharpType: declaringType,
-  });
-}
-
-function targetReceiver(
-  identity: NodejsProviderDeclarationIdentity,
-  member: CsharpTargetMember,
-): Extract<
-  CsharpProviderTargetRelation,
-  { readonly kind: "member" | "signature" }
->["receiver"] {
-  if (
-    identity.memberId === undefined ||
-    member.static === true ||
-    member.kind === "constructor"
-  ) {
-    return { kind: "none" };
-  }
-  return { kind: "instance" };
-}
-
-function providerParameterRelations(
-  identity: NodejsProviderDeclarationIdentity,
-  sourceParameters: readonly ProviderParameterDeclaration[] | undefined,
-  member: CsharpTargetMember,
-): readonly CsharpProviderParameterRelation[] {
-  if (sourceParameters === undefined) {
-    throw new Error(
-      `C# NodeJS provider signature '${identity.signatureId ?? "<missing>"}' has no canonical source parameter model.`,
-    );
-  }
-  if (sourceParameters.length !== member.parameters.length) {
-    throw new Error(
-      `C# NodeJS provider signature '${identity.signatureId ?? "<missing>"}' exposes ${sourceParameters.length} source parameters but relates to ${member.parameters.length} target parameters.`,
-    );
-  }
-  return Object.freeze(sourceParameters.map((source, index) => {
-    const target = member.parameters[index]!;
-    return {
-      sourceParameterIndex: index,
-      targetParameterIndex: index,
-      sourcePassingMode: source.passingMode ?? "by-value",
-      targetPassingMode: target.passingMode,
-      sourceAcceptsOmission:
-        source.optional === true ||
-        source.defaultType !== undefined ||
-        source.rest === true,
-      targetAcceptsOmission:
-        target.optional === true ||
-        target.csharpOmittableOptionalArgument === true ||
-        target.paramsArray === true,
-      sourceRest: source.rest === true,
-      targetParamsArray: target.paramsArray === true,
-    };
-  }));
-}
-
-function formatProviderIdentity(
-  identity: NodejsProviderDeclarationIdentity,
-): string {
-  return [
-    identity.providerModuleId,
-    identity.exportId ?? "<export>",
-    identity.memberId ?? "<member>",
-    identity.signatureId ?? "<signature>",
-  ].join("::");
+function bindingKey(moduleSpecifier: string, exportName: string): string {
+  return `${moduleSpecifier}\u0000${exportName}`;
 }

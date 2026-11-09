@@ -1,15 +1,11 @@
-import { int32ProviderType } from "../model/source-types.js";
 import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
-import {
-  csharpJsArrayTargetType, csharpJsTypedArrayTargetType, csharpNullableTargetType,
-  csharpNullableValueTargetType, csharpQualifiedTypeRenderShape, csharpRuntimeUnionTargetType,
-  csharpSourcePrimitiveTargetType, csharpStringTargetType, csharpTargetNamedType, targetParameter,
-} from "@tsonic/target-csharp/provider";
-import type { CsharpTargetBindingFact, CsharpTargetNamedTypeRef, TargetTypeRef } from "@tsonic/target-csharp/provider";
-import { nodeBufferTargetType } from "./buffer/identities.js";
-import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import { int32ProviderType } from "../model/source-types.js";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import type { NodejsNativeTypeDeclarationLocator, NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeNamedType, nativeNullable, nativeNullableReference } from "../native/locators.js";
+import { nativeSlot } from "../native/authoring.js";
 import { nodejsDefaultModuleObjectExports } from "../declarations/defaults.js";
+import { spawnErrorDeclaration, spawnOptionsDeclaration, spawnReturnsDeclaration, spawnSyncNativeMapping } from "./child-process-native.js";
 
 export const nodeChildProcessModuleSpecifier = "node:child_process";
 export const nodeChildProcessSpawnSyncReturnsExportName = "SpawnSyncReturns";
@@ -28,48 +24,8 @@ const resultType: ProviderTypeExpression = {
   kind: "provider-ref", moduleSpecifier: nodeChildProcessModuleSpecifier,
   exportName: nodeChildProcessSpawnSyncReturnsExportName, typeArguments: [bufferType],
 };
-const nativeType = (name: string) => csharpTargetNamedType(
-  `Tsonic.CSharp.Node.${name}`, undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", name), { allowsRefLikeTypeArguments: [] },
-);
-const stringTarget = csharpStringTargetType();
-const intTarget = csharpSourcePrimitiveTargetType("int32");
-const numberTarget = csharpSourcePrimitiveTargetType("float64");
-export const nodeChildProcessResultTypeParameter: NonNullable<CsharpTargetBindingFact["typeParameters"]>[number] = {
-  identity: "Tsonic.CSharp.Node.SpawnSyncReturns`1::0", name: "T", csharpAllowsRefLike: false,
-};
-const resultParameter: TargetTypeRef = {
-  kind: "type-parameter", identity: nodeChildProcessResultTypeParameter.identity, name: "T",
-};
-const nullableResultParameter: TargetTypeRef & { readonly csharpNullableReference: true } = {
-  ...resultParameter, csharpNullableReference: true,
-};
-export function nodeChildProcessResultTarget(typeArgument: TargetTypeRef = resultParameter): CsharpTargetNamedTypeRef {
-  return csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncReturns`1", [typeArgument],
-    csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncReturns"), { allowsRefLikeTypeArguments: [false] });
-}
-const resultTarget = nodeChildProcessResultTarget();
-const errorTarget = nativeType("SpawnSyncError");
-const moduleTarget = nativeType("child_process");
-
-function requiredUnion(arms: readonly TargetTypeRef[]): TargetTypeRef {
-  const result = csharpRuntimeUnionTargetType(arms);
-  if (result === undefined) throw new Error("Invalid closed child-process union.");
-  return result;
-}
-
-export function nodeChildProcessOptionsTarget(includeJsSurfaceMembers: boolean) {
-  const input = includeJsSurfaceMembers
-    ? requiredUnion([csharpJsTypedArrayTargetType("Uint8Array"), nodeBufferTargetType])
-    : nodeBufferTargetType;
-  const descriptor = csharpNullableTargetType(requiredUnion([numberTarget, stringTarget]));
-  const stdio: TargetTypeRef = includeJsSurfaceMembers
-    ? csharpJsArrayTargetType(descriptor) : { kind: "array", element: descriptor };
-  return {
-    input, stdio,
-    type: csharpTargetNamedType("Tsonic.CSharp.Node.SpawnSyncOptions`2", [csharpNullableTargetType(input), stdio],
-      csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "SpawnSyncOptions"), { allowsRefLikeTypeArguments: [false, false] }),
-  };
-}
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
 
 function parameters(options: boolean): readonly ProviderParameterDeclaration[] {
   return [
@@ -83,81 +39,63 @@ function signatureId(options: boolean): string {
 }
 
 function property(
-  exportName: string, owner: CsharpTargetNamedTypeRef, name: string, type: ProviderTypeExpression,
-  target: TargetTypeRef, optional = false, readonly = false,
+  exportName: string, owner: NodejsNativeTypeDeclarationLocator, name: string, type: ProviderTypeExpression,
+  physicalType: NodejsNativeTypeLocator, optional = false, readonly = false,
 ): NodejsClassPropertyTargetMetadata {
-  return nodejsClassPropertyTargetMetadata({
+  return Object.freeze({
     exportName, memberName: name, memberId: `node:child_process.${exportName}.${name}`,
-    targetMemberId: `${owner.id}.${name}`,
-    sourceName: name, targetName: name, memberKind: "property", providerType: type,
-    targetParameters: [], targetReturnType: target, declaringType: owner,
+    memberKind: "property", providerType: type, native: nativeSlot(owner, name, physicalType),
     ...(optional ? { optional: true } : {}), ...(readonly ? { readonly: true } : {}),
   });
 }
 
-export function nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembers = true): readonly NodejsClassPropertyTargetMetadata[] {
-  const options = nodeChildProcessOptionsTarget(includeJsSurfaceMembers);
-  const optionsTarget = options.type;
+export function nodeChildProcessClassPropertyTargetMembers(_includeJsSurfaceMembers = true): readonly NodejsClassPropertyTargetMetadata[] {
   return [
-    ...["stdout", "stderr"].map(name => property(
-      nodeChildProcessSpawnSyncReturnsExportName, resultTarget, name,
-      union({ kind: "type-parameter", name: "T" }, nullType), nullableResultParameter,
-    )),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "status", union(int32ProviderType, nullType), csharpNullableValueTargetType(intTarget)),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "pid", int32ProviderType, csharpNullableValueTargetType(intTarget), true),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "signal", union(providerRef("Signals", "node:process"), nullType), csharpNullableTargetType(stringTarget)),
-    property(nodeChildProcessSpawnSyncReturnsExportName, resultTarget, "error", providerRef(errorExportName), csharpNullableTargetType(errorTarget), true),
-    ...["message", "code"].map(name => property(errorExportName, errorTarget, name, stringType, stringTarget, false, true)),
-    property(optionsExportName, optionsTarget, "encoding", { kind: "literal", value: "buffer" }, csharpNullableTargetType(stringTarget), true),
-    property(optionsExportName, optionsTarget, "cwd", stringType, csharpNullableTargetType(stringTarget), true),
-    property(optionsExportName, optionsTarget, "env", providerRef("ProcessEnv", "node:process"), csharpNullableTargetType(nativeType("ProcessEnv")), true),
-    property(optionsExportName, optionsTarget, "maxBuffer", int32ProviderType, csharpNullableValueTargetType(intTarget), true),
-    ...["uid", "gid", "timeout"].map(name =>
-      property(optionsExportName, optionsTarget, name, int32ProviderType, csharpNullableValueTargetType(intTarget), true)),
-    property(optionsExportName, optionsTarget, "killSignal", providerRef("Signals", "node:process"), csharpNullableTargetType(stringTarget), true),
-    property(optionsExportName, optionsTarget, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),
-      csharpNullableTargetType(options.input), true),
-    property(optionsExportName, optionsTarget, "stdio", {
+    ...["stdout", "stderr"].map(name => property(nodeChildProcessSpawnSyncReturnsExportName, spawnReturnsDeclaration, name,
+      union({ kind: "type-parameter", name: "T" }, nullType), nativeNullableReference({ kind: "class-parameter", index: 0 }))),
+    property(nodeChildProcessSpawnSyncReturnsExportName, spawnReturnsDeclaration, "status", union(int32ProviderType, nullType), nativeNullable(nativeInt)),
+    property(nodeChildProcessSpawnSyncReturnsExportName, spawnReturnsDeclaration, "pid", int32ProviderType, nativeNullable(nativeInt), true),
+    property(nodeChildProcessSpawnSyncReturnsExportName, spawnReturnsDeclaration, "signal", union(providerRef("Signals", "node:process"), nullType), nativeNullableReference(nativeString)),
+    property(nodeChildProcessSpawnSyncReturnsExportName, spawnReturnsDeclaration, "error", providerRef(errorExportName), nativeNullableReference(nativeNamedType(spawnErrorDeclaration.metadataName)), true),
+    ...["message", "code"].map(name => property(errorExportName, spawnErrorDeclaration, name, stringType, nativeString, false, true)),
+    property(optionsExportName, spawnOptionsDeclaration, "encoding", { kind: "literal", value: "buffer" }, nativeNullableReference(nativeString), true),
+    property(optionsExportName, spawnOptionsDeclaration, "cwd", stringType, nativeNullableReference(nativeString), true),
+    property(optionsExportName, spawnOptionsDeclaration, "env", providerRef("ProcessEnv", "node:process"), nativeNullableReference(nativeNamedType("Tsonic.CSharp.Node.ProcessEnv")), true),
+    property(optionsExportName, spawnOptionsDeclaration, "maxBuffer", int32ProviderType, nativeNullable(nativeInt), true),
+    ...["uid", "gid", "timeout"].map(name => property(optionsExportName, spawnOptionsDeclaration, name, int32ProviderType, nativeNullable(nativeInt), true)),
+    property(optionsExportName, spawnOptionsDeclaration, "killSignal", providerRef("Signals", "node:process"), nativeNullableReference(nativeString), true),
+    property(optionsExportName, spawnOptionsDeclaration, "input", union(bufferType, { kind: "source-global", name: "Uint8Array" }),
+      nativeNullableReference({ kind: "class-parameter", index: 0 }), true),
+    property(optionsExportName, spawnOptionsDeclaration, "stdio", {
       kind: "array", elementType: union(numberType, nullType, undefinedType,
         ...["pipe", "ignore", "inherit"].map(value => ({ kind: "literal" as const, value }))),
-    }, csharpNullableTargetType(options.stdio), true),
+    }, nativeNullableReference({ kind: "class-parameter", index: 1 }), true),
   ];
 }
 
 export function nodeChildProcessExports(includeJsSurfaceMembers = true): readonly ProviderExportDeclaration[] {
-  const properties = nodeChildProcessClassPropertyTargetMembers(includeJsSurfaceMembers);
+  const properties = nodeChildProcessClassPropertyTargetMembers();
   const exports: readonly ProviderExportDeclaration[] = [
     ...[nodeChildProcessSpawnSyncReturnsExportName, optionsExportName, errorExportName].map(name => ({
       id: `node:child_process.${name}`, name, kind: "interface" as const,
       ...(name === nodeChildProcessSpawnSyncReturnsExportName ? { typeParameters: [{ name: "T" }] } : {}),
       members: properties.filter(member => member.exportName === name).map(member => ({
         id: member.memberId, name: member.memberName, kind: "property" as const,
-        type: name === optionsExportName && member.memberName === "input" && !includeJsSurfaceMembers
-          ? bufferType : member.providerType,
+        type: name === optionsExportName && member.memberName === "input" && !includeJsSurfaceMembers ? bufferType : member.providerType,
         ...(member.optional === true ? { optional: true } : {}),
         ...(member.readonly === true ? { readonly: true } : {}),
       })),
     })),
     { id: "node:child_process.spawnSync", name: "spawnSync", kind: "function",
-      signatures: [false, true].map(options => ({
-        id: signatureId(options), parameters: parameters(options), returnType: resultType,
-      })) },
+      signatures: [false, true].map(options => ({ id: signatureId(options), parameters: parameters(options), returnType: resultType })) },
   ];
   return [...exports, ...nodejsDefaultModuleObjectExports(nodeChildProcessModuleSpecifier, exports)];
 }
 
 export function nodeChildProcessCallTargetMembers(includeJsSurfaceMembers = true): readonly NodejsModuleCallTargetMetadata[] {
-  const optionsTarget = nodeChildProcessOptionsTarget(includeJsSurfaceMembers).type;
-  const argument = includeJsSurfaceMembers
-    ? { carrier: csharpJsArrayTargetType(stringTarget), id: "Tsonic.CSharp.Js.JSArray`1" }
-    : { carrier: { kind: "array", element: stringTarget } as TargetTypeRef, id: "System.String[]" };
-  return [false, true].map(options => nodejsModuleCallTargetMetadata({
+  return [false, true].map(options => Object.freeze({
     exportName: "spawnSync", signatureId: signatureId(options),
-    targetMemberId: `Tsonic.CSharp.Node.child_process.spawnSyncResult(System.String,${argument.id}${options ? ",Tsonic.CSharp.Node.SpawnSyncOptions" : ""})`,
-    sourceName: "spawnSync", targetName: "spawnSyncResult",
     providerParameters: parameters(options), providerReturnType: resultType,
-    targetParameters: [targetParameter("command", stringTarget), targetParameter("args", argument.carrier),
-      ...(options ? [targetParameter("options", optionsTarget)] : [])],
-    targetReturnType: nodeChildProcessResultTarget(nodeBufferTargetType), declaringType: moduleTarget,
+    native: spawnSyncNativeMapping(includeJsSurfaceMembers, options),
   }));
 }

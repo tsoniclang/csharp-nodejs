@@ -5,14 +5,17 @@ import {
   csharpJsRuntimeSource,
   csharpRuntimeSourceContributions,
 } from "@tsonic/target-csharp/provider";
+import type { CsharpRuntimeProjectSource } from "@tsonic/target-csharp/provider";
+
+export const nodejsRuntimeSource: CsharpRuntimeProjectSource = Object.freeze({
+  projectPath: fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.csproj")),
+  propertiesPath: fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.props")),
+  dependencies: Object.freeze({
+    TsonicCsharpRuntimeProject: csharpCoreRuntimeSource,
+    TsonicCsharpJsProject: csharpJsRuntimeSource,
+  }),
+});
 
 export function nodejsRuntimeContributions(): TargetRuntimeContributions {
-  return csharpRuntimeSourceContributions({
-    projectPath: fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.csproj")),
-    propertiesPath: fileURLToPath(import.meta.resolve("@tsonic/csharp-nodejs/runtime.props")),
-    dependencies: {
-      TsonicCsharpRuntimeProject: csharpCoreRuntimeSource,
-      TsonicCsharpJsProject: csharpJsRuntimeSource,
-    },
-  });
+  return csharpRuntimeSourceContributions(nodejsRuntimeSource);
 }

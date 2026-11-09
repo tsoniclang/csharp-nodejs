@@ -1,112 +1,27 @@
-import type { ProviderParameterDeclaration, ProviderTypeExpression, ProviderTypeParameterDeclaration } from "@tsonic/tsts";
-import type { CsharpTargetMember, TargetParameter, TargetTypeRef } from "@tsonic/target-csharp/provider";
+import type { ProviderParameterDeclaration, ProviderSignatureDeclaration, ProviderTypeExpression, ProviderTypeParameterDeclaration } from "@tsonic/tsts";
 import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember, NodejsModulePropertyTargetMember } from "./members.js";
 
-export type CsharpTargetInvocation = NonNullable<
-  CsharpTargetMember["csharpInvocation"]
->;
-
 export interface NodejsModuleCallTargetMetadata extends NodejsModuleCallTargetMember {
-  readonly targetMemberId: string;
-  readonly targetName: string;
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType: ProviderTypeExpression;
   readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
 }
 
 export interface NodejsModulePropertyTargetMetadata extends NodejsModulePropertyTargetMember {
-  readonly targetMemberId: string;
-  readonly targetName: string;
   readonly providerType: ProviderTypeExpression;
 }
 
 export interface NodejsClassCallTargetMetadata extends NodejsClassCallTargetMember {
-  readonly targetMemberId: string;
-  readonly targetName: string;
   readonly memberKind: "constructor" | "method";
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType?: ProviderTypeExpression;
   readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
-  readonly static?: boolean;
+  readonly accessibility?: ProviderSignatureDeclaration["accessibility"];
 }
 
 export interface NodejsClassPropertyTargetMetadata extends NodejsClassPropertyTargetMember {
-  readonly targetMemberId: string;
-  readonly targetName: string;
   readonly memberKind: "property" | "indexer";
   readonly providerType: ProviderTypeExpression;
-  readonly readonly?: true;
-  readonly optional?: true;
-}
-
-export interface NodejsModuleCallTargetMetadataRow {
-  readonly exportName: string;
-  readonly signatureId: string;
-  readonly targetMemberId: string;
-  readonly sourceName: string;
-  readonly targetName: string;
-  readonly providerParameters: readonly ProviderParameterDeclaration[];
-  readonly providerReturnType: ProviderTypeExpression;
-  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
-  readonly targetParameters: readonly TargetParameter[];
-  readonly targetReturnType: TargetTypeRef;
-  readonly declaringType: TargetTypeRef;
-  readonly targetTypeParameters?: CsharpTargetMember["typeParameters"];
-}
-
-export interface NodejsModulePropertyTargetMetadataRow {
-  readonly exportName: string;
-  readonly targetMemberId: string;
-  readonly sourceName: string;
-  readonly targetName: string;
-  readonly providerType: ProviderTypeExpression;
-  readonly targetReturnType: TargetTypeRef;
-  readonly declaringType: TargetTypeRef;
-}
-
-interface NodejsClassCallTargetMetadataRowBase {
-  readonly exportName: string;
-  readonly memberName: string;
-  readonly memberId: string;
-  readonly signatureId: string;
-  readonly targetMemberId: string;
-  readonly sourceName: string;
-  readonly targetName: string;
-  readonly providerParameters: readonly ProviderParameterDeclaration[];
-  readonly providerReturnType?: ProviderTypeExpression;
-  readonly providerTypeParameters?: readonly ProviderTypeParameterDeclaration[];
-  readonly targetParameters: readonly TargetParameter[];
-  readonly targetReturnType: TargetTypeRef;
-  readonly declaringType: TargetTypeRef;
-  readonly targetTypeParameters?: CsharpTargetMember["typeParameters"];
-  readonly static?: boolean;
-  readonly csharpInvocation?: CsharpTargetInvocation;
-}
-
-export type NodejsClassCallTargetMetadataRow = NodejsClassCallTargetMetadataRowBase & (
-  | {
-    readonly memberKind: "constructor";
-    readonly csharpConstructorAccessibility: NonNullable<CsharpTargetMember["csharpConstructorAccessibility"]>;
-    readonly csharpConstructorObsolete: boolean;
-  }
-  | {
-    readonly memberKind: "method";
-  }
-);
-
-export interface NodejsClassPropertyTargetMetadataRow {
-  readonly exportName: string;
-  readonly memberName: string;
-  readonly memberId: string;
-  readonly signatureId?: string;
-  readonly targetMemberId: string;
-  readonly sourceName: string;
-  readonly targetName: string;
-  readonly memberKind: "property" | "indexer";
-  readonly providerType: ProviderTypeExpression;
-  readonly targetParameters: readonly TargetParameter[];
-  readonly targetReturnType: TargetTypeRef;
-  readonly declaringType: TargetTypeRef;
   readonly readonly?: true;
   readonly optional?: true;
 }

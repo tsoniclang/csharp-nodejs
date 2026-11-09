@@ -1,14 +1,14 @@
-import type { CsharpTargetMember } from "@tsonic/target-csharp/provider";
+import type { NodejsNativeCallMapping, NodejsNativeMemberMapping } from "../native/locators.js";
 
 export interface NodejsModuleCallTargetMember {
   readonly exportName: string;
   readonly signatureId: string;
-  readonly member: CsharpTargetMember;
+  readonly native: NodejsNativeCallMapping;
 }
 
 export interface NodejsModulePropertyTargetMember {
   readonly exportName: string;
-  readonly member: CsharpTargetMember;
+  readonly native: NodejsNativeMemberMapping;
 }
 
 export interface NodejsClassCallTargetMember {
@@ -17,7 +17,7 @@ export interface NodejsClassCallTargetMember {
   readonly memberId: string;
   readonly signatureId: string;
   readonly static?: boolean;
-  readonly member: CsharpTargetMember;
+  readonly native: NodejsNativeCallMapping;
 }
 
 export interface NodejsClassPropertyTargetMember {
@@ -25,7 +25,8 @@ export interface NodejsClassPropertyTargetMember {
   readonly memberName: string;
   readonly memberId: string;
   readonly signatureId?: string;
-  readonly member: CsharpTargetMember;
+  readonly static?: boolean;
+  readonly native: NodejsNativeMemberMapping;
 }
 
 export interface NodejsUnsupportedTargetIdentity {

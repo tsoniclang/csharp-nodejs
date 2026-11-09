@@ -151,7 +151,7 @@ function providerClassCallMembers(
         member.providerParameters,
         member.providerReturnType,
         member.providerTypeParameters,
-        member.member.csharpConstructorAccessibility,
+        member.accessibility,
       )),
     };
   });
