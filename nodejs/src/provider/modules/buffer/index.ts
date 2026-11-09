@@ -53,7 +53,6 @@ export {
   nodeBufferExports,
 } from "./declarations/index.js";
 export {
-  getNodeBufferLengthTargetMember,
   nodeBufferClassCallTargetMembers,
   nodeBufferClassPropertyTargetMembers,
   nodeBufferModuleCallTargetMembers,

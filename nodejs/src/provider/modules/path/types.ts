@@ -1,32 +1,15 @@
-import type {
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import type { NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../../model/target-members.js";
-import {
-  csharpQualifiedTypeRenderShape,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpTargetNamedType,
-} from "@tsonic/target-csharp/provider";
+import type { ProviderTypeExpression } from "@tsonic/tsts";
+import { nativeNamedType } from "../../native/locators.js";
+import { nativeOwner } from "../../native/authoring.js";
 
-export const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-export const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
-export const stringTargetType = csharpStringTargetType();
-export const boolTargetType = csharpSourcePrimitiveTargetType("bool");
+export const stringProviderType: ProviderTypeExpression = { kind: "string" };
+export const boolProviderType: ProviderTypeExpression = { kind: "boolean" };
 export const nodePathModuleSpecifier = "node:path";
-export const nodePathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.path", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "path"), { allowsRefLikeTypeArguments: [] });
-export const parsedPathProviderType = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "ParsedPath" } satisfies ProviderTypeExpression;
-export const parsedPathTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.ParsedPath", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "ParsedPath"), { allowsRefLikeTypeArguments: [] });
-export const pathModuleProviderType = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "PathModule" } satisfies ProviderTypeExpression;
-export const pathModuleTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.PathModule", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "PathModule"), { allowsRefLikeTypeArguments: [] });
+export const parsedPathProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "ParsedPath" };
+export const pathModuleProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: nodePathModuleSpecifier, exportName: "PathModule" };
+export const pathOwner = nativeOwner("Tsonic.CSharp.Node.path");
+export const pathModuleOwner = nativeOwner("Tsonic.CSharp.Node.PathModule");
+export const parsedPathOwner = nativeOwner("Tsonic.CSharp.Node.ParsedPath");
+export const nativeParsedPath = nativeNamedType(parsedPathOwner.metadataName);
+export const nativePathModule = nativeNamedType(pathModuleOwner.metadataName);
 
-export interface NodePathProviderParameter {
-  readonly name: string;
-  readonly type: ProviderTypeExpression;
-  readonly optional?: boolean;
-  readonly rest?: boolean;
-}
-
-export type NodePathCallTargetMember = NodejsModuleCallTargetMetadata;
-
-export type NodePathPropertyTargetMember = NodejsModulePropertyTargetMetadata;

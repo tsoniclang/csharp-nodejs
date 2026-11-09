@@ -1,138 +1,75 @@
-import type {
-  ProviderExportDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpDelegateTargetType,
-  csharpNullableTargetType,
-  csharpNullableValueTargetType,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpVoidTargetType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import type {
-  TargetParameter,
-  TargetTypeRef,
-} from "@tsonic/target-csharp/provider";
-import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
-import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import type { NodejsNativeParameterMapping } from "../native/authoring.js";
+import type { NodejsNativeTypeDeclarationLocator, NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeCall, nativeDefault, nativeOwner, nativeParameter, nativeSlot } from "../native/authoring.js";
+import { nativeNamedType, nativeNullable, nativeNullableReference } from "../native/locators.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, providerRef } from "../declarations/exports.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
 
 export const nodeReadlineModuleSpecifier = "node:readline";
-
-const targetTypes = {
-  Interface: nodejsTargetNamedType("Tsonic.CSharp.Node", "Interface"),
-  ReadLineOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "InterfaceOptions"),
-  Readable: nodejsTargetNamedType("Tsonic.CSharp.Node", "Readable"),
-  Writable: nodejsTargetNamedType("Tsonic.CSharp.Node", "Writable"),
-};
-const readlineTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "readline");
+const moduleOwner = nativeOwner("Tsonic.CSharp.Node.readline");
+const interfaceOwner = nativeOwner("Tsonic.CSharp.Node.Interface");
+const optionsOwner = nativeOwner("Tsonic.CSharp.Node.InterfaceOptions");
+const interfaceType = nativeNamedType(interfaceOwner.metadataName);
 const interfaceProviderType = providerRef(nodeReadlineModuleSpecifier, "Interface");
 const optionsProviderType = providerRef(nodeReadlineModuleSpecifier, "ReadLineOptions");
-const stringTargetType = csharpStringTargetType();
-const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
-const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const nullableBoolTargetType = csharpNullableValueTargetType(boolTargetType);
-const voidTargetType = csharpVoidTargetType();
-const questionCallbackProviderType = callbackProviderType("node:readline.question-callback", [
-  { name: "answer", type: stringProviderType },
-]);
-const questionCallbackTargetType = csharpDelegateTargetType("System.Action", [stringTargetType]);
-
-export function nodeReadlineExports(): readonly ProviderExportDeclaration[] {
-  return nodejsCapabilityModuleExports({
-    moduleSpecifier: nodeReadlineModuleSpecifier,
-    moduleCalls: nodeReadlineCallTargetMembers(),
-    classCalls: nodeReadlineClassCallTargetMembers(),
-    classProperties: nodeReadlineClassPropertyTargetMembers(),
-    classes: ["Interface", "ReadLineOptions"],
-  });
-}
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
+const nativeBool: NodejsNativeTypeLocator = { kind: "source-primitive", name: "bool" };
+const nativeVoid: NodejsNativeTypeLocator = { kind: "void" };
+const questionCallback = callbackProviderType("node:readline.question-callback", [{ name: "answer", type: stringProviderType }]);
 
 export function nodeReadlineCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
-  return [nodejsModuleCallTargetMetadata({
-    exportName: "createInterface",
-    signatureId: "node:readline.createInterface(InterfaceOptions)",
-    targetMemberId: "Tsonic.CSharp.Node.readline.createInterface(Tsonic.CSharp.Node.InterfaceOptions)",
-    sourceName: "createInterface",
-    targetName: "createInterface",
-    providerParameters: [{ name: "options", type: optionsProviderType }],
-    providerReturnType: interfaceProviderType,
-    targetParameters: [targetParameter("options", targetTypes.ReadLineOptions)],
-    targetReturnType: targetTypes.Interface,
-    declaringType: readlineTargetType,
-  })];
+  return [{ exportName: "createInterface", signatureId: "node:readline.createInterface(InterfaceOptions)",
+    providerParameters: [{ name: "options", type: optionsProviderType }], providerReturnType: interfaceProviderType,
+    native: nativeCall({ owner: moduleOwner, kind: "method", targetName: "createInterface", static: true,
+      parameters: [nativeParameter(0, nativeNamedType(optionsOwner.metadataName))], returnType: interfaceType, receiver: { kind: "none" } }) }];
 }
 
 export function nodeReadlineClassCallTargetMembers(): readonly NodejsClassCallTargetMetadata[] {
-  const method = (
-    memberName: string,
-    providerParameters: NodejsClassCallTargetMetadata["providerParameters"],
-    providerReturnType: ProviderTypeExpression,
-    targetParameters: readonly TargetParameter[],
-    targetReturnType: TargetTypeRef,
-  ): NodejsClassCallTargetMetadata => nodejsClassCallTargetMetadata({
-    exportName: "Interface",
-    memberName,
-    memberId: `node:readline.Interface.${memberName}`,
-    signatureId: `node:readline.Interface.${memberName}(${providerParameters.map((parameter) => parameter.type.kind).join(",")})`,
-    targetMemberId: `Tsonic.CSharp.Node.Interface.${memberName}`,
-    sourceName: memberName,
-    targetName: memberName,
-    memberKind: "method",
-    providerParameters,
-    providerReturnType,
-    targetParameters,
-    targetReturnType,
-    declaringType: targetTypes.Interface,
-  });
   return [
-    method(
-      "question",
-      [{ name: "query", type: stringProviderType }, { name: "callback", type: questionCallbackProviderType }],
-      voidProviderType,
-      [targetParameter("query", stringTargetType), targetParameter("callback", questionCallbackTargetType)],
-      voidTargetType,
-    ),
-    method("write", [{ name: "data", type: stringProviderType }], voidProviderType, [targetParameter("data", stringTargetType)], voidTargetType),
-    method("pause", [], interfaceProviderType, [], targetTypes.Interface),
-    method("resume", [], interfaceProviderType, [], targetTypes.Interface),
-    method("close", [], voidProviderType, [], voidTargetType),
-    method("setPrompt", [{ name: "prompt", type: stringProviderType }], voidProviderType, [targetParameter("prompt", stringTargetType)], voidTargetType),
-    method("getPrompt", [], stringProviderType, [], stringTargetType),
-    method("prompt", [], voidProviderType, [], voidTargetType),
+    method("question", [{ name: "query", type: stringProviderType }, { name: "callback", type: questionCallback }], voidProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeNamedType("System.Action`1", nativeString))], nativeVoid),
+    method("write", [{ name: "data", type: stringProviderType }], voidProviderType, [nativeParameter(0, nativeString)], nativeVoid),
+    method("pause", [], interfaceProviderType, [], interfaceType),
+    method("resume", [], interfaceProviderType, [], interfaceType),
+    method("close", [], voidProviderType, [], nativeVoid),
+    method("setPrompt", [{ name: "prompt", type: stringProviderType }], voidProviderType, [nativeParameter(0, nativeString)], nativeVoid),
+    method("getPrompt", [], stringProviderType, [], nativeString),
+    method("prompt", [], voidProviderType, [nativeDefault(nativeBool)], nativeVoid),
   ];
 }
 
 export function nodeReadlineClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
-  const rows: readonly [string, string, ProviderTypeExpression, TargetTypeRef, boolean, boolean][] = [
-    ["Interface", "line", stringProviderType, stringTargetType, false, true],
-    ["Interface", "cursor", int32ProviderType, intTargetType, false, true],
-    ["ReadLineOptions", "input", providerRef("node:stream", "Readable"), targetTypes.Readable, false, false],
-    ["ReadLineOptions", "output", providerRef("node:stream", "Writable"), csharpNullableTargetType(targetTypes.Writable), true, false],
-    ["ReadLineOptions", "terminal", booleanProviderType, nullableBoolTargetType, true, false],
-    ["ReadLineOptions", "prompt", stringProviderType, nullableStringTargetType, true, false],
-    ["ReadLineOptions", "historySize", int32ProviderType, nullableIntTargetType, true, false],
-    ["ReadLineOptions", "removeHistoryDuplicates", booleanProviderType, nullableBoolTargetType, true, false],
+  const rows: readonly (readonly [string, NodejsNativeTypeDeclarationLocator, string, ProviderTypeExpression, NodejsNativeTypeLocator, boolean, boolean])[] = [
+    ["Interface", interfaceOwner, "line", stringProviderType, nativeString, false, true],
+    ["Interface", interfaceOwner, "cursor", int32ProviderType, nativeInt, false, true],
+    ["ReadLineOptions", optionsOwner, "input", providerRef("node:stream", "Readable"), nativeNullableReference(nativeNamedType("Tsonic.CSharp.Node.Readable")), false, false],
+    ["ReadLineOptions", optionsOwner, "output", providerRef("node:stream", "Writable"), nativeNullableReference(nativeNamedType("Tsonic.CSharp.Node.Writable")), true, false],
+    ["ReadLineOptions", optionsOwner, "terminal", booleanProviderType, nativeNullable(nativeBool), true, false],
+    ["ReadLineOptions", optionsOwner, "prompt", stringProviderType, nativeNullableReference(nativeString), true, false],
+    ["ReadLineOptions", optionsOwner, "historySize", int32ProviderType, nativeNullable(nativeInt), true, false],
+    ["ReadLineOptions", optionsOwner, "removeHistoryDuplicates", booleanProviderType, nativeNullable(nativeBool), true, false],
   ];
-  return rows.map(([exportName, memberName, providerType, targetType, optional, readonly]) =>
-    nodejsClassPropertyTargetMetadata({
-      exportName,
-      memberName,
-      memberId: `node:readline.${exportName}.${memberName}`,
-      targetMemberId: `Tsonic.CSharp.Node.${exportName === "ReadLineOptions" ? "InterfaceOptions" : exportName}.${memberName}`,
-      sourceName: memberName,
-      targetName: memberName,
-      memberKind: "property",
-      providerType,
-      targetParameters: [],
-      targetReturnType: targetType,
-      declaringType: targetTypes[exportName as "Interface" | "ReadLineOptions"],
-      ...(optional ? { optional: true } : {}),
-      ...(readonly ? { readonly: true } : {}),
-    }));
+  return rows.map(([exportName, owner, memberName, providerType, physical, optional, readonly]) => ({
+    exportName, memberName, memberId: `node:readline.${exportName}.${memberName}`, memberKind: "property" as const, providerType,
+    ...optional ? { optional: true as const } : {}, ...readonly ? { readonly: true as const } : {},
+    native: nativeSlot(owner, memberName, physical),
+  }));
 }
+
+export function nodeReadlineExports(): readonly ProviderExportDeclaration[] {
+  return nodejsCapabilityModuleExports({ moduleSpecifier: nodeReadlineModuleSpecifier, moduleCalls: nodeReadlineCallTargetMembers(),
+    classCalls: nodeReadlineClassCallTargetMembers(), classProperties: nodeReadlineClassPropertyTargetMembers(), classes: ["Interface", "ReadLineOptions"] });
+}
+function method(
+  memberName: string, providerParameters: readonly ProviderParameterDeclaration[], providerReturnType: ProviderTypeExpression,
+  parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator,
+): NodejsClassCallTargetMetadata {
+  return { exportName: "Interface", memberName, memberId: `node:readline.Interface.${memberName}`,
+    signatureId: `node:readline.Interface.${memberName}(${providerParameters.map(parameter => parameter.type.kind).join(",")})`,
+    memberKind: "method", providerParameters, providerReturnType,
+    native: nativeCall({ owner: interfaceOwner, kind: "method", targetName: memberName, static: false, parameters, returnType, receiver: { kind: "instance" } }) };
+}
+

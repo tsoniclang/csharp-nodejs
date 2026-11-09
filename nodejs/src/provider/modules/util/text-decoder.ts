@@ -1,142 +1,45 @@
-import type {
-  ProviderExportDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpQualifiedTypeRenderShape,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpTargetNamedType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import type { TargetTypeRef } from "@tsonic/target-csharp/provider";
-import {
-  nodeBufferTargetType,
-} from "../buffer/identities.js";
-import { nodejsClassCallTargetMetadata, nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
+import type { ProviderExportDeclaration } from "@tsonic/tsts";
 import type { NodejsClassCallTargetMetadata, NodejsClassPropertyTargetMetadata } from "../../model/target-members.js";
+import { nativeCall, nativeOwner, nativeParameter, nativeSlot } from "../../native/authoring.js";
+import { nativeNamedType } from "../../native/locators.js";
+import { stringProviderType, boolProviderType } from "../../model/source-types.js";
 
 export const nodeUtilTextDecoderExportName = "TextDecoder";
-
-const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
-const bufferProviderType = {
-  kind: "provider-ref",
-  moduleSpecifier: "node:buffer",
-  exportName: "Buffer",
-} satisfies ProviderTypeExpression;
-const stringTargetType = csharpStringTargetType();
-const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const textDecoderTargetType = csharpTargetNamedType(
-  "Tsonic.CSharp.Node.TextDecoder",
-  undefined,
-  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "TextDecoder"),
-  { allowsRefLikeTypeArguments: [] },
-);
-
-export function nodeUtilTextDecoderExportDeclaration(): ProviderExportDeclaration {
-  const calls = nodeUtilTextDecoderClassCallTargetMembers();
-  const callsByMember = new Map<string, readonly NodejsClassCallTargetMetadata[]>();
-  for (const call of calls) {
-    callsByMember.set(call.memberId, [...callsByMember.get(call.memberId) ?? [], call]);
-  }
-  return {
-    id: "node:util.TextDecoder",
-    name: nodeUtilTextDecoderExportName,
-    kind: "class",
-    members: [
-      ...[...callsByMember.values()].map((group) => ({
-        id: group[0]!.memberId,
-        name: group[0]!.memberName,
-        kind: group[0]!.memberKind,
-        signatures: group.map((entry) => ({
-          id: entry.signatureId,
-          ...(entry.member.csharpConstructorAccessibility === undefined
-            ? {}
-            : { accessibility: entry.member.csharpConstructorAccessibility }),
-          parameters: entry.providerParameters,
-          ...(entry.providerReturnType === undefined ? {} : { returnType: entry.providerReturnType }),
-        })),
-      })),
-      ...nodeUtilTextDecoderClassPropertyTargetMembers().map((entry) => ({
-        id: entry.memberId,
-        name: entry.memberName,
-        kind: "property" as const,
-        readonly: true as const,
-        type: entry.providerType,
-      })),
-    ],
-  };
-}
+const owner = nativeOwner("Tsonic.CSharp.Node.TextDecoder");
+const bufferProviderType = { kind: "provider-ref", moduleSpecifier: "node:buffer", exportName: "Buffer" } as const;
 
 export function nodeUtilTextDecoderClassCallTargetMembers(): readonly NodejsClassCallTargetMetadata[] {
-  const constructor = (
-    signatureId: string,
-    targetMemberId: string,
-    providerParameters: readonly ProviderParameterDeclaration[],
-    targetParameters: Parameters<typeof nodejsClassCallTargetMetadata>[0]["targetParameters"],
-  ): NodejsClassCallTargetMetadata => nodejsClassCallTargetMetadata({
-    exportName: nodeUtilTextDecoderExportName,
-    memberName: "constructor",
-    memberId: "node:util.TextDecoder.constructor",
-    signatureId,
-    targetMemberId,
-    sourceName: "constructor",
-    targetName: "TextDecoder",
-    memberKind: "constructor",
-    csharpConstructorAccessibility: "public",
-    csharpConstructorObsolete: false,
-    providerParameters,
-    targetParameters,
-    targetReturnType: textDecoderTargetType,
-    declaringType: textDecoderTargetType,
-  });
   return [
-    constructor("node:util.TextDecoder.constructor()", "Tsonic.CSharp.Node.TextDecoder..ctor()", [], []),
-    nodejsClassCallTargetMetadata({
-      exportName: nodeUtilTextDecoderExportName,
-      memberName: "decode",
-      memberId: "node:util.TextDecoder.decode",
-      signatureId: "node:util.TextDecoder.decode(Tsonic.CSharp.Node.Buffer)",
-      targetMemberId: "Tsonic.CSharp.Node.TextDecoder.decode(Tsonic.CSharp.Node.Buffer)",
-      sourceName: "decode",
-      targetName: "decode",
-      memberKind: "method",
-      providerParameters: [{ name: "input", type: bufferProviderType }],
-      providerReturnType: stringProviderType,
-      targetParameters: [targetParameter("input", nodeBufferTargetType)],
-      targetReturnType: stringTargetType,
-      declaringType: textDecoderTargetType,
-    }),
+    { exportName: nodeUtilTextDecoderExportName, memberName: "constructor", memberId: "node:util.TextDecoder.constructor",
+      signatureId: "node:util.TextDecoder.constructor()", memberKind: "constructor", accessibility: "public", providerParameters: [],
+      native: nativeCall({ owner, kind: "constructor", targetName: ".ctor", static: false, parameters: [],
+        returnType: nativeNamedType(owner.metadataName), receiver: { kind: "none" } }) },
+    { exportName: nodeUtilTextDecoderExportName, memberName: "decode", memberId: "node:util.TextDecoder.decode",
+      signatureId: "node:util.TextDecoder.decode(Tsonic.CSharp.Node.Buffer)", memberKind: "method",
+      providerParameters: [{ name: "input", type: bufferProviderType }], providerReturnType: stringProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: "decode", static: false,
+        parameters: [nativeParameter(0, nativeNamedType("Tsonic.CSharp.Node.Buffer"))], returnType: { kind: "string" }, receiver: { kind: "instance" } }) },
   ];
 }
 
 export function nodeUtilTextDecoderClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   return [
-    decoderProperty("encoding", stringProviderType, stringTargetType),
-    decoderProperty("fatal", boolProviderType, boolTargetType),
-    decoderProperty("ignoreBOM", boolProviderType, boolTargetType),
+    { exportName: nodeUtilTextDecoderExportName, memberName: "encoding", memberId: "node:util.TextDecoder.encoding",
+      memberKind: "property", providerType: stringProviderType, readonly: true, native: nativeSlot(owner, "encoding", { kind: "string" }) },
+    ...["fatal", "ignoreBOM"].map(memberName => ({ exportName: nodeUtilTextDecoderExportName, memberName, memberId: `node:util.TextDecoder.${memberName}`,
+      memberKind: "property" as const, providerType: boolProviderType, readonly: true as const,
+      native: nativeSlot(owner, memberName, { kind: "source-primitive", name: "bool" }) })),
   ];
 }
 
-function decoderProperty(
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-): NodejsClassPropertyTargetMetadata {
-  return nodejsClassPropertyTargetMetadata({
-    exportName: nodeUtilTextDecoderExportName,
-    memberName,
-    memberId: `node:util.TextDecoder.${memberName}`,
-    targetMemberId: `Tsonic.CSharp.Node.TextDecoder.${memberName}`,
-    sourceName: memberName,
-    targetName: memberName,
-    memberKind: "property",
-    providerType,
-    targetParameters: [],
-    targetReturnType,
-    declaringType: textDecoderTargetType,
-    readonly: true,
-  });
+export function nodeUtilTextDecoderExportDeclaration(): ProviderExportDeclaration {
+  return { id: "node:util.TextDecoder", name: nodeUtilTextDecoderExportName, kind: "class", members: [
+    ...nodeUtilTextDecoderClassCallTargetMembers().map(entry => ({ id: entry.memberId, name: entry.memberName, kind: entry.memberKind,
+      signatures: [{ id: entry.signatureId, parameters: entry.providerParameters,
+        ...entry.accessibility === undefined ? {} : { accessibility: entry.accessibility },
+        ...entry.providerReturnType === undefined ? {} : { returnType: entry.providerReturnType } }] })),
+    ...nodeUtilTextDecoderClassPropertyTargetMembers().map(entry => ({ id: entry.memberId, name: entry.memberName, kind: "property" as const,
+      readonly: true as const, type: entry.providerType })),
+  ] };
 }
+

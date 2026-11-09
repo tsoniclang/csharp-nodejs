@@ -1,48 +1,18 @@
+import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
+import type { NodejsModuleCallTargetMetadata } from "../../model/target-members.js";
+import type { NodejsUnsupportedTargetIdentity } from "../../model/members.js";
+import { nativeCall, nativeDefault, nativeOwner, nativeParameter } from "../../native/authoring.js";
+import { nativeNamedType, nativeNullableReference } from "../../native/locators.js";
 import { int32ProviderType } from "../../model/source-types.js";
-import type {
-  ProviderExportDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpQualifiedTypeRenderShape,
-  csharpTargetNamedType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import {
-  getNodejsProviderExportSignatureDeclarationMetadata,
-  nodejsProviderExportSignatureDeclarationMetadataIndex,
-} from "../../metadata-indexes.js";
-import { nodejsModuleCallTargetMetadata } from "../../declarations/target-members.js";
-import {
-  nodeUtilTextDecoderExportDeclaration,
-} from "./text-decoder.js";
+import { nodeUtilTextDecoderExportDeclaration } from "./text-decoder.js";
 import { nodeErrorExportDeclaration } from "./node-error.js";
-import {
-  nodejsDefaultModuleObjectExports,
-} from "../../declarations/defaults.js";
-import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../../model/target-members.js";
+import { nodejsDefaultModuleObjectExports } from "../../declarations/defaults.js";
 
-const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
-const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
-const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
-const stringTargetType = csharpStringTargetType();
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const utilTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.util", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "util"), { allowsRefLikeTypeArguments: [] });
-
-type NodeUtilCallTargetMember = NodejsModuleCallTargetMetadata;
-type NodeUtilCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
-
-export interface NodeUtilUnsupportedTargetIdentity {
-  readonly exportName: string;
-  readonly signatureId: string;
-  readonly targetIdentityId: string;
-  readonly displayName: string;
-}
-
+const unknownProviderType: ProviderTypeExpression = { kind: "unknown" };
+const stringProviderType: ProviderTypeExpression = { kind: "string" };
+const boolProviderType: ProviderTypeExpression = { kind: "boolean" };
+const voidProviderType: ProviderTypeExpression = { kind: "void" };
+const owner = nativeOwner("Tsonic.CSharp.Node.util");
 export const nodeUtilModuleSpecifier = "node:util";
 export const nodeUtilFormatExportName = "format";
 export const nodeUtilFormatSignatureId = "node:util.format(System.Object,System.Object[])";
@@ -61,125 +31,50 @@ export const nodeUtilStripVtControlCharactersSignatureId = "node:util.stripVTCon
 export const nodeUtilToUsvStringExportName = "toUSVString";
 export const nodeUtilToUsvStringSignatureId = "node:util.toUSVString(System.String)";
 
-export function nodeUtilExports(): readonly ProviderExportDeclaration[] {
-  const exports = [
-    nodeErrorExportDeclaration(),
-    nodeUtilTextDecoderExportDeclaration(),
-    ...nodeUtilUnsupportedTargetIdentities().map((identity) =>
-      unsupportedUtilFunction(identity.exportName, identity.signatureId, unsupportedUtilParameters(identity.exportName, identity.signatureId))
-    ),
-    ...nodeUtilCallTargetMembers().map(({ exportName, signatureId, providerParameters, providerReturnType }) => ({
-      id: `node:util.${exportName}`,
-      name: exportName,
-      kind: "function" as const,
-      signatures: [{
-        id: signatureId,
-        parameters: providerParameters,
-        returnType: providerReturnType,
-      }],
+
+export function nodeUtilCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
+  return [
+    { exportName: "convertProcessSignalToExitCode", signatureId: "node:util.convertProcessSignalToExitCode(System.String)",
+      providerParameters: [stringParameter("signal")], providerReturnType: int32ProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: "convertProcessSignalToExitCode", static: true,
+        parameters: [nativeParameter(0, { kind: "string" })], returnType: { kind: "source-primitive", name: "int32" }, receiver: { kind: "none" } }) },
+    ...["getSystemErrorMessage", "getSystemErrorName"].map(exportName => ({
+      exportName, signatureId: `node:util.${exportName}(System.Int32)`,
+      providerParameters: [{ name: "err", type: int32ProviderType }], providerReturnType: stringProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: exportName, static: true,
+        parameters: [nativeParameter(0, { kind: "source-primitive", name: "int32" })], returnType: { kind: "string" }, receiver: { kind: "none" } }),
     })),
-  ];
-  return [
-    ...exports,
-    ...nodejsDefaultModuleObjectExports(nodeUtilModuleSpecifier, exports),
-  ];
-}
-
-export function nodeUtilUnsupportedTargetIdentities(): readonly NodeUtilUnsupportedTargetIdentity[] {
-  return nodeUtilUnsupportedCalls.map(({ exportName, signatureId, targetIdentityId, displayName }) => ({
-    exportName,
-    signatureId,
-    targetIdentityId,
-    displayName,
-  }));
-}
-
-export function nodeUtilCallTargetMembers(): readonly NodeUtilCallTargetMember[] {
-  const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
-  const int32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType });
-  return [
-    utilCall({ exportName: "convertProcessSignalToExitCode", signatureId: "node:util.convertProcessSignalToExitCode(System.String)", targetMemberId: "Tsonic.CSharp.Node.util.convertProcessSignalToExitCode(System.String)", sourceName: "convertProcessSignalToExitCode", targetName: "convertProcessSignalToExitCode", providerParameters: [
-      stringParameter("signal"),
-    ], providerReturnType: int32ProviderType, targetParameters: [
-      targetParameter("signal", stringTargetType),
-    ], targetReturnType: intTargetType }),
-    utilCall({ exportName: "getSystemErrorMessage", signatureId: "node:util.getSystemErrorMessage(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.util.getSystemErrorMessage(System.Int32)", sourceName: "getSystemErrorMessage", targetName: "getSystemErrorMessage", providerParameters: [
-      int32Parameter("err"),
-    ], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("errorNumber", intTargetType),
-    ], targetReturnType: stringTargetType }),
-    utilCall({ exportName: "getSystemErrorName", signatureId: "node:util.getSystemErrorName(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.util.getSystemErrorName(System.Int32)", sourceName: "getSystemErrorName", targetName: "getSystemErrorName", providerParameters: [
-      int32Parameter("err"),
-    ], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("errorNumber", intTargetType),
-    ], targetReturnType: stringTargetType }),
-    utilCall({ exportName: "styleText", signatureId: "node:util.styleText(System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.util.styleText(System.String,System.String)", sourceName: "styleText", targetName: "styleText", providerParameters: [
-      stringParameter("format"),
-      stringParameter("text"),
-    ], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("format", stringTargetType),
-      targetParameter("text", stringTargetType),
-    ], targetReturnType: stringTargetType }),
-    utilCall({ exportName: nodeUtilStripVtControlCharactersExportName, signatureId: nodeUtilStripVtControlCharactersSignatureId, targetMemberId: "Tsonic.CSharp.Node.util.stripVTControlCharacters(System.String)", sourceName: "stripVTControlCharacters", targetName: "stripVTControlCharacters", providerParameters: [
-      stringParameter("str"),
-    ], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("input", stringTargetType),
-    ], targetReturnType: stringTargetType }),
-    utilCall({ exportName: nodeUtilToUsvStringExportName, signatureId: nodeUtilToUsvStringSignatureId, targetMemberId: "Tsonic.CSharp.Node.util.toUSVString(System.String)", sourceName: "toUSVString", targetName: "toUSVString", providerParameters: [
-      stringParameter("string"),
-    ], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("input", stringTargetType),
-    ], targetReturnType: stringTargetType }),
+    { exportName: "styleText", signatureId: "node:util.styleText(System.String,System.String)",
+      providerParameters: [stringParameter("format"), stringParameter("text")], providerReturnType: stringProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: "styleText", static: true,
+        parameters: [nativeParameter(0, { kind: "string" }), nativeParameter(1, { kind: "string" }),
+          nativeDefault(nativeNullableReference(nativeNamedType("Tsonic.CSharp.Node.StyleTextOptions")))],
+        returnType: { kind: "string" }, receiver: { kind: "none" } }) },
+    { exportName: nodeUtilStripVtControlCharactersExportName, signatureId: nodeUtilStripVtControlCharactersSignatureId,
+      providerParameters: [stringParameter("str")], providerReturnType: stringProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: "stripVTControlCharacters", static: true,
+        parameters: [nativeParameter(0, { kind: "string" })], returnType: { kind: "string" }, receiver: { kind: "none" } }) },
+    { exportName: nodeUtilToUsvStringExportName, signatureId: nodeUtilToUsvStringSignatureId,
+      providerParameters: [stringParameter("string")], providerReturnType: stringProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: "toUSVString", static: true,
+        parameters: [nativeParameter(0, { kind: "string" })], returnType: { kind: "string" }, receiver: { kind: "none" } }) },
   ];
 }
 
-function unsupportedUtilFunction(
-  exportName: string,
-  signatureId: string,
-  parameters: readonly ProviderParameterDeclaration[],
-): ProviderExportDeclaration {
-  return {
-    id: `node:util.${exportName}`,
-    name: exportName,
-    kind: "function",
-    signatures: [{
-      id: signatureId,
-      parameters,
-      returnType: unsupportedUtilReturnType(exportName, signatureId),
-    }],
-  };
+export function nodeUtilExports(): readonly ProviderExportDeclaration[] {
+  const exports: readonly ProviderExportDeclaration[] = [
+    nodeErrorExportDeclaration(), nodeUtilTextDecoderExportDeclaration(),
+    ...nodeUtilUnsupportedCalls.map(entry => ({ id: `node:util.${entry.exportName}`, name: entry.exportName, kind: "function" as const,
+      signatures: [{ id: entry.signatureId, parameters: entry.parameters, returnType: entry.returnType }] })),
+    ...nodeUtilCallTargetMembers().map(entry => ({ id: `node:util.${entry.exportName}`, name: entry.exportName, kind: "function" as const,
+      signatures: [{ id: entry.signatureId, parameters: entry.providerParameters, returnType: entry.providerReturnType }] })),
+  ];
+  return [...exports, ...nodejsDefaultModuleObjectExports(nodeUtilModuleSpecifier, exports)];
 }
 
-function unsupportedUtilParameters(
-  exportName: string,
-  signatureId: string,
-): readonly ProviderParameterDeclaration[] {
-  return unsupportedUtilMetadata(exportName, signatureId).parameters;
+export function nodeUtilUnsupportedTargetIdentities(): readonly NodejsUnsupportedTargetIdentity[] {
+  return nodeUtilUnsupportedCalls.map(({ exportName, signatureId, targetIdentityId, displayName }) => ({ exportName, signatureId, targetIdentityId, displayName }));
 }
-
-function unsupportedUtilReturnType(
-  exportName: string,
-  signatureId: string,
-): ProviderTypeExpression {
-  return unsupportedUtilMetadata(exportName, signatureId).returnType;
-}
-
-function unsupportedUtilMetadata(
-  exportName: string,
-  signatureId: string,
-): typeof nodeUtilUnsupportedCalls[number] {
-  const metadata = getNodejsProviderExportSignatureDeclarationMetadata(
-    nodeUtilUnsupportedCallByProviderDeclarationIdentity,
-    nodeUtilModuleSpecifier,
-    exportName,
-    signatureId,
-  );
-  if (metadata === undefined) {
-    throw new Error(`Missing C# NodeJS util unsupported metadata for signature '${signatureId}'.`);
-  }
-  return metadata;
-}
-
 function unknownParameter(name: string, optional = false): ProviderParameterDeclaration {
   return {
     name,
@@ -218,13 +113,6 @@ function unknownRestParameter(name: string): ProviderParameterDeclaration {
     type: { kind: "array", elementType: unknownProviderType },
     rest: true,
   };
-}
-
-function utilCall(row: NodeUtilCallTargetMetadataRow): NodeUtilCallTargetMember {
-  return nodejsModuleCallTargetMetadata({
-    ...row,
-    declaringType: utilTargetType,
-  });
 }
 
 const nodeUtilUnsupportedCalls = [
@@ -303,5 +191,4 @@ const nodeUtilUnsupportedCalls = [
   readonly returnType: ProviderTypeExpression;
 }[];
 
-const nodeUtilUnsupportedCallByProviderDeclarationIdentity =
-  nodejsProviderExportSignatureDeclarationMetadataIndex(nodeUtilModuleSpecifier, nodeUtilUnsupportedCalls);
+

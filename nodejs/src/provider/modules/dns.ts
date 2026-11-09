@@ -1,247 +1,105 @@
-import type {
-  ProviderExportDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpDelegateTargetType,
-  csharpJsArrayTargetType,
-  csharpNullableTargetType,
-  csharpNullableValueTargetType,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpTaskTargetType,
-  csharpVoidTargetType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import type {
-  TargetTypeRef,
-} from "@tsonic/target-csharp/provider";
-import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
-import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata, nodejsModulePropertyTargetMetadata } from "../declarations/target-members.js";
+import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata, NodejsModulePropertyTargetMetadata } from "../model/target-members.js";
-import { nodeErrorTargetType, optionalNodeErrorProviderType } from "./util/node-error.js";
+import type { NodejsNativeParameterMapping } from "../native/authoring.js";
+import type { NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeCall, nativeOwner, nativeParameter, nativeSlot } from "../native/authoring.js";
+import { nativeNamedType, nativeNullable, nativeNullableReference } from "../native/locators.js";
+import { arrayProviderType, callbackProviderType, nodejsCapabilityModuleExports, providerRef } from "../declarations/exports.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, voidProviderType } from "../model/source-types.js";
+import { optionalNodeErrorProviderType } from "./util/node-error.js";
 
 export const nodeDnsModuleSpecifier = "node:dns";
 export const nodeDnsPromisesModuleSpecifier = "node:dns/promises";
-
+const dnsOwner = nativeOwner("Tsonic.CSharp.Node.dns");
+const promisesOwner = nativeOwner("Tsonic.CSharp.Node.dns_promises");
+const optionsOwner = nativeOwner("Tsonic.CSharp.Node.LookupOptions");
+const addressOwner = nativeOwner("Tsonic.CSharp.Node.LookupAddress");
 const lookupOptionsProviderType = providerRef(nodeDnsModuleSpecifier, "LookupOptions");
 const lookupAllOptionsProviderType = providerRef(nodeDnsModuleSpecifier, "LookupAllOptions");
 const lookupAddressProviderType = providerRef(nodeDnsModuleSpecifier, "LookupAddress");
 const lookupAddressArrayProviderType = arrayProviderType(lookupAddressProviderType);
-const lookupOptionsTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "LookupOptions");
-const lookupAddressTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "LookupAddress");
-const lookupAddressArrayTargetType = csharpJsArrayTargetType(lookupAddressTargetType);
-const dnsTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "dns");
-const dnsPromisesTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "dns_promises");
-const dnsPromisesInstanceTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "DnsPromises");
-const stringTargetType = csharpStringTargetType();
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
-const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const nullableBoolTargetType = csharpNullableValueTargetType(boolTargetType);
-const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
-const voidTargetType = csharpVoidTargetType();
-const exceptionTargetType = csharpNullableTargetType(nodeErrorTargetType);
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
+const nativeBool: NodejsNativeTypeLocator = { kind: "source-primitive", name: "bool" };
+const options = nativeNullableReference(nativeNamedType(optionsOwner.metadataName));
+const address = nativeNamedType(addressOwner.metadataName);
+const addresses = nativeNamedType("Tsonic.CSharp.Js.JSArray`1", address);
+const exception = nativeNullableReference(nativeNamedType("System.Exception"));
 const lookupCallbackProviderType = callbackProviderType("node:dns.lookup.callback", [
-  { name: "error", type: optionalNodeErrorProviderType },
-  { name: "address", type: stringProviderType },
-  { name: "family", type: int32ProviderType },
-]);
-const lookupCallbackTargetType = csharpDelegateTargetType("System.Action", [
-  exceptionTargetType,
-  stringTargetType,
-  intTargetType,
+  { name: "error", type: optionalNodeErrorProviderType }, { name: "address", type: stringProviderType }, { name: "family", type: int32ProviderType },
 ]);
 const lookupAllCallbackProviderType = callbackProviderType("node:dns.lookup-all.callback", [
-  { name: "error", type: optionalNodeErrorProviderType },
-  { name: "addresses", type: lookupAddressArrayProviderType },
+  { name: "error", type: optionalNodeErrorProviderType }, { name: "addresses", type: lookupAddressArrayProviderType },
 ]);
-const lookupAllCallbackTargetType = csharpDelegateTargetType("System.Action", [
-  exceptionTargetType,
-  lookupAddressArrayTargetType,
-]);
-
-export function nodeDnsExports(): readonly ProviderExportDeclaration[] {
-  return nodejsCapabilityModuleExports({
-    moduleSpecifier: nodeDnsModuleSpecifier,
-    moduleCalls: nodeDnsCallTargetMembers(),
-    moduleProperties: nodeDnsPropertyTargetMembers(),
-    classProperties: nodeDnsClassPropertyTargetMembers(),
-    classes: ["LookupOptions", "LookupAllOptions", "LookupAddress", "DnsPromises"],
-  });
-}
-
-export function nodeDnsPromisesExports(): readonly ProviderExportDeclaration[] {
-  return nodejsCapabilityModuleExports({
-    moduleSpecifier: nodeDnsPromisesModuleSpecifier,
-    moduleCalls: nodeDnsPromisesCallTargetMembers(),
-  });
-}
+const callback = nativeNamedType("System.Action`3", exception, nativeString, nativeInt);
+const allCallback = nativeNamedType("System.Action`2", exception, addresses);
 
 export function nodeDnsCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
-  return Object.freeze([
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,callback", [
-      stringParameter("hostname"),
-      callbackParameter("callback", lookupCallbackProviderType),
-    ], voidProviderType, [
-      targetParameter("hostname", stringTargetType),
-      targetParameter("callback", lookupCallbackTargetType),
-    ], voidTargetType),
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,lookup-options,callback", [
-      stringParameter("hostname"),
-      { name: "options", type: lookupOptionsProviderType },
-      callbackParameter("callback", lookupCallbackProviderType),
-    ], voidProviderType, [
-      targetParameter("hostname", stringTargetType),
-      targetParameter("options", lookupOptionsTargetType),
-      targetParameter("callback", lookupCallbackTargetType),
-    ], voidTargetType),
-    moduleCall(nodeDnsModuleSpecifier, dnsTargetType, "lookup", "hostname,lookup-all-options,callback", [
-      stringParameter("hostname"),
-      { name: "options", type: lookupAllOptionsProviderType },
-      callbackParameter("callback", lookupAllCallbackProviderType),
-    ], voidProviderType, [
-      targetParameter("hostname", stringTargetType),
-      targetParameter("options", lookupOptionsTargetType),
-      targetParameter("callback", lookupAllCallbackTargetType),
-    ], voidTargetType),
-  ]);
+  const hostname = { name: "hostname", type: stringProviderType };
+  return [
+    call(false, "lookup", "hostname,callback", [hostname, { name: "callback", type: lookupCallbackProviderType }], voidProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, callback)], { kind: "void" }),
+    call(false, "lookup", "hostname,lookup-options,callback", [hostname, { name: "options", type: lookupOptionsProviderType }, { name: "callback", type: lookupCallbackProviderType }], voidProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, options), nativeParameter(2, callback)], { kind: "void" }),
+    call(false, "lookup", "hostname,lookup-all-options,callback", [hostname, { name: "options", type: lookupAllOptionsProviderType }, { name: "callback", type: lookupAllCallbackProviderType }], voidProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, options), nativeParameter(2, allCallback)], { kind: "void" }),
+  ];
 }
 
 export function nodeDnsPromisesCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
-  return Object.freeze([
-    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", "hostname,lookup-options", [
-      stringParameter("hostname"),
-      optionalParameter("options", lookupOptionsProviderType),
-    ], promiseProviderType(lookupAddressProviderType), [
-      targetParameter("hostname", stringTargetType),
-      targetParameter("options", lookupOptionsTargetType, { optional: true }),
-    ], csharpTaskTargetType(lookupAddressTargetType)),
-    moduleCall(nodeDnsPromisesModuleSpecifier, dnsPromisesTargetType, "lookup", "hostname,lookup-all-options", [
-      stringParameter("hostname"),
-      { name: "options", type: lookupAllOptionsProviderType },
-    ], promiseProviderType(lookupAddressArrayProviderType), [
-      targetParameter("hostname", stringTargetType),
-      targetParameter("options", lookupOptionsTargetType),
-    ], csharpTaskTargetType(lookupAddressArrayTargetType), "lookupAll"),
-  ]);
+  return [
+    call(true, "lookup", "hostname,lookup-options", [{ name: "hostname", type: stringProviderType }, { name: "options", type: lookupOptionsProviderType, optional: true }],
+      promiseProviderType(lookupAddressProviderType), [nativeParameter(0, nativeString), nativeParameter(1, options)], nativeNamedType("System.Threading.Tasks.Task`1", address)),
+    call(true, "lookup", "hostname,lookup-all-options", [{ name: "hostname", type: stringProviderType }, { name: "options", type: lookupAllOptionsProviderType }],
+      promiseProviderType(lookupAddressArrayProviderType), [nativeParameter(0, nativeString), nativeParameter(1, options)], nativeNamedType("System.Threading.Tasks.Task`1", addresses), "lookupAll"),
+  ];
 }
 
 export function nodeDnsPropertyTargetMembers(): readonly NodejsModulePropertyTargetMetadata[] {
-  return Object.freeze([
-    nodejsModulePropertyTargetMetadata({
-      exportName: "promises",
-      targetMemberId: "Tsonic.CSharp.Node.dns.promises",
-      sourceName: "promises",
-      targetName: "promises",
-      providerType: providerRef(nodeDnsModuleSpecifier, "DnsPromises"),
-      targetReturnType: dnsPromisesInstanceTargetType,
-      declaringType: dnsTargetType,
-    }),
-  ]);
+  return [{ exportName: "promises", providerType: providerRef(nodeDnsModuleSpecifier, "DnsPromises"),
+    native: nativeSlot(dnsOwner, "promises", nativeNamedType("Tsonic.CSharp.Node.DnsPromises"), true) }];
 }
 
 export function nodeDnsClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
-  return Object.freeze([
-    optionProperty("LookupOptions", "family", int32ProviderType, nullableIntTargetType),
-    optionProperty("LookupOptions", "hints", int32ProviderType, nullableIntTargetType),
-    optionProperty("LookupOptions", "all", booleanProviderType, nullableBoolTargetType),
-    optionProperty("LookupOptions", "order", stringProviderType, nullableStringTargetType),
-    optionProperty("LookupAllOptions", "family", int32ProviderType, nullableIntTargetType),
-    optionProperty("LookupAllOptions", "hints", int32ProviderType, nullableIntTargetType),
-    optionProperty("LookupAllOptions", "all", { kind: "literal", value: true }, nullableBoolTargetType, false),
-    optionProperty("LookupAllOptions", "order", stringProviderType, nullableStringTargetType),
-    readonlyProperty("LookupAddress", "address", stringProviderType, stringTargetType),
-    readonlyProperty("LookupAddress", "family", int32ProviderType, intTargetType),
-  ]);
+  const result: NodejsClassPropertyTargetMetadata[] = [];
+  for (const exportName of ["LookupOptions", "LookupAllOptions"]) {
+    const fields: readonly (readonly [string, ProviderTypeExpression, NodejsNativeTypeLocator, boolean])[] = [
+      ["family", int32ProviderType, nativeNullable(nativeInt), true], ["hints", int32ProviderType, nativeNullable(nativeInt), true],
+      ["all", exportName === "LookupAllOptions" ? { kind: "literal", value: true } : booleanProviderType, nativeNullable(nativeBool), exportName !== "LookupAllOptions"],
+      ["order", stringProviderType, nativeNullableReference(nativeString), true],
+    ];
+    for (const [memberName, providerType, physical, optional] of fields) {
+      result.push({ exportName, memberName, memberId: `node:dns.${exportName}.${memberName}`, memberKind: "property", providerType,
+        ...optional ? { optional: true } : {}, native: nativeSlot(optionsOwner, memberName, physical) });
+    }
+  }
+  result.push(
+    { exportName: "LookupAddress", memberName: "address", memberId: "node:dns.LookupAddress.address", memberKind: "property",
+      providerType: stringProviderType, readonly: true, native: nativeSlot(addressOwner, "address", nativeString) },
+    { exportName: "LookupAddress", memberName: "family", memberId: "node:dns.LookupAddress.family", memberKind: "property",
+      providerType: int32ProviderType, readonly: true, native: nativeSlot(addressOwner, "family", nativeInt) },
+  );
+  return Object.freeze(result);
 }
 
-function moduleCall(
-  moduleSpecifier: string,
-  declaringType: TargetTypeRef,
-  exportName: string,
-  identityShape: string,
-  providerParameters: readonly ProviderParameterDeclaration[],
-  providerReturnType: ProviderTypeExpression,
-  targetParameters: Parameters<typeof nodejsModuleCallTargetMetadata>[0]["targetParameters"],
-  targetReturnType: TargetTypeRef,
-  targetName = exportName,
+export function nodeDnsExports(): readonly ProviderExportDeclaration[] {
+  return nodejsCapabilityModuleExports({ moduleSpecifier: nodeDnsModuleSpecifier, moduleCalls: nodeDnsCallTargetMembers(),
+    moduleProperties: nodeDnsPropertyTargetMembers(), classProperties: nodeDnsClassPropertyTargetMembers(),
+    classes: ["LookupOptions", "LookupAllOptions", "LookupAddress", "DnsPromises"] });
+}
+export function nodeDnsPromisesExports(): readonly ProviderExportDeclaration[] {
+  return nodejsCapabilityModuleExports({ moduleSpecifier: nodeDnsPromisesModuleSpecifier, moduleCalls: nodeDnsPromisesCallTargetMembers() });
+}
+
+function call(
+  promises: boolean, exportName: string, identityShape: string, providerParameters: readonly ProviderParameterDeclaration[],
+  providerReturnType: ProviderTypeExpression, parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator, targetName = exportName,
 ): NodejsModuleCallTargetMetadata {
-  return nodejsModuleCallTargetMetadata({
-    exportName,
-    signatureId: `${moduleSpecifier}.${exportName}(${identityShape})`,
-    targetMemberId: `${declaringType.kind === "target-named" ? declaringType.id : moduleSpecifier}.${targetName}(${identityShape})`,
-    sourceName: exportName,
-    targetName,
-    providerParameters,
-    providerReturnType,
-    targetParameters,
-    targetReturnType,
-    declaringType,
-  });
+  return { exportName, signatureId: `${promises ? nodeDnsPromisesModuleSpecifier : nodeDnsModuleSpecifier}.${exportName}(${identityShape})`,
+    providerParameters, providerReturnType, native: nativeCall({ owner: promises ? promisesOwner : dnsOwner, kind: "method",
+      targetName, static: true, parameters, returnType, receiver: { kind: "none" } }) };
 }
-
-function optionProperty(
-  exportName: "LookupOptions" | "LookupAllOptions",
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-  optional = true,
-): NodejsClassPropertyTargetMetadata {
-  return {
-    ...property(exportName, memberName, providerType, targetReturnType, lookupOptionsTargetType),
-    ...(optional ? { optional: true } : {}),
-  };
-}
-
-function readonlyProperty(
-  exportName: "LookupAddress",
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-): NodejsClassPropertyTargetMetadata {
-  return {
-    ...property(exportName, memberName, providerType, targetReturnType, lookupAddressTargetType),
-    readonly: true,
-  };
-}
-
-function property(
-  exportName: string,
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-  declaringType: TargetTypeRef,
-): NodejsClassPropertyTargetMetadata {
-  return nodejsClassPropertyTargetMetadata({
-    exportName,
-    memberName,
-    memberId: `${nodeDnsModuleSpecifier}.${exportName}.${memberName}`,
-    targetMemberId: `Tsonic.CSharp.Node.${declaringType.kind === "target-named" ? declaringType.id : exportName}.${memberName}`,
-    sourceName: memberName,
-    targetName: memberName,
-    memberKind: "property",
-    providerType,
-    targetParameters: [],
-    targetReturnType,
-    declaringType,
-  });
-}
-
-function stringParameter(name: string): ProviderParameterDeclaration {
-  return { name, type: stringProviderType };
-}
-
-function callbackParameter(name: string, type: ProviderTypeExpression): ProviderParameterDeclaration {
-  return { name, type };
-}
-
-function optionalParameter(name: string, type: ProviderTypeExpression): ProviderParameterDeclaration {
-  return { name, type, optional: true };
-}
-
 function promiseProviderType(resultType: ProviderTypeExpression): ProviderTypeExpression {
   return { kind: "source-global", name: "Promise", typeArguments: [resultType] };
 }
+

@@ -13,12 +13,9 @@ export {
   nodePathExports,
 } from "./declarations.js";
 export {
-  getNodePathCallTargetMember,
-  getNodePathJoinTargetMember,
   nodePathCallTargetMembers,
 } from "./calls.js";
 export {
-  getNodePathPropertyTargetMember,
   nodePathPropertyTargetMembers,
 } from "./properties.js";
 export {

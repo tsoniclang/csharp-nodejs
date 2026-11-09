@@ -1,221 +1,109 @@
-import type {
-  CsharpTargetMember,
-} from "@tsonic/target-csharp/provider";
 import type { NodejsClassCallTargetMember, NodejsClassPropertyTargetMember, NodejsModuleCallTargetMember } from "../../model/members.js";
-import {
-  nodeBufferAllocMemberId,
-  nodeBufferAllocSignatureId,
-  nodeBufferAllocUnsafeMemberId,
-  nodeBufferAllocUnsafeSignatureId,
-  nodeBufferAllocUnsafeSlowMemberId,
-  nodeBufferAllocUnsafeSlowSignatureId,
-  nodeBufferAtobSignatureId,
-  nodeBufferBtoaSignatureId,
-  nodeBufferAtobExportName,
-  nodeBufferBtoaExportName,
-  nodeBufferByteLengthMemberId,
-  nodeBufferByteLengthExportName,
-  nodeBufferByteLengthSignatureId,
-  nodeBufferCompareExportName,
-  nodeBufferCompareMemberId,
-  nodeBufferCompareSignatureId,
-  nodeBufferCompareInstanceExportName,
-  nodeBufferCompareInstanceMemberId,
-  nodeBufferCompareInstanceSignatureId,
-  nodeBufferConcatMemberId,
-  nodeBufferConcatExportName,
-  nodeBufferConcatSignatureId,
-  nodeBufferCopyExportName,
-  nodeBufferCopyMemberId,
-  nodeBufferCopySignatureId,
-  nodeBufferEqualsMemberId,
-  nodeBufferEqualsExportName,
-  nodeBufferEqualsSignatureId,
-  nodeBufferExportName,
-  nodeBufferIncludesExportName,
-  nodeBufferIncludesMemberId,
-  nodeBufferIncludesSignatureId,
-  nodeBufferIndexOfExportName,
-  nodeBufferIndexOfMemberId,
-  nodeBufferIndexOfSignatureId,
-  nodeBufferLastIndexOfExportName,
-  nodeBufferLastIndexOfMemberId,
-  nodeBufferLastIndexOfSignatureId,
-  nodeBufferAllocExportName,
-  nodeBufferAllocUnsafeExportName,
-  nodeBufferAllocUnsafeSlowExportName,
-  nodeBufferFromStringMemberId,
-  nodeBufferFromBufferSignatureId,
-  nodeBufferFromUint8ArraySignatureId,
-  nodeBufferFromNumberArraySignatureId,
-  nodeBufferFromStringSignatureId,
-  nodeBufferFromExportName,
-  nodeBufferIsBufferExportName,
-  nodeBufferIsBufferMemberId,
-  nodeBufferIsBufferSignatureId,
-  nodeBufferIsAsciiExportName,
-  nodeBufferIsAsciiSignatureId,
-  nodeBufferIsEncodingMemberId,
-  nodeBufferIsEncodingExportName,
-  nodeBufferIsEncodingSignatureId,
-  nodeBufferIsUtf8ExportName,
-  nodeBufferIsUtf8SignatureId,
-  nodeBufferLengthMemberId,
-  nodeBufferOfExportName,
-  nodeBufferOfMemberId,
-  nodeBufferOfSignatureId,
-  nodeBufferPoolSizeMemberId,
-  nodeBufferReadUInt8ExportName,
-  nodeBufferReadUInt8MemberId,
-  nodeBufferReadUInt8SignatureId,
-  nodeBufferSliceExportName,
-  nodeBufferSliceMemberId,
-  nodeBufferSliceSignatureId,
-  nodeBufferSubarrayExportName,
-  nodeBufferSubarrayMemberId,
-  nodeBufferSubarraySignatureId,
-  nodeBufferToStringExportName,
-  nodeBufferToStringMemberId,
-  nodeBufferToStringSignatureId,
-  nodeBufferTranscodeExportName,
-  nodeBufferTranscodeSignatureId,
-  nodeBufferWriteExportName,
-  nodeBufferWriteMemberId,
-  nodeBufferWriteSignatureId,
-  nodeBufferWriteUInt8ExportName,
-  nodeBufferWriteUInt8MemberId,
-  nodeBufferWriteUInt8SignatureId,
-} from "./identities.js";
-import {
-  getNodeBufferCompareInstanceTargetMember,
-  getNodeBufferCopyTargetMember,
-  getNodeBufferEqualsTargetMember,
-  getNodeBufferIncludesTargetMember,
-  getNodeBufferIndexOfTargetMember,
-  getNodeBufferLastIndexOfTargetMember,
-  getNodeBufferLengthTargetMember,
-  getNodeBufferReadUInt8TargetMember,
-  getNodeBufferSliceTargetMember,
-  getNodeBufferSubarrayTargetMember,
-  getNodeBufferToStringTargetMember,
-  getNodeBufferWriteTargetMember,
-  getNodeBufferWriteUInt8TargetMember,
-} from "./instance-members.js";
-import {
-  getNodeBufferAllocTargetMember,
-  getNodeBufferAllocUnsafeSlowTargetMember,
-  getNodeBufferAllocUnsafeTargetMember,
-  getNodeBufferAtobTargetMember,
-  getNodeBufferBtoaTargetMember,
-  getNodeBufferByteLengthTargetMember,
-  getNodeBufferCompareTargetMember,
-  getNodeBufferConcatTargetMember,
-  getNodeBufferFromBufferTargetMember,
-  getNodeBufferFromUint8ArrayTargetMember,
-  getNodeBufferFromNumberArrayTargetMember,
-  getNodeBufferFromStringTargetMember,
-  getNodeBufferIsAsciiTargetMember,
-  getNodeBufferIsBufferTargetMember,
-  getNodeBufferIsEncodingTargetMember,
-  getNodeBufferIsUtf8TargetMember,
-  getNodeBufferOfTargetMember,
-  getNodeBufferPoolSizeTargetMember,
-  getNodeBufferTranscodeTargetMember,
-} from "./static-members.js";
-import {
-  nodeBufferNumericClassCallTargetMembers,
-} from "./numeric-members.js";
+import type { NodejsNativeCallMapping, NodejsNativeTypeLocator } from "../../native/locators.js";
+import type { NodejsNativeParameterMapping } from "../../native/authoring.js";
+import { nativeCall, nativeDefault, nativeOwner, nativeParameter, nativeSlot } from "../../native/authoring.js";
+import { nativeArray, nativeNamedType, nativeNullable, nativeNullableReference } from "../../native/locators.js";
+import * as identity from "./identities.js";
+import { nodeBufferNumericClassCallTargetMembers } from "./numeric-members.js";
 
-export {
-  getNodeBufferLengthTargetMember,
-} from "./instance-members.js";
+const owner = nativeOwner("Tsonic.CSharp.Node.Buffer");
+const moduleOwner = nativeOwner("Tsonic.CSharp.Node.buffer");
+const buffer = nativeNamedType(owner.metadataName);
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
+const nativeByte: NodejsNativeTypeLocator = { kind: "source-primitive", name: "uint8" };
+const nativeBool: NodejsNativeTypeLocator = { kind: "source-primitive", name: "bool" };
+const nativeObject: NodejsNativeTypeLocator = { kind: "object" };
+const nullableInt = nativeNullable(nativeInt);
 
 export function nodeBufferModuleCallTargetMembers(): readonly NodejsModuleCallTargetMember[] {
   return [
-    { exportName: nodeBufferAtobExportName, signatureId: nodeBufferAtobSignatureId, member: getNodeBufferAtobTargetMember() },
-    { exportName: nodeBufferBtoaExportName, signatureId: nodeBufferBtoaSignatureId, member: getNodeBufferBtoaTargetMember() },
-    { exportName: nodeBufferIsAsciiExportName, signatureId: nodeBufferIsAsciiSignatureId, member: getNodeBufferIsAsciiTargetMember() },
-    { exportName: nodeBufferIsUtf8ExportName, signatureId: nodeBufferIsUtf8SignatureId, member: getNodeBufferIsUtf8TargetMember() },
-    { exportName: nodeBufferTranscodeExportName, signatureId: nodeBufferTranscodeSignatureId, member: getNodeBufferTranscodeTargetMember() },
+    moduleCall("atob", identity.nodeBufferAtobSignatureId, [nativeParameter(0, nativeString)], nativeString),
+    moduleCall("btoa", identity.nodeBufferBtoaSignatureId, [nativeParameter(0, nativeString)], nativeString),
+    moduleCall("isAscii", identity.nodeBufferIsAsciiSignatureId, [nativeParameter(0, buffer)], nativeBool),
+    moduleCall("isUtf8", identity.nodeBufferIsUtf8SignatureId, [nativeParameter(0, buffer)], nativeBool),
+    moduleCall("transcode", identity.nodeBufferTranscodeSignatureId,
+      [nativeParameter(0, buffer), nativeParameter(1, nativeString), nativeParameter(2, nativeString)], buffer),
   ];
 }
 
 export function nodeBufferClassCallTargetMembers(includeJsSurfaceMembers = true): readonly NodejsClassCallTargetMember[] {
   return [
-    nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromStringSignatureId, getNodeBufferFromStringTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromNumberArraySignatureId, getNodeBufferFromNumberArrayTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromBufferSignatureId, getNodeBufferFromBufferTargetMember()),
-    ...(includeJsSurfaceMembers ? [nodeBufferStaticClassCallTargetMember(nodeBufferFromExportName, nodeBufferFromStringMemberId, nodeBufferFromUint8ArraySignatureId, getNodeBufferFromUint8ArrayTargetMember())] : []),
-    nodeBufferStaticClassCallTargetMember(nodeBufferAllocExportName, nodeBufferAllocMemberId, nodeBufferAllocSignatureId, getNodeBufferAllocTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferAllocUnsafeExportName, nodeBufferAllocUnsafeMemberId, nodeBufferAllocUnsafeSignatureId, getNodeBufferAllocUnsafeTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferAllocUnsafeSlowExportName, nodeBufferAllocUnsafeSlowMemberId, nodeBufferAllocUnsafeSlowSignatureId, getNodeBufferAllocUnsafeSlowTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferByteLengthExportName, nodeBufferByteLengthMemberId, nodeBufferByteLengthSignatureId, getNodeBufferByteLengthTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferCompareExportName, nodeBufferCompareMemberId, nodeBufferCompareSignatureId, getNodeBufferCompareTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferConcatExportName, nodeBufferConcatMemberId, nodeBufferConcatSignatureId, getNodeBufferConcatTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferIsBufferExportName, nodeBufferIsBufferMemberId, nodeBufferIsBufferSignatureId, getNodeBufferIsBufferTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferIsEncodingExportName, nodeBufferIsEncodingMemberId, nodeBufferIsEncodingSignatureId, getNodeBufferIsEncodingTargetMember()),
-    nodeBufferStaticClassCallTargetMember(nodeBufferOfExportName, nodeBufferOfMemberId, nodeBufferOfSignatureId, getNodeBufferOfTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferEqualsExportName, nodeBufferEqualsMemberId, nodeBufferEqualsSignatureId, getNodeBufferEqualsTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferCompareInstanceExportName, nodeBufferCompareInstanceMemberId, nodeBufferCompareInstanceSignatureId, getNodeBufferCompareInstanceTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferCopyExportName, nodeBufferCopyMemberId, nodeBufferCopySignatureId, getNodeBufferCopyTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferIncludesExportName, nodeBufferIncludesMemberId, nodeBufferIncludesSignatureId, getNodeBufferIncludesTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferIndexOfExportName, nodeBufferIndexOfMemberId, nodeBufferIndexOfSignatureId, getNodeBufferIndexOfTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferLastIndexOfExportName, nodeBufferLastIndexOfMemberId, nodeBufferLastIndexOfSignatureId, getNodeBufferLastIndexOfTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferSliceExportName, nodeBufferSliceMemberId, nodeBufferSliceSignatureId, getNodeBufferSliceTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferSubarrayExportName, nodeBufferSubarrayMemberId, nodeBufferSubarraySignatureId, getNodeBufferSubarrayTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferToStringExportName, nodeBufferToStringMemberId, nodeBufferToStringSignatureId, getNodeBufferToStringTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferWriteExportName, nodeBufferWriteMemberId, nodeBufferWriteSignatureId, getNodeBufferWriteTargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferReadUInt8ExportName, nodeBufferReadUInt8MemberId, nodeBufferReadUInt8SignatureId, getNodeBufferReadUInt8TargetMember()),
-    nodeBufferClassCallTargetMember(nodeBufferWriteUInt8ExportName, nodeBufferWriteUInt8MemberId, nodeBufferWriteUInt8SignatureId, getNodeBufferWriteUInt8TargetMember()),
+    classCall("from", identity.nodeBufferFromStringMemberId, identity.nodeBufferFromStringSignatureId,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeString)], buffer, true),
+    classCall("from", identity.nodeBufferFromStringMemberId, identity.nodeBufferFromNumberArraySignatureId,
+      [nativeParameter(0, nativeArray(nativeInt))], buffer, true),
+    classCall("from", identity.nodeBufferFromStringMemberId, identity.nodeBufferFromBufferSignatureId,
+      [nativeParameter(0, buffer)], buffer, true),
+    ...includeJsSurfaceMembers ? [classCall("from", identity.nodeBufferFromStringMemberId, identity.nodeBufferFromUint8ArraySignatureId,
+      [nativeParameter(0, nativeNamedType("Tsonic.CSharp.Js.Uint8Array"))], buffer, true)] : [],
+    classCall("alloc", identity.nodeBufferAllocMemberId, identity.nodeBufferAllocSignatureId,
+      [nativeParameter(0, nativeInt), nativeDefault(nativeNullableReference(nativeObject)), nativeDefault(nativeNullableReference(nativeString))], buffer, true),
+    classCall("allocUnsafe", identity.nodeBufferAllocUnsafeMemberId, identity.nodeBufferAllocUnsafeSignatureId, [nativeParameter(0, nativeInt)], buffer, true),
+    classCall("allocUnsafeSlow", identity.nodeBufferAllocUnsafeSlowMemberId, identity.nodeBufferAllocUnsafeSlowSignatureId, [nativeParameter(0, nativeInt)], buffer, true),
+    classCall("byteLength", identity.nodeBufferByteLengthMemberId, identity.nodeBufferByteLengthSignatureId,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeString)], nativeInt, true),
+    classCall("compare", identity.nodeBufferCompareMemberId, identity.nodeBufferCompareSignatureId,
+      [nativeParameter(0, buffer), nativeParameter(1, buffer)], nativeInt, true),
+    classCall("concat", identity.nodeBufferConcatMemberId, identity.nodeBufferConcatSignatureId,
+      [nativeParameter(0, nativeNamedType("System.Collections.Generic.IReadOnlyList`1", buffer)), nativeParameter(1, nullableInt)], buffer, true),
+    classCall("isBuffer", identity.nodeBufferIsBufferMemberId, identity.nodeBufferIsBufferSignatureId,
+      [nativeParameter(0, nativeNullableReference(nativeObject))], nativeBool, true),
+    classCall("isEncoding", identity.nodeBufferIsEncodingMemberId, identity.nodeBufferIsEncodingSignatureId,
+      [nativeParameter(0, nativeString)], nativeBool, true),
+    classCall("of", identity.nodeBufferOfMemberId, identity.nodeBufferOfSignatureId, [nativeParameter(0, nativeArray(nativeInt))], buffer, true),
+    classCall("equals", identity.nodeBufferEqualsMemberId, identity.nodeBufferEqualsSignatureId, [nativeParameter(0, buffer)], nativeBool, false),
+    classCall("compare", identity.nodeBufferCompareInstanceMemberId, identity.nodeBufferCompareInstanceSignatureId,
+      [nativeParameter(0, buffer), nativeDefault(nullableInt), nativeDefault(nullableInt), nativeDefault(nullableInt), nativeDefault(nullableInt)], nativeInt, false),
+    classCall("copy", identity.nodeBufferCopyMemberId, identity.nodeBufferCopySignatureId,
+      [nativeParameter(0, buffer), nativeParameter(1, nativeInt), nativeParameter(2, nullableInt), nativeParameter(3, nullableInt)], nativeInt, false),
+    classCall("includes", identity.nodeBufferIncludesMemberId, identity.nodeBufferIncludesSignatureId,
+      [nativeParameter(0, nativeObject), nativeParameter(1, nativeInt), nativeParameter(2, nativeString)], nativeBool, false),
+    classCall("indexOf", identity.nodeBufferIndexOfMemberId, identity.nodeBufferIndexOfSignatureId,
+      [nativeParameter(0, nativeObject), nativeParameter(1, nativeInt), nativeParameter(2, nativeString)], nativeInt, false),
+    classCall("lastIndexOf", identity.nodeBufferLastIndexOfMemberId, identity.nodeBufferLastIndexOfSignatureId,
+      [nativeParameter(0, nativeObject), nativeParameter(1, nullableInt), nativeParameter(2, nativeString)], nativeInt, false),
+    classCall("slice", identity.nodeBufferSliceMemberId, identity.nodeBufferSliceSignatureId,
+      [nativeParameter(0, nullableInt), nativeParameter(1, nullableInt)], buffer, false),
+    classCall("subarray", identity.nodeBufferSubarrayMemberId, identity.nodeBufferSubarraySignatureId,
+      [nativeParameter(0, nullableInt), nativeParameter(1, nullableInt)], buffer, false),
+    classCall("toString", identity.nodeBufferToStringMemberId, identity.nodeBufferToStringSignatureId,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeInt), nativeParameter(2, nullableInt)], nativeString, false),
+    classCall("write", identity.nodeBufferWriteMemberId, identity.nodeBufferWriteSignatureId,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeInt), nativeParameter(2, nullableInt), nativeParameter(3, nativeString)], nativeInt, false),
+    classCall("readUInt8", identity.nodeBufferReadUInt8MemberId, identity.nodeBufferReadUInt8SignatureId, [nativeParameter(0, nativeInt)], nativeByte, false),
+    classCall("writeUInt8", identity.nodeBufferWriteUInt8MemberId, identity.nodeBufferWriteUInt8SignatureId,
+      [nativeParameter(0, nativeByte), nativeParameter(1, nativeInt)], nativeInt, false),
     ...nodeBufferNumericClassCallTargetMembers(),
   ];
 }
 
-function nodeBufferStaticClassCallTargetMember(
-  memberName: string,
-  memberId: string,
-  signatureId: string,
-  member: CsharpTargetMember,
-): NodejsClassCallTargetMember {
-  return {
-    ...nodeBufferClassCallTargetMember(
-      memberName,
-      memberId,
-      signatureId,
-      member,
-    ),
-    static: true,
-  };
-}
-
 export function nodeBufferClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMember[] {
   return [
-    {
-      exportName: nodeBufferExportName,
-      memberName: "length",
-      memberId: nodeBufferLengthMemberId,
-      member: getNodeBufferLengthTargetMember(),
-    },
-    {
-      exportName: nodeBufferExportName,
-      memberName: "poolSize",
-      memberId: nodeBufferPoolSizeMemberId,
-      member: getNodeBufferPoolSizeTargetMember(),
-    },
+    { exportName: "Buffer", memberName: "length", memberId: identity.nodeBufferLengthMemberId, native: nativeSlot(owner, "length", nativeInt) },
+    { exportName: "Buffer", memberName: "poolSize", memberId: identity.nodeBufferPoolSizeMemberId, static: true, native: nativeSlot(owner, "poolSize", nativeInt, true) },
   ];
 }
 
-function nodeBufferClassCallTargetMember(
-  memberName: string,
-  memberId: string,
-  signatureId: string,
-  member: CsharpTargetMember,
+function classCall(
+  memberName: string, memberId: string, signatureId: string, parameters: readonly NodejsNativeParameterMapping[],
+  returnType: NodejsNativeTypeLocator, isStatic: boolean,
 ): NodejsClassCallTargetMember {
-  return {
-    exportName: nodeBufferExportName,
-    memberName,
-    memberId,
-    signatureId,
-    member,
-  };
+  return { exportName: "Buffer", memberName, memberId, signatureId, ...isStatic ? { static: true } : {},
+    native: method(memberName, parameters, returnType, isStatic) };
 }
+
+function method(
+  targetName: string, parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator, isStatic: boolean,
+): NodejsNativeCallMapping {
+  return nativeCall({ owner, kind: "method", targetName, static: isStatic, parameters, returnType,
+    receiver: { kind: isStatic ? "none" : "instance" } });
+}
+
+function moduleCall(
+  exportName: string, signatureId: string, parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator,
+): NodejsModuleCallTargetMember {
+  return { exportName, signatureId, native: nativeCall({ owner: moduleOwner, kind: "method", targetName: exportName,
+    static: true, parameters, returnType, receiver: { kind: "none" } }) };
+}
+

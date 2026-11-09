@@ -1,120 +1,45 @@
+import type { ProviderExportDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
+import type { NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import type { NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeCall, nativeOwner, nativeParameter } from "../native/authoring.js";
+import { nativeNamedType, nativeNullableReference } from "../native/locators.js";
 import { int32ProviderType } from "../model/source-types.js";
-import type {
-  ProviderExportDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpDelegateTargetType,
-  csharpQualifiedTypeRenderShape,
-  csharpSourcePrimitiveTargetType,
-  csharpVoidTargetType,
-  csharpTargetNamedType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import { nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
-import type { NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../model/target-members.js";
-import {
-  nodejsDefaultModuleObjectExports,
-} from "../declarations/defaults.js";
+import { nodejsDefaultModuleObjectExports } from "../declarations/defaults.js";
 
 export const nodeTimersModuleSpecifier = "node:timers";
 export const nodeTimersTimeoutExportName = "Timeout";
-
-const voidProviderType = { kind: "void" } satisfies ProviderTypeExpression;
-const timeoutProviderType = {
-  kind: "provider-ref",
-  moduleSpecifier: nodeTimersModuleSpecifier,
-  exportName: nodeTimersTimeoutExportName,
-} satisfies ProviderTypeExpression;
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const callbackTargetType = csharpDelegateTargetType("System.Action", []);
-const timeoutTargetType = csharpTargetNamedType(
-  "Tsonic.CSharp.Node.Timeout",
-  undefined,
-  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Timeout"),
-  { allowsRefLikeTypeArguments: [] },
-);
-const timersTargetType = csharpTargetNamedType(
-  "Tsonic.CSharp.Node.timers",
-  undefined,
-  csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "timers"),
-  { allowsRefLikeTypeArguments: [] },
-);
-const callbackProviderType = {
-  kind: "function",
-  id: "node:timers.callback",
-  parameters: [],
-  returnType: voidProviderType,
-} satisfies ProviderTypeExpression;
-
-type NodeTimersModuleCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
-
-export function nodeTimersExports(): readonly ProviderExportDeclaration[] {
-  const exports = [
-    {
-      id: `${nodeTimersModuleSpecifier}.${nodeTimersTimeoutExportName}`,
-      name: nodeTimersTimeoutExportName,
-      kind: "class" as const,
-      members: [],
-    },
-    ...nodeTimersCallTargetMembers().map((member) => ({
-      id: `${nodeTimersModuleSpecifier}.${member.exportName}`,
-      name: member.exportName,
-      kind: "function" as const,
-      signatures: [{
-        id: member.signatureId,
-        parameters: member.providerParameters,
-        returnType: member.providerReturnType,
-      }],
-    })),
-  ];
-  return [
-    ...exports,
-    ...nodejsDefaultModuleObjectExports(nodeTimersModuleSpecifier, exports),
-  ];
-}
+const voidProviderType: ProviderTypeExpression = { kind: "void" };
+const timeoutProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: nodeTimersModuleSpecifier, exportName: nodeTimersTimeoutExportName };
+const callbackProviderType: ProviderTypeExpression = { kind: "function", id: "node:timers.callback", parameters: [], returnType: voidProviderType };
+const owner = nativeOwner("Tsonic.CSharp.Node.timers");
+const timeout = nativeNamedType("Tsonic.CSharp.Node.Timeout");
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
 
 export function nodeTimersCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
   return [
-    nodeTimersCall("setTimeout", "node:timers.setTimeout(Function,System.Int32)"),
-    nodeTimersCall("setInterval", "node:timers.setInterval(Function,System.Int32)"),
-    ...(["clearTimeout", "clearInterval"] as const).map((name) =>
-      nodejsModuleCallTargetMetadata({
-        exportName: name,
-        signatureId: `node:timers.${name}(Timeout)`,
-        targetMemberId: `Tsonic.CSharp.Node.timers.${name}(Tsonic.CSharp.Node.Timeout)`,
-        sourceName: name,
-        targetName: name,
-        providerParameters: [{ name: "timeout", type: timeoutProviderType }],
-        providerReturnType: voidProviderType,
-        targetParameters: [targetParameter("timeout", timeoutTargetType)],
-        targetReturnType: csharpVoidTargetType(),
-        declaringType: timersTargetType,
-      })),
+    ...(["setTimeout", "setInterval"] as const).map(exportName => ({
+      exportName, signatureId: `node:timers.${exportName}(Function,System.Int32)`,
+      providerParameters: [{ name: "callback", type: callbackProviderType }, { name: "delay", type: int32ProviderType, optional: true }],
+      providerReturnType: timeoutProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: exportName, static: true,
+        parameters: [nativeParameter(0, nativeNamedType("System.Action")), nativeParameter(1, nativeInt)],
+        returnType: timeout, receiver: { kind: "none" } }),
+    })),
+    ...(["clearTimeout", "clearInterval"] as const).map(exportName => ({
+      exportName, signatureId: `node:timers.${exportName}(Timeout)`,
+      providerParameters: [{ name: "timeout", type: timeoutProviderType }], providerReturnType: voidProviderType,
+      native: nativeCall({ owner, kind: "method", targetName: exportName, static: true,
+        parameters: [nativeParameter(0, nativeNullableReference(timeout))], returnType: { kind: "void" }, receiver: { kind: "none" } }),
+    })),
   ];
 }
 
-function nodeTimersCall(
-  exportName: "setTimeout" | "setInterval",
-  signatureId: string,
-): NodejsModuleCallTargetMetadata {
-  return nodejsModuleCallTargetMetadata({
-    exportName,
-    signatureId,
-    targetMemberId: `Tsonic.CSharp.Node.timers.${exportName}(System.Action,System.Int32)`,
-    sourceName: exportName,
-    targetName: exportName,
-    providerParameters: [
-      { name: "callback", type: callbackProviderType },
-      { name: "delay", type: int32ProviderType, optional: true },
-    ],
-    providerReturnType: timeoutProviderType,
-    targetParameters: [
-      targetParameter("callback", callbackTargetType),
-      targetParameter("delay", intTargetType, { optional: true }),
-    ],
-    targetReturnType: timeoutTargetType,
-    declaringType: timersTargetType,
-  } satisfies NodeTimersModuleCallTargetMetadataRow & { readonly declaringType: typeof timersTargetType });
+export function nodeTimersExports(): readonly ProviderExportDeclaration[] {
+  const exports: readonly ProviderExportDeclaration[] = [
+    { id: "node:timers.Timeout", name: nodeTimersTimeoutExportName, kind: "class", members: [] },
+    ...nodeTimersCallTargetMembers().map(entry => ({ id: `node:timers.${entry.exportName}`, name: entry.exportName, kind: "function" as const,
+      signatures: [{ id: entry.signatureId, parameters: entry.providerParameters, returnType: entry.providerReturnType }] })),
+  ];
+  return [...exports, ...nodejsDefaultModuleObjectExports(nodeTimersModuleSpecifier, exports)];
 }
+

@@ -1,51 +1,13 @@
-import type {
-  CsharpTargetMember,
-} from "@tsonic/target-csharp/provider";
-import {
-  getNodejsProviderExportDeclarationTargetMember,
-  nodejsProviderExportDeclarationTargetMemberIndex,
-} from "../../metadata-indexes.js";
-import { nodejsModulePropertyTargetMetadata } from "../../declarations/target-members.js";
-import type { NodejsModulePropertyTargetMetadataRow } from "../../model/target-members.js";
-import {
-  nodePathModuleSpecifier,
-} from "./identity.js";
-import {
-  nodePathTargetType,
-  pathModuleProviderType,
-  pathModuleTargetType,
-  stringProviderType,
-  stringTargetType,
-} from "./types.js";
-import type {
-  NodePathPropertyTargetMember,
-} from "./types.js";
+import type { NodejsModulePropertyTargetMetadata } from "../../model/target-members.js";
+import { nativeSlot } from "../../native/authoring.js";
+import { nativePathModule, pathModuleProviderType, pathOwner, stringProviderType } from "./types.js";
 
-type NodePathPropertyTargetMetadataRow = Omit<NodejsModulePropertyTargetMetadataRow, "declaringType">;
-
-export function getNodePathPropertyTargetMember(exportName: string | undefined): CsharpTargetMember | undefined {
-  return getNodejsProviderExportDeclarationTargetMember(
-    nodePathPropertyTargetMemberByProviderDeclarationIdentity,
-    nodePathModuleSpecifier,
-    exportName,
-  );
-}
-
-export function nodePathPropertyTargetMembers(): readonly NodePathPropertyTargetMember[] {
+export function nodePathPropertyTargetMembers(): readonly NodejsModulePropertyTargetMetadata[] {
   return [
-    pathProperty({ exportName: "sep", targetMemberId: "Tsonic.CSharp.Node.path.sep", sourceName: "sep", targetName: "sep", providerType: stringProviderType, targetReturnType: stringTargetType }),
-    pathProperty({ exportName: "delimiter", targetMemberId: "Tsonic.CSharp.Node.path.delimiter", sourceName: "delimiter", targetName: "delimiter", providerType: stringProviderType, targetReturnType: stringTargetType }),
-    pathProperty({ exportName: "posix", targetMemberId: "Tsonic.CSharp.Node.path.posix", sourceName: "posix", targetName: "posix", providerType: pathModuleProviderType, targetReturnType: pathModuleTargetType }),
-    pathProperty({ exportName: "win32", targetMemberId: "Tsonic.CSharp.Node.path.win32", sourceName: "win32", targetName: "win32", providerType: pathModuleProviderType, targetReturnType: pathModuleTargetType }),
+    ...["sep", "delimiter"].map(exportName => ({ exportName, providerType: stringProviderType,
+      native: nativeSlot(pathOwner, exportName, { kind: "string" }, true, "field") })),
+    ...["posix", "win32"].map(exportName => ({ exportName, providerType: pathModuleProviderType,
+      native: nativeSlot(pathOwner, exportName, nativePathModule, true) })),
   ];
 }
 
-function pathProperty(row: NodePathPropertyTargetMetadataRow): NodePathPropertyTargetMember {
-  return nodejsModulePropertyTargetMetadata({
-    ...row,
-    declaringType: nodePathTargetType,
-  });
-}
-
-const nodePathPropertyTargetMemberByProviderDeclarationIdentity =
-  nodejsProviderExportDeclarationTargetMemberIndex(nodePathModuleSpecifier, nodePathPropertyTargetMembers());

@@ -1,203 +1,95 @@
-import type {
-  ProviderExportDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import {
-  csharpDelegateTargetType,
-  csharpNullableTargetType,
-  csharpNullableValueTargetType,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpTsValueTargetType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import type {
-  TargetTypeRef,
-} from "@tsonic/target-csharp/provider";
-import { callbackProviderType, nodejsCapabilityModuleExports, nodejsTargetNamedType, providerRef } from "../declarations/exports.js";
-import { booleanProviderType, int32ProviderType, stringProviderType, unknownProviderType } from "../model/source-types.js";
-import { nodejsClassPropertyTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
+import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import type { NodejsClassPropertyTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
+import type { NodejsNativeParameterMapping } from "../native/authoring.js";
+import type { NodejsNativeTypeDeclarationLocator, NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeCall, nativeOwner, nativeParameter, nativeSlot } from "../native/authoring.js";
+import { nativeNamedType, nativeNullable, nativeNullableReference } from "../native/locators.js";
+import { callbackProviderType, nodejsCapabilityModuleExports, providerRef } from "../declarations/exports.js";
+import { booleanProviderType, int32ProviderType, stringProviderType, unknownProviderType } from "../model/source-types.js";
 
 export const nodeTlsModuleSpecifier = "node:tls";
-
 const optionClassNames = ["ConnectionOptions", "TlsOptions", "SecureContextOptions"] as const;
-const targetTypes = {
-  TLSSocket: nodejsTargetNamedType("Tsonic.CSharp.Node", "TLSSocket"),
-  Server: nodejsTargetNamedType("Tsonic.CSharp.Node", "TLSServer"),
-  SecureContext: nodejsTargetNamedType("Tsonic.CSharp.Node", "SecureContext"),
-  ConnectionOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "ConnectionOptions"),
-  TlsOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "TlsOptions"),
-  SecureContextOptions: nodejsTargetNamedType("Tsonic.CSharp.Node", "SecureContextOptions"),
+const owners = {
+  TLSSocket: nativeOwner("Tsonic.CSharp.Node.TLSSocket"), Server: nativeOwner("Tsonic.CSharp.Node.TLSServer"),
+  SecureContext: nativeOwner("Tsonic.CSharp.Node.SecureContext"), ConnectionOptions: nativeOwner("Tsonic.CSharp.Node.ConnectionOptions"),
+  TlsOptions: nativeOwner("Tsonic.CSharp.Node.TlsOptions"), SecureContextOptions: nativeOwner("Tsonic.CSharp.Node.SecureContextOptions"),
 };
-const tlsTargetType = nodejsTargetNamedType("Tsonic.CSharp.Node", "tls");
-const stringTargetType = csharpStringTargetType();
-const nullableStringTargetType = csharpNullableTargetType(stringTargetType);
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const nullableIntTargetType = csharpNullableValueTargetType(intTargetType);
-const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const nullableBoolTargetType = csharpNullableValueTargetType(boolTargetType);
-const tsValueTargetType = csharpTsValueTargetType();
-const actionProviderType = callbackProviderType("node:tls.secure-connect-listener", []);
-const actionTargetType = csharpDelegateTargetType("System.Action", []);
-const socketListenerProviderType = callbackProviderType("node:tls.secure-connection-listener", [
-  { name: "socket", type: providerRef(nodeTlsModuleSpecifier, "TLSSocket") },
-]);
-const socketListenerTargetType = csharpDelegateTargetType("System.Action", [targetTypes.TLSSocket]);
-
-export function nodeTlsExports(): readonly ProviderExportDeclaration[] {
-  return nodejsCapabilityModuleExports({
-    moduleSpecifier: nodeTlsModuleSpecifier,
-    moduleCalls: nodeTlsCallTargetMembers(),
-    classProperties: nodeTlsClassPropertyTargetMembers(),
-    classes: ["TLSSocket", "Server", "SecureContext", ...optionClassNames],
-    classHeritage: {
-      TLSSocket: [providerRef("node:net", "Socket")],
-      Server: [providerRef("node:net", "Server")],
-    },
-  });
-}
+const owner = nativeOwner("Tsonic.CSharp.Node.tls");
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
+const nativeBool: NodejsNativeTypeLocator = { kind: "source-primitive", name: "bool" };
+const value = nativeNamedType("Tsonic.CSharp.Runtime.TsValue");
+const action = nativeNullableReference(nativeNamedType("System.Action"));
+const actionProvider = callbackProviderType("node:tls.secure-connect-listener", []);
+const listener = nativeNullableReference(nativeNamedType("System.Action`1", nativeNamedType(owners.TLSSocket.metadataName)));
+const listenerProvider = callbackProviderType("node:tls.secure-connection-listener", [{ name: "socket", type: providerClass("TLSSocket") }]);
 
 export function nodeTlsCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
-  return Object.freeze([
-    moduleCall("connect", [{ name: "options", type: providerClass("ConnectionOptions") }, optionalAction("secureConnectListener")], providerClass("TLSSocket"), [
-      targetParameter("options", targetTypes.ConnectionOptions),
-      targetParameter("secureConnectListener", actionTargetType, { optional: true }),
-    ], targetTypes.TLSSocket),
-    moduleCall("connect", [int32Parameter("port"), optionalString("host"), optionalProvider("options", providerClass("ConnectionOptions")), optionalAction("secureConnectListener")], providerClass("TLSSocket"), [
-      targetParameter("port", intTargetType),
-      targetParameter("host", nullableStringTargetType, { optional: true }),
-      targetParameter("options", targetTypes.ConnectionOptions, { optional: true }),
-      targetParameter("secureConnectListener", actionTargetType, { optional: true }),
-    ], targetTypes.TLSSocket),
-    moduleCall("createServer", [optionalProvider("secureConnectionListener", socketListenerProviderType)], providerClass("Server"), [
-      targetParameter("secureConnectionListener", socketListenerTargetType, { optional: true }),
-    ], targetTypes.Server),
-    moduleCall("createServer", [{ name: "options", type: providerClass("TlsOptions") }, optionalProvider("secureConnectionListener", socketListenerProviderType)], providerClass("Server"), [
-      targetParameter("options", targetTypes.TlsOptions),
-      targetParameter("secureConnectionListener", socketListenerTargetType, { optional: true }),
-    ], targetTypes.Server),
-    moduleCall("createSecureContext", [optionalProvider("options", providerClass("SecureContextOptions"))], providerClass("SecureContext"), [
-      targetParameter("options", targetTypes.SecureContextOptions, { optional: true }),
-    ], targetTypes.SecureContext),
-  ]);
+  return [
+    call("connect", [{ name: "options", type: providerClass("ConnectionOptions") }, optional("secureConnectListener", actionProvider)], providerClass("TLSSocket"),
+      [nativeParameter(0, nativeNamedType(owners.ConnectionOptions.metadataName)), nativeParameter(1, action)], nativeNamedType(owners.TLSSocket.metadataName)),
+    call("connect", [{ name: "port", type: int32ProviderType }, optional("host", stringProviderType),
+      optional("options", providerClass("ConnectionOptions")), optional("secureConnectListener", actionProvider)], providerClass("TLSSocket"),
+      [nativeParameter(0, nativeInt), nativeParameter(1, nativeNullableReference(nativeString)),
+        nativeParameter(2, nativeNullableReference(nativeNamedType(owners.ConnectionOptions.metadataName))), nativeParameter(3, action)], nativeNamedType(owners.TLSSocket.metadataName)),
+    call("createServer", [optional("secureConnectionListener", listenerProvider)], providerClass("Server"),
+      [nativeParameter(0, listener)], nativeNamedType(owners.Server.metadataName)),
+    call("createServer", [{ name: "options", type: providerClass("TlsOptions") }, optional("secureConnectionListener", listenerProvider)], providerClass("Server"),
+      [nativeParameter(0, nativeNamedType(owners.TlsOptions.metadataName)), nativeParameter(1, listener)], nativeNamedType(owners.Server.metadataName)),
+    call("createSecureContext", [optional("options", providerClass("SecureContextOptions"))], providerClass("SecureContext"),
+      [nativeParameter(0, nativeNullableReference(nativeNamedType(owners.SecureContextOptions.metadataName)))], nativeNamedType(owners.SecureContext.metadataName)),
+  ];
 }
 
 export function nodeTlsClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
   const properties: NodejsClassPropertyTargetMetadata[] = [
-    readonlyProperty("TLSSocket", "authorized", booleanProviderType, boolTargetType, targetTypes.TLSSocket),
-    readonlyProperty("TLSSocket", "encrypted", booleanProviderType, boolTargetType, targetTypes.TLSSocket),
-    readonlyProperty("TLSSocket", "alpnProtocol", stringProviderType, nullableStringTargetType, targetTypes.TLSSocket),
+    property("TLSSocket", owners.TLSSocket, "authorized", booleanProviderType, nativeBool, false, true),
+    property("TLSSocket", owners.TLSSocket, "encrypted", booleanProviderType, nativeBool, false, true),
+    property("TLSSocket", owners.TLSSocket, "alpnProtocol", stringProviderType, nativeNullableReference(nativeString), false, true),
   ];
   for (const exportName of optionClassNames) {
-    for (const memberName of ["ca", "cert", "key"] as const)
-      properties.push(optionProperty(exportName, memberName, unknownProviderType, tsValueTargetType));
-    properties.push(
-      optionProperty(exportName, "passphrase", stringProviderType, nullableStringTargetType),
-    );
+    for (const name of ["ca", "cert", "key"]) properties.push(property(exportName, owners[exportName], name, unknownProviderType, value));
+    properties.push(property(exportName, owners[exportName], "passphrase", stringProviderType, nativeNullableReference(nativeString)));
   }
   properties.push(
-    optionProperty("ConnectionOptions", "host", stringProviderType, nullableStringTargetType),
-    optionProperty("ConnectionOptions", "port", int32ProviderType, nullableIntTargetType),
-    optionProperty("ConnectionOptions", "servername", stringProviderType, nullableStringTargetType),
-    optionProperty("ConnectionOptions", "rejectUnauthorized", booleanProviderType, nullableBoolTargetType),
-    optionProperty("ConnectionOptions", "timeout", int32ProviderType, nullableIntTargetType),
-    optionProperty("TlsOptions", "rejectUnauthorized", booleanProviderType, nullableBoolTargetType),
-    optionProperty("TlsOptions", "requestCert", booleanProviderType, nullableBoolTargetType),
-    optionProperty("TlsOptions", "handshakeTimeout", int32ProviderType, nullableIntTargetType),
-    optionProperty("SecureContextOptions", "pfx", unknownProviderType, tsValueTargetType),
-    optionProperty("SecureContextOptions", "minVersion", stringProviderType, nullableStringTargetType),
-    optionProperty("SecureContextOptions", "maxVersion", stringProviderType, nullableStringTargetType),
+    property("ConnectionOptions", owners.ConnectionOptions, "host", stringProviderType, nativeNullableReference(nativeString)),
+    property("ConnectionOptions", owners.ConnectionOptions, "port", int32ProviderType, nativeNullable(nativeInt)),
+    property("ConnectionOptions", owners.ConnectionOptions, "servername", stringProviderType, nativeNullableReference(nativeString)),
+    property("ConnectionOptions", owners.ConnectionOptions, "rejectUnauthorized", booleanProviderType, nativeNullable(nativeBool)),
+    property("ConnectionOptions", owners.ConnectionOptions, "timeout", int32ProviderType, nativeNullable(nativeInt)),
+    property("TlsOptions", owners.TlsOptions, "rejectUnauthorized", booleanProviderType, nativeNullable(nativeBool)),
+    property("TlsOptions", owners.TlsOptions, "requestCert", booleanProviderType, nativeNullable(nativeBool)),
+    property("TlsOptions", owners.TlsOptions, "handshakeTimeout", int32ProviderType, nativeNullable(nativeInt)),
+    property("SecureContextOptions", owners.SecureContextOptions, "pfx", unknownProviderType, value),
+    property("SecureContextOptions", owners.SecureContextOptions, "minVersion", stringProviderType, nativeNullableReference(nativeString)),
+    property("SecureContextOptions", owners.SecureContextOptions, "maxVersion", stringProviderType, nativeNullableReference(nativeString)),
   );
   return Object.freeze(properties);
 }
 
-function moduleCall(
-  exportName: string,
-  providerParameters: readonly ProviderParameterDeclaration[],
-  providerReturnType: ProviderTypeExpression,
-  targetParameters: Parameters<typeof nodejsModuleCallTargetMetadata>[0]["targetParameters"],
-  targetReturnType: TargetTypeRef,
+export function nodeTlsExports(): readonly ProviderExportDeclaration[] {
+  return nodejsCapabilityModuleExports({ moduleSpecifier: nodeTlsModuleSpecifier, moduleCalls: nodeTlsCallTargetMembers(),
+    classProperties: nodeTlsClassPropertyTargetMembers(), classes: ["TLSSocket", "Server", "SecureContext", ...optionClassNames],
+    classHeritage: { TLSSocket: [providerRef("node:net", "Socket")], Server: [providerRef("node:net", "Server")] } });
+}
+function call(
+  exportName: string, providerParameters: readonly ProviderParameterDeclaration[], providerReturnType: ProviderTypeExpression,
+  parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator,
 ): NodejsModuleCallTargetMetadata {
-  const shape = providerParameters.map((parameter) => parameter.name).join(",");
-  return nodejsModuleCallTargetMetadata({
-    exportName,
-    signatureId: `${nodeTlsModuleSpecifier}.${exportName}(${shape})`,
-    targetMemberId: `Tsonic.CSharp.Node.tls.${exportName}(${shape})`,
-    sourceName: exportName,
-    targetName: exportName,
-    providerParameters,
-    providerReturnType,
-    targetParameters,
-    targetReturnType,
-    declaringType: tlsTargetType,
-  });
+  return { exportName, signatureId: `node:tls.${exportName}(${providerParameters.map(parameter => parameter.name).join(",")})`,
+    providerParameters, providerReturnType, native: nativeCall({ owner, kind: "method", targetName: exportName, static: true,
+      parameters, returnType, receiver: { kind: "none" } }) };
 }
-
-function optionProperty(
-  exportName: (typeof optionClassNames)[number],
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-): NodejsClassPropertyTargetMetadata {
-  return {
-    ...property(exportName, memberName, providerType, targetReturnType, targetTypes[exportName]),
-    optional: true,
-  };
-}
-
-function readonlyProperty(
-  exportName: "TLSSocket",
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-  declaringType: TargetTypeRef,
-): NodejsClassPropertyTargetMetadata {
-  return {
-    ...property(exportName, memberName, providerType, targetReturnType, declaringType),
-    readonly: true,
-  };
-}
-
 function property(
-  exportName: string,
-  memberName: string,
-  providerType: ProviderTypeExpression,
-  targetReturnType: TargetTypeRef,
-  declaringType: TargetTypeRef,
+  exportName: string, physicalOwner: NodejsNativeTypeDeclarationLocator, memberName: string, providerType: ProviderTypeExpression,
+  type: NodejsNativeTypeLocator, optional = true, readonly = false,
 ): NodejsClassPropertyTargetMetadata {
-  return nodejsClassPropertyTargetMetadata({
-    exportName,
-    memberName,
-    memberId: `${nodeTlsModuleSpecifier}.${exportName}.${memberName}`,
-    targetMemberId: `${declaringType.kind === "target-named" ? declaringType.id : exportName}.${memberName}`,
-    sourceName: memberName,
-    targetName: memberName,
-    memberKind: "property",
-    providerType,
-    targetParameters: [],
-    targetReturnType,
-    declaringType,
-  });
+  return { exportName, memberName, memberId: `node:tls.${exportName}.${memberName}`, memberKind: "property", providerType,
+    ...optional ? { optional: true } : {}, ...readonly ? { readonly: true } : {}, native: nativeSlot(physicalOwner, memberName, type) };
 }
-
-function providerClass(exportName: keyof typeof targetTypes): ProviderTypeExpression {
+function providerClass(exportName: keyof typeof owners): ProviderTypeExpression {
   return providerRef(nodeTlsModuleSpecifier, exportName);
 }
-
-function int32Parameter(name: string): ProviderParameterDeclaration {
-  return { name, type: int32ProviderType };
-}
-
-function optionalString(name: string): ProviderParameterDeclaration {
-  return { name, type: stringProviderType, optional: true };
-}
-
-function optionalAction(name: string): ProviderParameterDeclaration {
-  return { name, type: actionProviderType, optional: true };
-}
-
-function optionalProvider(name: string, type: ProviderTypeExpression): ProviderParameterDeclaration {
+function optional(name: string, type: ProviderTypeExpression): ProviderParameterDeclaration {
   return { name, type, optional: true };
 }

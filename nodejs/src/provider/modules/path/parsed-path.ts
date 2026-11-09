@@ -1,119 +1,24 @@
-import type {
-  ProviderExportDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import { nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
-import type { NodejsClassPropertyTargetMetadataRow } from "../../model/target-members.js";
-import type { NodejsClassPropertyTargetMember } from "../../model/members.js";
-import {
-  nodePathParsedPathBaseMemberId,
-  nodePathParsedPathDirMemberId,
-  nodePathParsedPathExportName,
-  nodePathParsedPathExtMemberId,
-  nodePathParsedPathNameMemberId,
-  nodePathParsedPathRootMemberId,
-} from "./identity.js";
-import {
-  parsedPathTargetType,
-  stringProviderType,
-  stringTargetType,
-} from "./types.js";
+import type { ProviderExportDeclaration } from "@tsonic/tsts";
+import type { NodejsClassPropertyTargetMetadata } from "../../model/target-members.js";
+import { nativeSlot } from "../../native/authoring.js";
+import { parsedPathOwner, stringProviderType } from "./types.js";
+import { nodePathParsedPathBaseMemberId, nodePathParsedPathDirMemberId, nodePathParsedPathExportName,
+  nodePathParsedPathExtMemberId, nodePathParsedPathNameMemberId, nodePathParsedPathRootMemberId } from "./identity.js";
 
-export function nodePathClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMember[] {
-  return nodePathParsedPathTargetMetadataRows.map(nodejsClassPropertyTargetMetadata);
+const properties = [
+  ["root", nodePathParsedPathRootMemberId], ["dir", nodePathParsedPathDirMemberId], ["base", nodePathParsedPathBaseMemberId],
+  ["ext", nodePathParsedPathExtMemberId], ["name", nodePathParsedPathNameMemberId],
+] as const;
+
+export function nodePathClassPropertyTargetMembers(): readonly NodejsClassPropertyTargetMetadata[] {
+  return properties.map(([memberName, memberId]) => ({
+    exportName: nodePathParsedPathExportName, memberName, memberId, memberKind: "property", providerType: stringProviderType,
+    native: nativeSlot(parsedPathOwner, memberName, { kind: "string" }),
+  }));
 }
 
 export function nodePathParsedPathExportDeclaration(): ProviderExportDeclaration {
-  return {
-    id: `node:path.${nodePathParsedPathExportName}`,
-    name: nodePathParsedPathExportName,
-    kind: "interface",
-    members: [
-      ...nodePathParsedPathTargetMetadataRows.map(({ memberId, memberName }) => parsedPathProperty(memberId, memberName)),
-    ],
-  };
+  return { id: `node:path.${nodePathParsedPathExportName}`, name: nodePathParsedPathExportName, kind: "interface",
+    members: properties.map(([name, id]) => ({ id, name, kind: "property", readonly: true, type: stringProviderType })) };
 }
 
-function parsedPathProperty(id: string, name: string): {
-  readonly id: string;
-  readonly name: string;
-  readonly kind: "property";
-  readonly readonly: true;
-  readonly type: ProviderTypeExpression;
-} {
-  return {
-    id,
-    name,
-    kind: "property",
-    readonly: true,
-    type: stringProviderType,
-  };
-}
-
-const nodePathParsedPathTargetMetadataRows = [
-  {
-    exportName: nodePathParsedPathExportName,
-    memberName: "root",
-    memberId: nodePathParsedPathRootMemberId,
-    targetMemberId: "Tsonic.CSharp.Node.ParsedPath.root",
-    sourceName: "root",
-    targetName: "root",
-    memberKind: "property",
-    providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: stringTargetType,
-    declaringType: parsedPathTargetType,
-  },
-  {
-    exportName: nodePathParsedPathExportName,
-    memberName: "dir",
-    memberId: nodePathParsedPathDirMemberId,
-    targetMemberId: "Tsonic.CSharp.Node.ParsedPath.dir",
-    sourceName: "dir",
-    targetName: "dir",
-    memberKind: "property",
-    providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: stringTargetType,
-    declaringType: parsedPathTargetType,
-  },
-  {
-    exportName: nodePathParsedPathExportName,
-    memberName: "base",
-    memberId: nodePathParsedPathBaseMemberId,
-    targetMemberId: "Tsonic.CSharp.Node.ParsedPath.@base",
-    sourceName: "base",
-    targetName: "@base",
-    memberKind: "property",
-    providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: stringTargetType,
-    declaringType: parsedPathTargetType,
-  },
-  {
-    exportName: nodePathParsedPathExportName,
-    memberName: "ext",
-    memberId: nodePathParsedPathExtMemberId,
-    targetMemberId: "Tsonic.CSharp.Node.ParsedPath.ext",
-    sourceName: "ext",
-    targetName: "ext",
-    memberKind: "property",
-    providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: stringTargetType,
-    declaringType: parsedPathTargetType,
-  },
-  {
-    exportName: nodePathParsedPathExportName,
-    memberName: "name",
-    memberId: nodePathParsedPathNameMemberId,
-    targetMemberId: "Tsonic.CSharp.Node.ParsedPath.name",
-    sourceName: "name",
-    targetName: "name",
-    memberKind: "property",
-    providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: stringTargetType,
-    declaringType: parsedPathTargetType,
-  },
-] satisfies readonly NodejsClassPropertyTargetMetadataRow[];

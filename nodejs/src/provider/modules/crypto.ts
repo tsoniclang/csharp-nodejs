@@ -1,300 +1,136 @@
+import type { ProviderExportDeclaration, ProviderParameterDeclaration, ProviderTypeExpression } from "@tsonic/tsts";
 import { int32ProviderType } from "../model/source-types.js";
-import type {
-  ProviderExportDeclaration,
-  ProviderMemberDeclaration,
-  ProviderParameterDeclaration,
-  ProviderTypeExpression,
-} from "@tsonic/tsts";
-import type {
-  CsharpTargetMember,
-  TargetTypeRef,
-} from "@tsonic/target-csharp/provider";
-import {
-  csharpQualifiedTypeRenderShape,
-  csharpSourcePrimitiveTargetType,
-  csharpStringTargetType,
-  csharpTargetNamedType,
-  targetParameter,
-} from "@tsonic/target-csharp/provider";
-import {
-  nodeBufferExportName,
-  nodeBufferModuleSpecifier,
-  nodeBufferTargetType,
-} from "./buffer/identities.js";
-import {
-  getNodejsProviderExportSignatureDeclarationTargetMember,
-  nodejsProviderExportSignatureDeclarationTargetMemberIndex,
-} from "../metadata-indexes.js";
-import { nodejsClassCallTargetMetadata, nodejsModuleCallTargetMetadata } from "../declarations/target-members.js";
-import {
-  nodejsDefaultModuleObjectExports,
-} from "../declarations/defaults.js";
+import type { NodejsClassCallTargetMetadata, NodejsModuleCallTargetMetadata } from "../model/target-members.js";
 import type { NodejsUnsupportedTargetIdentity } from "../model/members.js";
-import type { NodejsClassCallTargetMetadata, NodejsClassCallTargetMetadataRow, NodejsModuleCallTargetMetadata, NodejsModuleCallTargetMetadataRow } from "../model/target-members.js";
-
-const stringProviderType = { kind: "string" } satisfies ProviderTypeExpression;
-const numberProviderType = { kind: "number" } satisfies ProviderTypeExpression;
-const boolProviderType = { kind: "boolean" } satisfies ProviderTypeExpression;
-const unknownProviderType = { kind: "unknown" } satisfies ProviderTypeExpression;
-const bufferProviderType = {
-  kind: "provider-ref",
-  moduleSpecifier: nodeBufferModuleSpecifier,
-  exportName: nodeBufferExportName,
-} satisfies ProviderTypeExpression;
-const stringTargetType = csharpStringTargetType();
-const intTargetType = csharpSourcePrimitiveTargetType("int32");
-const boolTargetType = csharpSourcePrimitiveTargetType("bool");
-const cryptoTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.crypto", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "crypto"), { allowsRefLikeTypeArguments: [] });
-const hashTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hash", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hash"), { allowsRefLikeTypeArguments: [] });
-const hmacTargetType = csharpTargetNamedType("Tsonic.CSharp.Node.Hmac", undefined, csharpQualifiedTypeRenderShape("Tsonic.CSharp.Node", "Hmac"), { allowsRefLikeTypeArguments: [] });
-
-const nodeCryptoHashExportName = "Hash";
-const nodeCryptoHmacExportName = "Hmac";
-const hashProviderType = { kind: "provider-ref", moduleSpecifier: "node:crypto", exportName: nodeCryptoHashExportName } satisfies ProviderTypeExpression;
-const hmacProviderType = { kind: "provider-ref", moduleSpecifier: "node:crypto", exportName: nodeCryptoHmacExportName } satisfies ProviderTypeExpression;
-
-type NodeCryptoCallTargetMember = NodejsModuleCallTargetMetadata;
-type NodeCryptoClassCallTargetMember = NodejsClassCallTargetMetadata;
-type NodeCryptoCallTargetMetadataRow = Omit<NodejsModuleCallTargetMetadataRow, "declaringType">;
-type NodeCryptoClassCallTargetMetadataRow = NodejsClassCallTargetMetadataRow;
+import type { NodejsNativeParameterMapping } from "../native/authoring.js";
+import type { NodejsNativeTypeDeclarationLocator, NodejsNativeTypeLocator } from "../native/locators.js";
+import { nativeCall, nativeOwner, nativeParameter } from "../native/authoring.js";
+import { nativeArray, nativeNamedType, nativeNullable, nativeNullableReference } from "../native/locators.js";
+import { nodejsDefaultModuleObjectExports } from "../declarations/defaults.js";
 
 export const nodeCryptoModuleSpecifier = "node:crypto";
 export const nodeCryptoRandomUuidExportName = "randomUUID";
 export const nodeCryptoRandomUuidSignatureId = "node:crypto.randomUUID()";
+const stringProviderType: ProviderTypeExpression = { kind: "string" };
+const unknownProviderType: ProviderTypeExpression = { kind: "unknown" };
+const boolProviderType: ProviderTypeExpression = { kind: "boolean" };
+const bufferProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: "node:buffer", exportName: "Buffer" };
+const stringArrayProviderType: ProviderTypeExpression = { kind: "array", elementType: stringProviderType };
+const nativeString: NodejsNativeTypeLocator = { kind: "string" };
+const nativeInt: NodejsNativeTypeLocator = { kind: "source-primitive", name: "int32" };
+const nativeBool: NodejsNativeTypeLocator = { kind: "source-primitive", name: "bool" };
+const nativeBuffer = nativeNamedType("Tsonic.CSharp.Node.Buffer");
+const cryptoOwner = nativeOwner("Tsonic.CSharp.Node.crypto");
+const hashOwner = nativeOwner("Tsonic.CSharp.Node.Hash");
+const hmacOwner = nativeOwner("Tsonic.CSharp.Node.Hmac");
+const hashProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: nodeCryptoModuleSpecifier, exportName: "Hash" };
+const hmacProviderType: ProviderTypeExpression = { kind: "provider-ref", moduleSpecifier: nodeCryptoModuleSpecifier, exportName: "Hmac" };
+const stringParameter = (name: string, optional = false): ProviderParameterDeclaration =>
+  ({ name, type: stringProviderType, ...(optional ? { optional: true } : {}) });
+const intParameter = (name: string, optional = false): ProviderParameterDeclaration =>
+  ({ name, type: int32ProviderType, ...(optional ? { optional: true } : {}) });
+
+export function nodeCryptoCallTargetMembers(): readonly NodejsModuleCallTargetMetadata[] {
+  return [
+    call("createHash", "node:crypto.createHash(System.String)", [stringParameter("algorithm")], hashProviderType,
+      [nativeParameter(0, nativeString)], nativeNamedType(hashOwner.metadataName)),
+    call("createHmac", "node:crypto.createHmac(System.String,System.String)", [stringParameter("algorithm"), stringParameter("key")], hmacProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeString)], nativeNamedType(hmacOwner.metadataName)),
+    call("createHmac", "node:crypto.createHmac(System.String,Tsonic.CSharp.Node.Buffer)", [stringParameter("algorithm"), { name: "key", type: bufferProviderType }], hmacProviderType,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeBuffer)], nativeNamedType(hmacOwner.metadataName)),
+    ...["getCiphers", "getCurves", "getHashes"].map(name => call(name, `node:crypto.${name}()`, [], stringArrayProviderType, [], nativeArray(nativeString))),
+    call("randomBytes", "node:crypto.randomBytes(System.Int32)", [intParameter("size")], bufferProviderType,
+      [nativeParameter(0, nativeInt)], nativeBuffer, "randomBytesBuffer"),
+    call("randomFillSync", "node:crypto.randomFillSync(Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32)",
+      [{ name: "buffer", type: bufferProviderType }, intParameter("offset", true), intParameter("size", true)], bufferProviderType,
+      [nativeParameter(0, nativeBuffer), nativeParameter(1, nativeInt), nativeParameter(2, nativeNullable(nativeInt))], nativeBuffer),
+    call("randomInt", "node:crypto.randomInt(System.Int32)", [intParameter("max")], int32ProviderType,
+      [nativeParameter(0, nativeInt)], nativeInt),
+    call("randomInt", "node:crypto.randomInt(System.Int32,System.Int32)", [intParameter("min"), intParameter("max")], int32ProviderType,
+      [nativeParameter(0, nativeInt), nativeParameter(1, nativeInt)], nativeInt),
+    call(nodeCryptoRandomUuidExportName, nodeCryptoRandomUuidSignatureId, [], stringProviderType, [], nativeString),
+    call("timingSafeEqual", "node:crypto.timingSafeEqual(Tsonic.CSharp.Node.Buffer,Tsonic.CSharp.Node.Buffer)",
+      [{ name: "a", type: bufferProviderType }, { name: "b", type: bufferProviderType }], boolProviderType,
+      [nativeParameter(0, nativeBuffer), nativeParameter(1, nativeBuffer)], nativeBool),
+  ];
+}
+
+export function nodeCryptoClassCallTargetMembers(): readonly NodejsClassCallTargetMetadata[] {
+  const groups: readonly (readonly [string, NodejsNativeTypeDeclarationLocator, ProviderTypeExpression])[] = [
+    ["Hash", hashOwner, hashProviderType], ["Hmac", hmacOwner, hmacProviderType],
+  ];
+  return groups.flatMap(([exportName, owner, result]) => [
+    classCall(exportName, owner, "update", `node:crypto.${exportName}.update(System.String,System.String)`,
+      [stringParameter("data"), stringParameter("inputEncoding", true)], result,
+      [nativeParameter(0, nativeString), nativeParameter(1, nativeNullableReference(nativeString))], nativeNamedType(owner.metadataName)),
+    classCall(exportName, owner, "update", `node:crypto.${exportName}.update(Tsonic.CSharp.Node.Buffer)`,
+      [{ name: "data", type: bufferProviderType }], result, [nativeParameter(0, nativeBuffer)], nativeNamedType(owner.metadataName)),
+    classCall(exportName, owner, "digest", `node:crypto.${exportName}.digest(System.String)`,
+      [stringParameter("encoding")], stringProviderType, [nativeParameter(0, nativeNullableReference(nativeString))], nativeString),
+    classCall(exportName, owner, "digest", `node:crypto.${exportName}.digest()`, [], bufferProviderType, [], nativeBuffer, "digestBuffer"),
+    ...(exportName === "Hash" ? [classCall(exportName, owner, "copy", "node:crypto.Hash.copy()", [], result, [], nativeNamedType(owner.metadataName))] : []),
+  ]);
+}
 
 export function nodeCryptoExports(): readonly ProviderExportDeclaration[] {
-  const membersByExportName = new Map<string, readonly NodeCryptoCallTargetMember[]>();
-  for (const member of nodeCryptoCallTargetMembers()) {
-    membersByExportName.set(member.exportName, [...membersByExportName.get(member.exportName) ?? [], member]);
+  const calls = new Map<string, NodejsModuleCallTargetMetadata[]>();
+  for (const entry of nodeCryptoCallTargetMembers()) {
+    const entries = calls.get(entry.exportName);
+    if (entries === undefined) calls.set(entry.exportName, [entry]);
+    else entries.push(entry);
   }
-  const exports = [
-    nodeCryptoHashExportDeclaration(),
-    nodeCryptoHmacExportDeclaration(),
-    ...nodeCryptoUnsupportedFunctionDeclarations(),
-    ...[...membersByExportName.entries()].map(([exportName, members]) => ({
-      id: `node:crypto.${exportName}`,
-      name: exportName,
-      kind: "function" as const,
-      signatures: members.map((member) => ({
-        id: member.signatureId,
-        parameters: member.providerParameters,
-        returnType: member.providerReturnType,
-      })),
-    })),
+  const classCalls = nodeCryptoClassCallTargetMembers();
+  const exports: readonly ProviderExportDeclaration[] = [
+    ...["Hash", "Hmac"].map(exportName => {
+      const members = new Map<string, NodejsClassCallTargetMetadata[]>();
+      for (const entry of classCalls) {
+        if (entry.exportName !== exportName) continue;
+        const entries = members.get(entry.memberId);
+        if (entries === undefined) members.set(entry.memberId, [entry]);
+        else entries.push(entry);
+      }
+      return { id: `node:crypto.${exportName}`, name: exportName, kind: "class" as const,
+        members: [...members.values()].map(entries => {
+          const first = entries[0]!;
+          return { id: first.memberId, name: first.memberName, kind: first.memberKind,
+            signatures: entries.map(entry => ({ id: entry.signatureId, parameters: entry.providerParameters, returnType: entry.providerReturnType })) };
+        }) };
+    }),
+    ...nodeCryptoUnsupportedCalls.map(entry => ({ id: `node:crypto.${entry.exportName}`, name: entry.exportName, kind: "function" as const,
+      signatures: [{ id: entry.signatureId, parameters: entry.providerParameters, returnType: entry.providerReturnType }] })),
+    ...[...calls].map(([exportName, entries]) => ({ id: `node:crypto.${exportName}`, name: exportName, kind: "function" as const,
+      signatures: entries.map(entry => ({ id: entry.signatureId, parameters: entry.providerParameters, returnType: entry.providerReturnType })) })),
   ];
-  return [
-    ...exports,
-    ...nodejsDefaultModuleObjectExports(nodeCryptoModuleSpecifier, exports),
-  ];
-}
-
-export function getNodeCryptoRandomUuidTargetMember(): CsharpTargetMember {
-  const member = getNodeCryptoCallTargetMember(nodeCryptoRandomUuidExportName, nodeCryptoRandomUuidSignatureId);
-  if (member === undefined) {
-    throw new Error("Missing C# NodeJS crypto.randomUUID target member.");
-  }
-  return member;
-}
-
-export function getNodeCryptoCallTargetMember(
-  exportName: string | undefined,
-  signatureId: string | undefined,
-): CsharpTargetMember | undefined {
-  return getNodejsProviderExportSignatureDeclarationTargetMember(
-    nodeCryptoCallTargetMemberByProviderDeclarationIdentity,
-    nodeCryptoModuleSpecifier,
-    exportName,
-    signatureId,
-  );
-}
-
-export function nodeCryptoCallTargetMembers(): readonly NodeCryptoCallTargetMember[] {
-  const int32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType });
-  const optionalInt32Parameter = (name: string): ProviderParameterDeclaration => ({ name, type: int32ProviderType, optional: true });
-  const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
-  const stringArrayProviderType = { kind: "array", elementType: stringProviderType } satisfies ProviderTypeExpression;
-  const stringArrayTargetType = { kind: "array", element: stringTargetType } satisfies TargetTypeRef;
-  return [
-    cryptoCall({ exportName: "createHash", signatureId: "node:crypto.createHash(System.String)", targetMemberId: "Tsonic.CSharp.Node.crypto.createHash(System.String)", sourceName: "createHash", targetName: "createHash", providerParameters: [stringParameter("algorithm")], providerReturnType: hashProviderType, targetParameters: [
-      targetParameter("algorithm", stringTargetType),
-    ], targetReturnType: hashTargetType }),
-    cryptoCall({ exportName: "createHmac", signatureId: "node:crypto.createHmac(System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.crypto.createHmac(System.String,System.String)", sourceName: "createHmac", targetName: "createHmac", providerParameters: [stringParameter("algorithm"), stringParameter("key")], providerReturnType: hmacProviderType, targetParameters: [
-      targetParameter("algorithm", stringTargetType),
-      targetParameter("key", stringTargetType),
-    ], targetReturnType: hmacTargetType }),
-    cryptoCall({ exportName: "createHmac", signatureId: "node:crypto.createHmac(System.String,Tsonic.CSharp.Node.Buffer)", targetMemberId: "Tsonic.CSharp.Node.crypto.createHmac(System.String,Tsonic.CSharp.Node.Buffer)", sourceName: "createHmac", targetName: "createHmac", providerParameters: [stringParameter("algorithm"), { name: "key", type: bufferProviderType }], providerReturnType: hmacProviderType, targetParameters: [
-      targetParameter("algorithm", stringTargetType),
-      targetParameter("key", nodeBufferTargetType),
-    ], targetReturnType: hmacTargetType }),
-    cryptoCall({ exportName: "getCiphers", signatureId: "node:crypto.getCiphers()", targetMemberId: "Tsonic.CSharp.Node.crypto.getCiphers()", sourceName: "getCiphers", targetName: "getCiphers", providerParameters: [], providerReturnType: stringArrayProviderType, targetParameters: [], targetReturnType: stringArrayTargetType }),
-    cryptoCall({ exportName: "getCurves", signatureId: "node:crypto.getCurves()", targetMemberId: "Tsonic.CSharp.Node.crypto.getCurves()", sourceName: "getCurves", targetName: "getCurves", providerParameters: [], providerReturnType: stringArrayProviderType, targetParameters: [], targetReturnType: stringArrayTargetType }),
-    cryptoCall({ exportName: "getHashes", signatureId: "node:crypto.getHashes()", targetMemberId: "Tsonic.CSharp.Node.crypto.getHashes()", sourceName: "getHashes", targetName: "getHashes", providerParameters: [], providerReturnType: stringArrayProviderType, targetParameters: [], targetReturnType: stringArrayTargetType }),
-    cryptoCall({ exportName: "randomBytes", signatureId: "node:crypto.randomBytes(System.Int32)", targetMemberId: "Tsonic.CSharp.Node.crypto.randomBytesBuffer(System.Int32)", sourceName: "randomBytes", targetName: "randomBytesBuffer", providerParameters: [int32Parameter("size")], providerReturnType: bufferProviderType, targetParameters: [
-      targetParameter("size", intTargetType),
-    ], targetReturnType: nodeBufferTargetType }),
-    cryptoCall({ exportName: "randomFillSync", signatureId: "node:crypto.randomFillSync(Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32)", targetMemberId: "Tsonic.CSharp.Node.crypto.randomFillSync(Tsonic.CSharp.Node.Buffer,System.Int32,System.Int32)", sourceName: "randomFillSync", targetName: "randomFillSync", providerParameters: [
-      { name: "buffer", type: bufferProviderType },
-      optionalInt32Parameter("offset"),
-      optionalInt32Parameter("size"),
-    ], providerReturnType: bufferProviderType, targetParameters: [
-      targetParameter("buffer", nodeBufferTargetType),
-      targetParameter("offset", intTargetType, { optional: true }),
-      targetParameter("size", intTargetType, { optional: true }),
-    ], targetReturnType: nodeBufferTargetType }),
-    cryptoCall({ exportName: "randomInt", signatureId: "node:crypto.randomInt(System.Int32,System.Int32?)", targetMemberId: "Tsonic.CSharp.Node.crypto.randomInt(System.Int32,System.Int32?)", sourceName: "randomInt", targetName: "randomInt", providerParameters: [int32Parameter("minOrMax"), optionalInt32Parameter("max")], providerReturnType: int32ProviderType, targetParameters: [
-      targetParameter("minOrMax", intTargetType),
-      targetParameter("max", intTargetType, { optional: true }),
-    ], targetReturnType: intTargetType }),
-    cryptoCall({ exportName: nodeCryptoRandomUuidExportName, signatureId: nodeCryptoRandomUuidSignatureId, targetMemberId: "Tsonic.CSharp.Node.crypto.randomUUID()", sourceName: "randomUUID", targetName: "randomUUID", providerParameters: [], providerReturnType: stringProviderType, targetParameters: [], targetReturnType: stringTargetType }),
-    cryptoCall({ exportName: "timingSafeEqual", signatureId: "node:crypto.timingSafeEqual(Tsonic.CSharp.Node.Buffer,Tsonic.CSharp.Node.Buffer)", targetMemberId: "Tsonic.CSharp.Node.crypto.timingSafeEqual(Tsonic.CSharp.Node.Buffer,Tsonic.CSharp.Node.Buffer)", sourceName: "timingSafeEqual", targetName: "timingSafeEqual", providerParameters: [
-      { name: "a", type: bufferProviderType },
-      { name: "b", type: bufferProviderType },
-    ], providerReturnType: boolProviderType, targetParameters: [
-      targetParameter("a", nodeBufferTargetType),
-      targetParameter("b", nodeBufferTargetType),
-    ], targetReturnType: boolTargetType }),
-  ];
-}
-
-export function nodeCryptoClassCallTargetMembers(): readonly NodeCryptoClassCallTargetMember[] {
-  return [
-    ...nodeCryptoHashClassCallTargetMembers(),
-    ...nodeCryptoHmacClassCallTargetMembers(),
-  ];
-}
-
-function nodeCryptoHashClassCallTargetMembers(): readonly NodeCryptoClassCallTargetMember[] {
-  const optionalStringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType, optional: true });
-  const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
-  return [
-    cryptoClassCall({ exportName: nodeCryptoHashExportName, memberName: "update", memberId: "node:crypto.Hash.update", signatureId: "node:crypto.Hash.update(System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.Hash.update(System.String,System.String)", sourceName: "update", targetName: "update", memberKind: "method", providerParameters: [stringParameter("data"), optionalStringParameter("inputEncoding")], providerReturnType: hashProviderType, targetParameters: [
-      targetParameter("data", stringTargetType),
-      targetParameter("inputEncoding", stringTargetType, { optional: true }),
-    ], targetReturnType: hashTargetType, declaringType: hashTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHashExportName, memberName: "update", memberId: "node:crypto.Hash.update", signatureId: "node:crypto.Hash.update(Tsonic.CSharp.Node.Buffer)", targetMemberId: "Tsonic.CSharp.Node.Hash.update(Tsonic.CSharp.Node.Buffer)", sourceName: "update", targetName: "update", memberKind: "method", providerParameters: [{ name: "data", type: bufferProviderType }], providerReturnType: hashProviderType, targetParameters: [
-      targetParameter("data", nodeBufferTargetType),
-    ], targetReturnType: hashTargetType, declaringType: hashTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHashExportName, memberName: "digest", memberId: "node:crypto.Hash.digest", signatureId: "node:crypto.Hash.digest(System.String)", targetMemberId: "Tsonic.CSharp.Node.Hash.digest(System.String)", sourceName: "digest", targetName: "digest", memberKind: "method", providerParameters: [stringParameter("encoding")], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("encoding", stringTargetType),
-    ], targetReturnType: stringTargetType, declaringType: hashTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHashExportName, memberName: "digest", memberId: "node:crypto.Hash.digest", signatureId: "node:crypto.Hash.digest()", targetMemberId: "Tsonic.CSharp.Node.Hash.digestBuffer()", sourceName: "digest", targetName: "digestBuffer", memberKind: "method", providerParameters: [], providerReturnType: bufferProviderType, targetParameters: [], targetReturnType: nodeBufferTargetType, declaringType: hashTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHashExportName, memberName: "copy", memberId: "node:crypto.Hash.copy", signatureId: "node:crypto.Hash.copy()", targetMemberId: "Tsonic.CSharp.Node.Hash.copy()", sourceName: "copy", targetName: "copy", memberKind: "method", providerParameters: [], providerReturnType: hashProviderType, targetParameters: [], targetReturnType: hashTargetType, declaringType: hashTargetType }),
-  ];
-}
-
-function nodeCryptoHmacClassCallTargetMembers(): readonly NodeCryptoClassCallTargetMember[] {
-  const optionalStringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType, optional: true });
-  const stringParameter = (name: string): ProviderParameterDeclaration => ({ name, type: stringProviderType });
-  return [
-    cryptoClassCall({ exportName: nodeCryptoHmacExportName, memberName: "update", memberId: "node:crypto.Hmac.update", signatureId: "node:crypto.Hmac.update(System.String,System.String)", targetMemberId: "Tsonic.CSharp.Node.Hmac.update(System.String,System.String)", sourceName: "update", targetName: "update", memberKind: "method", providerParameters: [stringParameter("data"), optionalStringParameter("inputEncoding")], providerReturnType: hmacProviderType, targetParameters: [
-      targetParameter("data", stringTargetType),
-      targetParameter("inputEncoding", stringTargetType, { optional: true }),
-    ], targetReturnType: hmacTargetType, declaringType: hmacTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHmacExportName, memberName: "update", memberId: "node:crypto.Hmac.update", signatureId: "node:crypto.Hmac.update(Tsonic.CSharp.Node.Buffer)", targetMemberId: "Tsonic.CSharp.Node.Hmac.update(Tsonic.CSharp.Node.Buffer)", sourceName: "update", targetName: "update", memberKind: "method", providerParameters: [{ name: "data", type: bufferProviderType }], providerReturnType: hmacProviderType, targetParameters: [
-      targetParameter("data", nodeBufferTargetType),
-    ], targetReturnType: hmacTargetType, declaringType: hmacTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHmacExportName, memberName: "digest", memberId: "node:crypto.Hmac.digest", signatureId: "node:crypto.Hmac.digest(System.String)", targetMemberId: "Tsonic.CSharp.Node.Hmac.digest(System.String)", sourceName: "digest", targetName: "digest", memberKind: "method", providerParameters: [stringParameter("encoding")], providerReturnType: stringProviderType, targetParameters: [
-      targetParameter("encoding", stringTargetType),
-    ], targetReturnType: stringTargetType, declaringType: hmacTargetType }),
-    cryptoClassCall({ exportName: nodeCryptoHmacExportName, memberName: "digest", memberId: "node:crypto.Hmac.digest", signatureId: "node:crypto.Hmac.digest()", targetMemberId: "Tsonic.CSharp.Node.Hmac.digestBuffer()", sourceName: "digest", targetName: "digestBuffer", memberKind: "method", providerParameters: [], providerReturnType: bufferProviderType, targetParameters: [], targetReturnType: nodeBufferTargetType, declaringType: hmacTargetType }),
-  ];
-}
-
-function nodeCryptoHashExportDeclaration(): ProviderExportDeclaration {
-  return cryptoClassExportDeclaration(
-    nodeCryptoHashExportName,
-    nodeCryptoHashClassCallTargetMembers(),
-  );
-}
-
-function nodeCryptoHmacExportDeclaration(): ProviderExportDeclaration {
-  return cryptoClassExportDeclaration(
-    nodeCryptoHmacExportName,
-    nodeCryptoHmacClassCallTargetMembers(),
-  );
-}
-
-function cryptoClassExportDeclaration(
-  exportName: string,
-  members: readonly NodeCryptoClassCallTargetMember[],
-): ProviderExportDeclaration {
-  return {
-    id: `node:crypto.${exportName}`,
-    name: exportName,
-    kind: "class",
-    members: providerMembersForCryptoClassCalls(members),
-  };
+  return [...exports, ...nodejsDefaultModuleObjectExports(nodeCryptoModuleSpecifier, exports)];
 }
 
 export function nodeCryptoUnsupportedTargetIdentities(): readonly NodejsUnsupportedTargetIdentity[] {
-  return nodeCryptoUnsupportedCalls.map(({ exportName, signatureId, targetIdentityId, displayName }) => ({
-    exportName,
-    signatureId,
-    targetIdentityId,
-    displayName,
-  }));
+  return nodeCryptoUnsupportedCalls.map(({ exportName, signatureId, targetIdentityId, displayName }) =>
+    ({ exportName, signatureId, targetIdentityId, displayName }));
 }
 
-function providerMembersForCryptoClassCalls(
-  members: readonly NodeCryptoClassCallTargetMember[],
-): readonly ProviderMemberDeclaration[] {
-  const membersById = new Map<string, readonly NodeCryptoClassCallTargetMember[]>();
-  for (const member of members) {
-    membersById.set(member.memberId, [...membersById.get(member.memberId) ?? [], member]);
-  }
-  return [...membersById.values()].map((memberGroup) => {
-    const first = memberGroup[0];
-    if (first === undefined) {
-      throw new Error("Missing C# NodeJS crypto provider member group.");
-    }
-    return {
-      id: first.memberId,
-      name: first.memberName,
-      kind: first.memberKind,
-      ...(first.static === true ? { static: true } : {}),
-      signatures: memberGroup.map((member) => ({
-        id: member.signatureId,
-        parameters: member.providerParameters,
-        ...(member.providerReturnType !== undefined ? { returnType: member.providerReturnType } : {}),
-      })),
-    };
-  });
+function call(
+  exportName: string, signatureId: string, providerParameters: readonly ProviderParameterDeclaration[],
+  providerReturnType: ProviderTypeExpression, parameters: readonly NodejsNativeParameterMapping[],
+  returnType: NodejsNativeTypeLocator, targetName = exportName,
+): NodejsModuleCallTargetMetadata {
+  return Object.freeze({ exportName, signatureId, providerParameters, providerReturnType,
+    native: nativeCall({ owner: cryptoOwner, kind: "method", targetName, static: true, parameters, returnType, receiver: { kind: "none" } }) });
 }
 
-function cryptoCall(row: NodeCryptoCallTargetMetadataRow): NodeCryptoCallTargetMember {
-  return nodejsModuleCallTargetMetadata({
-    ...row,
-    declaringType: cryptoTargetType,
-  });
-}
-
-function nodeCryptoUnsupportedFunctionDeclarations(): readonly ProviderExportDeclaration[] {
-  return nodeCryptoUnsupportedCalls.map((entry) => ({
-    id: `node:crypto.${entry.exportName}`,
-    name: entry.exportName,
-    kind: "function",
-    signatures: [{
-      id: entry.signatureId,
-      parameters: entry.providerParameters,
-      returnType: entry.providerReturnType,
-    }],
-  }));
+function classCall(
+  exportName: string, owner: NodejsNativeTypeDeclarationLocator, memberName: string, signatureId: string,
+  providerParameters: readonly ProviderParameterDeclaration[], providerReturnType: ProviderTypeExpression,
+  parameters: readonly NodejsNativeParameterMapping[], returnType: NodejsNativeTypeLocator, targetName = memberName,
+): NodejsClassCallTargetMetadata {
+  return Object.freeze({ exportName, memberName, memberId: `node:crypto.${exportName}.${memberName}`, signatureId, memberKind: "method",
+    providerParameters, providerReturnType,
+    native: nativeCall({ owner, kind: "method", targetName, static: false, parameters, returnType, receiver: { kind: "instance" } }) });
 }
 
 function optionalUnknownParameter(name: string): ProviderParameterDeclaration {
-  return {
-    name,
-    type: unknownProviderType,
-    optional: true,
-  };
+  return { name, type: unknownProviderType, optional: true };
 }
-
-function cryptoClassCall(row: NodeCryptoClassCallTargetMetadataRow): NodeCryptoClassCallTargetMember {
-  return nodejsClassCallTargetMetadata(row);
-}
-
-const nodeCryptoCallTargetMemberByProviderDeclarationIdentity =
-  nodejsProviderExportSignatureDeclarationTargetMemberIndex(nodeCryptoModuleSpecifier, nodeCryptoCallTargetMembers());
 
 const nodeCryptoUnsupportedCalls = [
   {
@@ -372,3 +208,4 @@ const nodeCryptoUnsupportedCalls = [
   readonly providerParameters: readonly ProviderParameterDeclaration[];
   readonly providerReturnType: ProviderTypeExpression;
 }[];
+

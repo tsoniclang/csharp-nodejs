@@ -1,12 +1,10 @@
 import type { ProviderExportDeclaration } from "@tsonic/tsts";
-import { csharpExceptionTargetType, csharpStringTargetType } from "@tsonic/target-csharp/provider";
-import { nodejsClassPropertyTargetMetadata } from "../../declarations/target-members.js";
+import { nativeOwner, nativeSlot } from "../../native/authoring.js";
 import { providerRef, unionProviderType } from "../../declarations/exports.js";
 import { stringProviderType, undefinedProviderType } from "../../model/source-types.js";
 
 export const nodeErrorProviderType = providerRef("node:util", "NodeError");
 export const optionalNodeErrorProviderType = unionProviderType(nodeErrorProviderType, undefinedProviderType);
-export const nodeErrorTargetType = csharpExceptionTargetType();
 
 export function nodeErrorExportDeclaration(): ProviderExportDeclaration {
   return {
@@ -27,18 +25,13 @@ export function nodeErrorExportDeclaration(): ProviderExportDeclaration {
 }
 
 export function nodeErrorClassPropertyTargetMembers() {
-  return [nodejsClassPropertyTargetMetadata({
+  return [{
     exportName: "NodeError",
     memberName: "message",
     memberId: "node:util.NodeError.message",
-    targetMemberId: "System.Exception.Message",
-    sourceName: "message",
-    targetName: "Message",
     memberKind: "property",
     providerType: stringProviderType,
-    targetParameters: [],
-    targetReturnType: csharpStringTargetType(),
-    declaringType: nodeErrorTargetType,
+    native: nativeSlot(nativeOwner("System.Exception"), "Message", { kind: "string" }),
     readonly: true,
-  })];
+  }];
 }
